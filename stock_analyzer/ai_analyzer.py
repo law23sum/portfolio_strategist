@@ -79,8 +79,8 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     # Prepare the system and user messages
     system_content = (
         "You are an Expert Investment Portfolio Strategist with extensive knowledge in financial analysis and market trends. "
-        "You are provided with Stock's Key Financial Ratios and Stock's Aggregated Latest News Articles."
-        "Your task is to analyze both the financial data and the news trends to determine the stock's overall health."
+        # "You are provided with Stock's Key Financial Ratios and Stock's Aggregated Latest News Articles."
+        # "Your task is to analyze both the financial data and the news trends to determine the stock's overall health."
     )
 
     user_content = (
@@ -90,7 +90,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
         "1) Evaluate whether this stock is a healthy investment in terms of being high-return and low-risk.\n"
         "2) Analyze the provided news articles to identify and summarize the main trends and themes related to "
         "   the stock, highlighting specific details such as major events, strategic initiatives, regulatory changes, "
-        "   and significant announcements. Discuss how these factors may impact the company's performance, valuation, and risk profile.\n"
+        "   and significant announcements.\n"
         "3) Provide a comprehensive assessment of the stock's health by combining your analysis of the financial "
         "   ratios and the news trends. Include a thorough response with in-depth insights that analyze the stock's risk-return profile."
     )
@@ -102,13 +102,13 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
 
     try:
         response = openai.ChatCompletion.create(
-                model = "chatgpt-4o-latest",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
+                model = "gpt-4o-mini",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
                 messages = messages,
                 temperature = 0.0,  # Set to 0 for deterministic responses
-                max_tokens = 1000,  # Decrease max_tokens to prevent exceeding the limit
+                max_tokens = 1350,  # Decrease max_tokens to prevent exceeding the limit
                 # top_p = 0.3,  # Limits to top 30% probability mass
-                # frequency_penalty = 2.0,  # Strongly penalizes repeated tokens
-                # presence_penalty = 2.0  # Strongly penalizes reuse of topics
+                # frequency_penalty = 0.0,  # Strongly penalizes repeated tokens
+                # presence_penalty = 0.0  # Strongly penalizes reuse of topics
         )
 
         # Extract the text out of the response

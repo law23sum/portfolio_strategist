@@ -5,6 +5,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+import pandas as pd
 
 
 class PDFGenerator:
@@ -25,6 +26,10 @@ class PDFGenerator:
         self.ratio_definitions = ratio_definitions
         self.styles = getSampleStyleSheet()
         self.width, self.height = letter  # Set as instance variables
+        self.left_margin = 50
+        self.right_margin = 50
+        self.top_margin = 50
+        self.bottom_margin = 50
 
     def generate_pdf(self, file_path):
         """
@@ -35,26 +40,30 @@ class PDFGenerator:
         c = canvas.Canvas(file_path, pagesize=letter)
         self.width, self.height = letter  # Ensure width and height are set
 
+        current_y = self.height - self.top_margin
+
         # Title
         c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(self.width / 2.0, self.height - 50, f"Stock Report: {self.stock_symbol}")
+        c.drawCentredString(self.width / 2.0, current_y, f"Stock Report: {self.stock_symbol}")
 
         # Draw a line below the title
+        current_y -= 10
         c.setStrokeColor(colors.gray)
         c.setLineWidth(1)
-        c.line(50, self.height - 55, self.width - 50, self.height - 55)
+        c.line(self.left_margin, current_y, self.width - self.right_margin, current_y)
+        current_y -= 20  # Space after the line
 
         # Stock Details
-        self._add_stock_details(c, self.height - 80)
+        current_y = self._add_stock_details(c, current_y)
 
         # Ratios as Text
-        self._add_ratios_text(c, self.height - 150)
+        current_y = self._add_ratios_text(c, current_y)
 
         # Ratio Definitions
-        self._add_ratio_definitions(c, self.height - 400)
+        current_y = self._add_ratio_definitions(c, current_y)
 
         # AI Assessment
-        self._add_ai_assessment(c, self.height - 500)
+        current_y = self._add_ai_assessment(c, current_y)
 
         # Save the PDF
         c.save()
@@ -65,19 +74,22 @@ class PDFGenerator:
 
         :param c: The ReportLab canvas object
         :param y_position: The vertical position to start writing
+        :return: Updated y_position after adding stock details
         """
         c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_position, "Stock Details:")
-        c.setFont("Helvetica", 10)
+        c.drawString(self.left_margin, y_position, "Stock Details:")
         y = y_position - 20
+        c.setFont("Helvetica", 10)
         for key, value in self.stock_data.items():
             text = f"{key}: {value}"
-            c.drawString(60, y, text)
+            c.drawString(self.left_margin + 10, y, text)
             y -= 15
-            if y < 100:
+            if y < self.bottom_margin + 50:
                 c.showPage()
-                y = self.height - 50
-        self.current_y = y
+                y = self.height - self.top_margin
+                self._add_header(c, y)
+                y -= 20
+        return y
 
     def _add_ratios_text(self, c, y_position):
         """
@@ -85,21 +97,19 @@ class PDFGenerator:
 
         :param c: The ReportLab canvas object
         :param y_position: The vertical position to start writing
+        :return: Updated y_position after adding ratios
         """
         if self.ratios_table is None or self.ratios_table.empty:
-            return
+            return y_position
 
         c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_position, "Stock Ratios:")
+        c.drawString(self.left_margin, y_position, "Stock Ratios:")
         y = y_position - 20
-
-        # Debug: Print the columns of ratios_table
-        print("Ratios Table Columns:", self.ratios_table.columns.tolist())
 
         # Check if 'Value' column exists
         if 'Value' not in self.ratios_table.columns:
             print("Error: 'Value' column not found in ratios_table.")
-            return
+            return y
 
         # Iterate through each ratio and display as text
         for index, row in self.ratios_table.iterrows():
@@ -109,15 +119,17 @@ class PDFGenerator:
             # Format the ratio information
             ratio_text = f"<b>{ratio_name}:</b> {ratio_value}"
             p = Paragraph(ratio_text, self.styles['Normal'])
-            w, h = p.wrap(500, 1000)
-            if y - h < 100:
+            w, h = p.wrap(self.width - self.left_margin - self.right_margin - 20, self.height)
+            if y - h < self.bottom_margin + 50:
                 c.showPage()
-                y = self.height - 50
+                y = self.height - self.top_margin
+                self._add_header(c, y)
+                y -= 20
 
-            p.drawOn(c, 60, y - h)
+            p.drawOn(c, self.left_margin + 10, y - h)
             y -= h + 10
 
-        self.current_y = y
+        return y
 
     def _add_ratio_definitions(self, c, y_position):
         """
@@ -125,12 +137,13 @@ class PDFGenerator:
 
         :param c: The ReportLab canvas object
         :param y_position: The vertical position to start writing
+        :return: Updated y_position after adding ratio definitions
         """
         if self.ratios_table is None or self.ratios_table.empty:
-            return
+            return y_position
 
         c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_position, "Ratio Definitions:")
+        c.drawString(self.left_margin, y_position, "Ratio Definitions:")
         y = y_position - 20
 
         for ratio_name in self.ratios_table['Ratio Name']:
@@ -139,25 +152,35 @@ class PDFGenerator:
 
             # Ratio Name
             c.setFont("Helvetica-Bold", 12)
-            c.drawString(60, y, f"{ratio_name}:")
+            c.drawString(self.left_margin + 10, y, f"{ratio_name}:")
             y -= 15
 
             # Definition
             c.setFont("Helvetica", 10)
             text = f"Definition: {definition}"
-            c.drawString(70, y, text)
-            y -= 15
+            p_def = Paragraph(text, self.styles['Normal'])
+            w_def, h_def = p_def.wrap(self.width - self.left_margin - self.right_margin - 20, self.height)
+            if y - h_def < self.bottom_margin + 50:
+                c.showPage()
+                y = self.height - self.top_margin
+                self._add_header(c, y)
+                y -= 20
+            p_def.drawOn(c, self.left_margin + 20, y - h_def)
+            y -= h_def + 10
 
             # Formula
             text = f"Formula: {formula}"
-            c.drawString(70, y, text)
-            y -= 25
-
-            if y < 100:
+            p_form = Paragraph(text, self.styles['Normal'])
+            w_form, h_form = p_form.wrap(self.width - self.left_margin - self.right_margin - 20, self.height)
+            if y - h_form < self.bottom_margin + 50:
                 c.showPage()
-                y = self.height - 50
+                y = self.height - self.top_margin
+                self._add_header(c, y)
+                y -= 20
+            p_form.drawOn(c, self.left_margin + 20, y - h_form)
+            y -= h_form + 20
 
-        self.current_y = y
+        return y
 
     def _add_ai_assessment(self, c, y_position):
         """
@@ -165,23 +188,44 @@ class PDFGenerator:
 
         :param c: The ReportLab canvas object
         :param y_position: The vertical position to start writing
+        :return: Updated y_position after adding AI assessment
         """
         if not self.ai_assessment:
-            return
+            return y_position
 
         c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_position, "AI Analysis: Overall Stock Assessment")
+        c.drawString(self.left_margin, y_position, "AI Analysis: Overall Stock Assessment")
         y = y_position - 20
 
         c.setFont("Helvetica", 10)
         paragraphs = self.ai_assessment.split('\n')
         for para in paragraphs:
             p = Paragraph(para, self.styles['Normal'])
-            w, h = p.wrap(500, 1000)
-            if y - h < 100:
+            w, h = p.wrap(self.width - self.left_margin - self.right_margin - 20, self.height)
+            if y - h < self.bottom_margin + 50:
                 c.showPage()
-                y = self.height - 50
-            p.drawOn(c, 60, y - h)
+                y = self.height - self.top_margin
+                self._add_header(c, y)
+                y -= 20
+            p.drawOn(c, self.left_margin + 10, y - h)
             y -= h + 10
 
-        self.current_y = y
+        return y
+
+    def _add_header(self, c, y_position):
+        """
+        Adds the header (Title and line) to a new page.
+
+        :param c: The ReportLab canvas object
+        :param y_position: The vertical position to start writing the header
+        """
+        # Title
+        c.setFont("Helvetica-Bold", 20)
+        c.drawCentredString(self.width / 2.0, y_position, f"Stock Report: {self.stock_symbol}")
+
+        # Draw a line below the title
+        y_position -= 10
+        c.setStrokeColor(colors.gray)
+        c.setLineWidth(1)
+        c.line(self.left_margin, y_position, self.width - self.right_margin, y_position)
+        y_position -= 20  # Space after the line
