@@ -1,5 +1,3 @@
-# ai_analyzer.py
-
 import os
 import openai
 import pandas as pd
@@ -16,36 +14,17 @@ def strip_markdown(text: str) -> str:
     :param text: The text containing Markdown.
     :return: Cleaned plain text.
     """
-    # Remove code blocks
-    text = re.sub(r'```.*?```', '', text, flags = re.DOTALL)
-
-    # Remove inline code
-    text = re.sub(r'`.*?`', '', text)
-
-    # Remove headers (e.g., # Header, ## Header)
-    text = re.sub(r'#{1,6}\s*', '', text)
-
-    # Remove list bullets with bold (e.g., - **Text**)
-    text = re.sub(r'^-\s*\*\*', '', text, flags = re.MULTILINE)
-
-    # Remove bold and italics (e.g., **Text**, __Text__, *Text*, _Text_)
-    text = re.sub(r'(\*\*|__)(.*?)\1', r'\2', text)  # Bold
+    text = re.sub(r'```.*?```', '', text, flags = re.DOTALL)  # Remove code blocks
+    text = re.sub(r'`.*?`', '', text)  # Remove inline code
+    text = re.sub(r'#{1,6}\s*', '', text)  # Remove headers (e.g., # Header, ## Header)
+    text = re.sub(r'^-\s*\*\*', '', text, flags = re.MULTILINE)  # Remove list bullets with bold (e.g., - **Text**)
+    text = re.sub(r'(\*\*|__)(.*?)\1', r'\2', text)  # Bold    # Remove bold and italics (e.g., **Text**, __Text__, *Text*, _Text_)
     text = re.sub(r'(\*|_)(.*?)\1', r'\2', text)  # Italic
-
-    # Remove remaining list bullets (e.g., - Text, * Text)
-    text = re.sub(r'^[-*]\s+', '', text, flags = re.MULTILINE)
-
-    # Remove links but keep the display text (e.g., [Text](url))
-    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
-
-    # Remove images (e.g., ![Alt Text](url))
-    text = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', '', text)
-
-    # Remove any remaining Markdown characters like >, *, _, ~
-    text = re.sub(r'[>*_~]', '', text)
-
-    # Optionally, use BeautifulSoup to clean up any residual HTML tags
-    soup = BeautifulSoup(text, "html.parser")
+    text = re.sub(r'^[-*]\s+', '', text, flags = re.MULTILINE)  # Remove remaining list bullets (e.g., - Text, * Text)
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)  # Remove links but keep the display text (e.g., [Text](url))
+    text = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', '', text)  # Remove images (e.g., ![Alt Text](url))
+    text = re.sub(r'[>*_~]', '', text)  # Remove any remaining Markdown characters like >, *, _, ~
+    soup = BeautifulSoup(text, "html.parser")  # Optionally, use BeautifulSoup to clean up any residual HTML tags
     return soup.get_text(separator = "\n").strip()
 
 
@@ -86,40 +65,51 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     # Clean the aggregated HTML to extract meaningful text
     news_text = clean_html(articles_html_all)
 
+    # Limit the length of the financial ratios and news text if needed
+    max_ratio_length = 1000  # Limit the financial ratios string length
+    max_news_length = 7575  # Limit the news text length
+
+    # Truncate if the content exceeds the maximum length
+    if len(ratios_str) > max_ratio_length:
+        ratios_str = ratios_str[:max_ratio_length] + "..."
+
+    if len(news_text) > max_news_length:
+        news_text = news_text[:max_news_length] + "..."
+
     # Prepare the system and user messages
     system_content = (
-        "You are an Expert Investment Portfolio Strategist with extensive knowledge in financial analysis and market trends."
-        " You are provided with key financial ratios of a stock and the latest news articles related to it."
-        " Your task is to analyze both the financial data and the news trends to determine the stock's overall health."
+        "You are an Expert Investment Portfolio Strategist with extensive knowledge in financial analysis and market trends. "
+        "You are provided with Stock's Key Financial Ratios and Stock's Aggregated Latest News Articles."
+        "Your task is to analyze both the financial data and the news trends to determine the stock's overall health."
     )
 
     user_content = (
-        f"Here are the stock's key financial ratios:\n{ratios_str}\n\n"
-        f"Here is the aggregated text content of the latest news articles related to this stock:\n{news_text}\n\n"
-        "Given this information, please provide a detailed analysis with the following guidelines:\n"
+        f"The Stock's Key Financial Ratios:\n{ratios_str}\n\n"
+        f"The Stock's Aggregated Latest News Articles:\n{news_text}\n\n"
+        "Provide a detailed analysis with the following guidelines:\n"
         "1) Evaluate whether this stock is a healthy investment in terms of being high-return and low-risk.\n"
-        "2) Analyze the provided news articles to identify and summarize the main trends and themes related to the stock, "
-        "   highlighting specific details such as major events, strategic initiatives, regulatory changes, market developments, "
-        "   and significant announcements. Discuss how these factors may impact the company's performance, valuation, and risk profile, "
-        "   evaluating both positive and negative aspects and their influence on investor sentiment and the stock’s future trajectory.\n"
-        "3) Provide a comprehensive assessment of the stock's health by combining your analysis of the financial ratios and the news trends. "
-        "   Include a thorough response with in-depth insights that analyze the stock's risk-return profile and how recent news impacts its "
-        "potential.\n\n"
-        "**Important:** Please respond in plain text without using any Markdown formatting, such as headers (`#`), bold (`**`), or italics (`*`)."
+        "2) Analyze the provided news articles to identify and summarize the main trends and themes related to "
+        "   the stock, highlighting specific details such as major events, strategic initiatives, regulatory changes, "
+        "   and significant announcements. Discuss how these factors may impact the company's performance, valuation, and risk profile.\n"
+        "3) Provide a comprehensive assessment of the stock's health by combining your analysis of the financial "
+        "   ratios and the news trends. Include a thorough response with in-depth insights that analyze the stock's risk-return profile."
     )
 
     messages = [
         {"role": "system", "content": system_content},
         {"role": "user", "content": user_content},
-        ]
+    ]
 
     try:
         response = openai.ChatCompletion.create(
-                model = "chatgpt-4o-latest",  # "chatgpt-4o-latest", "gpt-4o-mini", "o1-preview", "o1-mini", "o1"
+                model = "chatgpt-4o-latest",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
                 messages = messages,
                 temperature = 0.0,  # Set to 0 for deterministic responses
-                max_tokens = 1579,  # Increased to accommodate longer responses
-                )
+                max_tokens = 1000,  # Decrease max_tokens to prevent exceeding the limit
+                # top_p = 0.3,  # Limits to top 30% probability mass
+                # frequency_penalty = 2.0,  # Strongly penalizes repeated tokens
+                # presence_penalty = 2.0  # Strongly penalizes reuse of topics
+        )
 
         # Extract the text out of the response
         assistant_message = response.choices[0].message["content"].strip()

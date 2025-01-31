@@ -9,3 +9,5 @@ pandas
 PySide6
 numpy
 markdown
+reportlab
+pdf_generator

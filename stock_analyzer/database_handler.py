@@ -110,9 +110,9 @@ class DatabaseHandler:
             # Execute the query and commit changes
             cursor.execute(query, values)
             conn.commit()
-            print(f"✅ Successfully saved stock data for {stock_symbol}")
+            print(f"Successfully saved stock data for {stock_symbol}")
         except sqlite3.Error as e:
-            print(f"❌ Failed to save stock data for {stock_symbol}: {e}")
+            print(f"Failed to save stock data for {stock_symbol}: {e}")
         finally:
             if conn:
                 conn.close()

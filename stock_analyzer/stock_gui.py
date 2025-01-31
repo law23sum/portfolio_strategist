@@ -2,12 +2,12 @@
 
 import sys
 import pandas as pd
-
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QLabel, QPushButton, QLineEdit, QProgressBar, QTextEdit
+    QLabel, QPushButton, QLineEdit, QProgressBar, QTextEdit, QFileDialog, QMessageBox
 )
 from PySide6.QtCore import Qt, QThread, Signal, QObject
+from pdf_generator import PDFGenerator  # Corrected import
 
 # Adjust your imports to point to the module where StockApp & RATIO_DEFINITIONS reside
 from main import StockApp, RATIO_DEFINITIONS
@@ -79,9 +79,6 @@ class StockGUI(QWidget):
         self.setWindowTitle("Stock Analyzer")
         self.setGeometry(100, 100, 1200, 700)  # Increased width and height to accommodate logs and AI assessment
 
-        # If needed, you can instantiate a StockApp here for additional checks
-        # self.stock_app = StockApp()  # Not needed, handled in StockWorker
-
         # Create the main horizontal layout
         self.main_layout = QHBoxLayout()
 
@@ -132,7 +129,7 @@ class StockGUI(QWidget):
         # Add the left layout to the main layout
         self.main_layout.addLayout(self.left_layout, 2)  # Assign stretch factor 2 to the left layout
 
-        # Right side layout (AI assessment)
+        # Right side layout (AI assessment and PDF)
         self.right_layout = QVBoxLayout()
 
         # AI Assessment Label
@@ -145,6 +142,12 @@ class StockGUI(QWidget):
         self.ai_display.setReadOnly(True)
         self.right_layout.addWidget(self.ai_display)
 
+        # Save PDF Button
+        self.save_pdf_button = QPushButton("Save Report as PDF")
+        self.save_pdf_button.clicked.connect(self.save_pdf)
+        self.save_pdf_button.setEnabled(False)  # Disabled until data is fetched
+        self.right_layout.addWidget(self.save_pdf_button)
+
         # Add the right layout to the main layout
         self.main_layout.addLayout(self.right_layout, 3)  # Assign stretch factor 3 to the right layout
 
@@ -152,6 +155,12 @@ class StockGUI(QWidget):
 
         # Initialize the custom stream and redirect stdout and stderr
         self.init_logging()
+
+        # Variables to hold fetched data
+        self.current_stock_symbol = ""
+        self.current_stock_data = {}
+        self.current_ratios_table = pd.DataFrame()
+        self.current_ai_assessment = ""
 
     def init_logging(self):
         """
@@ -180,6 +189,8 @@ class StockGUI(QWidget):
             self.logs_display.append("Please enter a valid stock symbol.")
             return
 
+        self.current_stock_symbol = stock_symbol
+
         # Initialize and start the worker thread
         self.worker = StockWorker(stock_symbol)
         self.worker.progress.connect(self.update_progress)
@@ -188,6 +199,7 @@ class StockGUI(QWidget):
 
         # Disable the fetch button to prevent multiple fetches
         self.fetch_button.setEnabled(False)
+        self.save_pdf_button.setEnabled(False)
         self.ai_display.clear()
         self.stock_table.clear()
         self.ratios_table.clear()
@@ -204,6 +216,10 @@ class StockGUI(QWidget):
         """
         Populate the Stock Details, Ratios, Definitions tables, and AI assessment once data is fetched.
         """
+        self.current_stock_data = stock_data
+        self.current_ratios_table = ratios_table
+        self.current_ai_assessment = ai_assessment
+
         if stock_data:
             self.populate_table(self.stock_table, stock_data)
             self.logs_display.append("Stock details populated.")
@@ -221,7 +237,8 @@ class StockGUI(QWidget):
                 }
                 for name in ratios_table['Ratio Name']
             ]
-            self.populate_table(self.definitions_table, pd.DataFrame(definitions_data))
+            definitions_df = pd.DataFrame(definitions_data)
+            self.populate_table(self.definitions_table, definitions_df)
             self.logs_display.append("Ratio definitions populated.")
 
         if ai_assessment:
@@ -231,10 +248,14 @@ class StockGUI(QWidget):
             self.ai_display.setPlainText("No AI assessment available.")
             self.logs_display.append("No AI assessment available.")
 
-        # Reset progress bar and re-enable the fetch button
+        # Reset progress bar and re-enable the fetch button and PDF button
         self.progress_bar.setValue(100)
         self.fetch_button.setEnabled(True)
+        self.save_pdf_button.setEnabled(True)
         self.logs_display.append("Data fetch and analysis complete.")
+
+        # Prompt user to save as PDF
+        self.prompt_save_pdf()
 
     def populate_table(self, table, data):
         """
@@ -258,6 +279,62 @@ class StockGUI(QWidget):
             for row, (key, value) in enumerate(data.items()):
                 table.setItem(row, 0, QTableWidgetItem(str(key)))
                 table.setItem(row, 1, QTableWidgetItem(str(value)))
+
+    def prompt_save_pdf(self):
+        """
+        Prompts the user with a dialog to decide whether to save the report as a PDF.
+        If yes, opens a file dialog to choose the save location.
+        """
+        reply = QMessageBox.question(
+            self,
+            'Save Report',
+            "Do you want to save the report as a PDF?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.save_pdf()
+        else:
+            self.logs_display.append("Report not saved as PDF.")
+
+    def save_pdf(self):
+        """
+        Save the current stock analysis as a PDF file.
+        """
+        if not self.current_stock_symbol:
+            QMessageBox.warning(self, "No Data", "No stock data available to save.")
+            return
+
+        # Open a file dialog to choose the save location
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Report as PDF",
+            f"{self.current_stock_symbol}_stock_report.pdf",
+            "PDF Files (*.pdf)",
+            options=options
+        )
+        if not file_path:
+            self.logs_display.append("PDF save cancelled by user.")
+            return  # User cancelled the save dialog
+
+        try:
+            # Generate the PDF using the PDFGenerator module
+            pdf = PDFGenerator(
+                self.current_stock_symbol,
+                self.current_stock_data,
+                self.current_ratios_table,
+                self.current_ai_assessment,
+                RATIO_DEFINITIONS
+            )
+            pdf.generate_pdf(file_path)
+            QMessageBox.information(self, "Success", f"Report saved successfully at:\n{file_path}")
+            self.logs_display.append(f"Report saved as '{file_path}'.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save PDF:\n{e}")
+            self.logs_display.append(f"Failed to save PDF: {e}")
 
     def closeEvent(self, event):
         """

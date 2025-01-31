@@ -47,7 +47,7 @@ class StockNewsFetcher:
         :return: A single string containing the combined HTML of all pages visited.
         """
         try:
-            links_amount = 60
+            links_amount = 30
             # Navigate to the page
             news_url = self.base_news_url.format(stock_symbol)
             print(f"Navigating to URL: {news_url}")
@@ -108,7 +108,7 @@ class StockNewsFetcher:
                         full_link = href
                     else:
                         # Handle other types of relative links or skip
-                        print(f"Skipping non-HTTP/HTTPS link: {href}")
+                        # print(f"Skipping non-HTTP/HTTPS link: {href}")
                         continue
                     if full_link not in seen_links:
                         article_links.append(full_link)

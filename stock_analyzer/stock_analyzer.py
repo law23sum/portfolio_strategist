@@ -254,7 +254,7 @@ class StockAnalyzer:
                 performance.append(
                         self._evaluate_range_with_accuracy(
                                 value,
-                                [0.010000000, 0.020000000, 0.050000000, 0.100000000],
+                                [0.000000000, 1.000000000, 2.000000000, 3.000000000],
                                 ['Poor', 'Mediocre', 'Excellent', 'Perfect']
                                 )
                         )
@@ -263,7 +263,7 @@ class StockAnalyzer:
                 performance.append(
                         self._evaluate_range_with_accuracy(
                                 value,
-                                [3.000000000, 5.000000000, 10.000000000, 15.000000000],
+                                [10.000000000, 15.000000000, 20.000000000, 25.000000000],
                                 ['Perfect', 'Excellent', 'Mediocre', 'Poor']
                                 )
                         )
@@ -272,7 +272,7 @@ class StockAnalyzer:
                 performance.append(
                         self._evaluate_range_with_accuracy(
                                 value,
-                                [0.250000000, 0.500000000, 1.000000000, 3.000000000],
+                                [3.000000000, 2.333333333, 1.666666667, 1.000000000],
                                 ['Poor', 'Mediocre', 'Excellent', 'Perfect']
                                 )
                         )
@@ -281,7 +281,7 @@ class StockAnalyzer:
                 performance.append(
                         self._evaluate_range_with_accuracy(
                                 value,
-                                [0.100000000, 0.250000000, 0.500000000, 1.000000000],
+                                [0.500000000, 1.000000000, 1.500000000, 2.000000000],
                                 ['Poor', 'Mediocre', 'Excellent', 'Perfect']
                                 )
                         )
@@ -290,7 +290,7 @@ class StockAnalyzer:
                 performance.append(
                         self._evaluate_range_with_accuracy(
                                 value,
-                                [0.050000000, 0.100000000, 0.250000000, 0.500000000],
+                                [0.200000000, 0.400000000, 0.600000000, 0.800000000],
                                 ['Perfect', 'Excellent', 'Mediocre', 'Poor']
                                 )
                         )

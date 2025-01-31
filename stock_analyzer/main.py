@@ -2,23 +2,21 @@
 
 import sys
 import pandas as pd
-
-
-try:
-    # Check if PySide6 is installed to determine if GUI is available
-    from PySide6.QtWidgets import QApplication
-
-
-    GUI_AVAILABLE = True
-except ImportError:
-    GUI_AVAILABLE = False
-
 from ratio_definitions import RATIO_DEFINITIONS
+from pdf_generator import PDFGenerator
 from stock_fetcher import StockFetcher
 from stock_analyzer import StockAnalyzer
 from database_handler import DatabaseHandler
 from stock_news_fetcher import StockNewsFetcher
 from ai_analyzer import analyze_stock_with_news
+
+
+try:
+    # Check if PySide6 is installed to determine if GUI is available
+    from PySide6.QtWidgets import QApplication
+    GUI_AVAILABLE = True
+except ImportError:
+    GUI_AVAILABLE = False
 
 
 class StockApp:
@@ -107,12 +105,36 @@ class StockApp:
         ai_assessment = analyze_stock_with_news(ratios_table, combined_articles_html)
         print(ai_assessment)
 
-        # Optionally, display news headlines and links if needed
-        # Since the updated fetch_stock_news returns combined_html, you may need to parse it again
-        # to extract headlines and links if required.
+        # Prompt user to save as PDF
+        self.prompt_save_pdf(stock_symbol, stock_data, ratios_table, ai_assessment, RATIO_DEFINITIONS)
 
         # Close Selenium driver for news (optional best practice)
         self.news_fetcher.close()
+
+    def prompt_save_pdf(self, stock_symbol, stock_data, ratios_table, ai_assessment, ratio_definitions):
+        """
+        Prompts the user to decide whether to save the report as a PDF.
+        If yes, asks for the directory to save the PDF.
+        """
+        while True:
+            choice = input("\nDo you want to save the report as a PDF? (y/n): ").strip().lower()
+            if choice == 'y':
+                # Prompt for save location
+                save_path = input("Enter the full path where you want to save the PDF (e.g., /path/to/report.pdf): ").strip()
+                if not save_path.endswith('.pdf'):
+                    save_path += '.pdf'
+                try:
+                    pdf = PDFGenerator(stock_symbol, stock_data, ratios_table, ai_assessment, ratio_definitions)
+                    pdf.generate_pdf(save_path)
+                    print(f"Report successfully saved as '{save_path}'.")
+                except Exception as e:
+                    print(f"Failed to save PDF: {e}")
+                break
+            elif choice == 'n':
+                print("Report not saved as PDF.")
+                break
+            else:
+                print("Invalid input. Please enter 'y' or 'n'.")
 
     def start_terminal_mode(self):
         """Prompt user for a symbol and display data in the terminal."""
@@ -125,13 +147,13 @@ def main():
     Entry point for the application.
     If --gui is in sys.argv and GUI_AVAILABLE, launch the GUI. Otherwise, terminal mode.
     """
+    stock_app = StockApp()
     if GUI_AVAILABLE and "--gui" in sys.argv:
         # Import and launch GUI
         from stock_gui import run_gui
         run_gui()
     else:
         # Default to terminal mode
-        stock_app = StockApp()
         stock_app.start_terminal_mode()
 
 

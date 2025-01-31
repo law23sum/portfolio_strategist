@@ -1,0 +1,73 @@
+END-USER LICENSE AGREEMENT (EULA)
+IMPORTANT: PLEASE READ THIS LICENSE AGREEMENT CAREFULLY.
+This End-User License Agreement ("Agreement") is a legal agreement between you ("Licensee" or "User") and [Your Company Name] ("Licensor" or "Developer"). By installing, copying, or otherwise using The Portfolio Strategist ("Software"), you agree to be bound by the terms and conditions set forth in this Agreement.
+
+If you do not agree to these terms, do not install or use the Software.
+
+1. GRANT OF LICENSE
+1.1 License Type:
+Licensor grants Licensee a non-exclusive, non-transferable subscription-based license to use the Software on a single device only. The Software is licensed, not sold, and the Licensee may not sublicense, rent, lease, or distribute it.
+
+1.2 Software Updates:
+This Agreement applies to all future versions and updates of the Software provided by Licensor, unless otherwise stated.
+
+2. USAGE RESTRICTIONS
+2.1 Modifications & Reverse Engineering:
+The Licensee may not modify, reverse-engineer, decompile, or create derivative works from the Software. Any attempt to do so constitutes a violation of this Agreement.
+
+2.2 Redistribution:
+The Licensee may not redistribute the Software, either in its original or modified form, in whole or in part.
+
+3. TECHNICAL SUPPORT
+3.1 Support Services:
+Licensor will provide email-based technical support to Licensee during the term of the subscription. Support inquiries should be sent to the designated support email address provided by the Licensor.
+
+4. FEES AND PAYMENTS
+4.1 Payment Terms:
+The Software is available under a subscription-based license, which is billed on a monthly basis. Licensee agrees to pay the subscription fee according to the payment terms provided during registration.
+
+4.2 Late Fees:
+If the Licensee fails to make timely payments, a late fee may be applied to the outstanding balance, as specified by the Licensor.
+
+4.3 No Refunds:
+All subscription fees are non-refundable, except as required by applicable law.
+
+5. TERMINATION
+5.1 License Termination:
+Licensor may terminate this Agreement and the License granted herein if the Licensee fails to comply with any term or condition of this Agreement, including failure to pay subscription fees. Upon termination, Licensee must immediately uninstall and cease using the Software.
+
+5.2 Uninstallation Upon Termination:
+Upon termination of this Agreement, Licensee agrees to promptly uninstall the Software from all devices.
+
+6. INTELLECTUAL PROPERTY
+6.1 Ownership:
+Licensor retains full ownership of the Software, including all rights, titles, and intellectual property associated with it, including but not limited to trademarks, copyrights, and patents.
+
+6.2 Trademarks:
+The Licensee is prohibited from using any trademarks associated with the Software without prior written permission from the Licensor.
+
+7. WARRANTIES AND LIABILITIES
+7.1 No Warranty:
+The Software is provided "as-is," with no warranty of any kind, either express or implied, including but not limited to the warranties of merchantability or fitness for a particular purpose.
+
+7.2 Limitation of Liability:
+Licensor shall not be liable for any direct, indirect, incidental, special, or consequential damages arising from the use of the Software, even if Licensor has been advised of the possibility of such damages. In no event shall Licensor’s liability exceed the total amount paid by the Licensee for the Software during the 12-month period preceding the claim.
+
+8. GOVERNING LAW
+8.1 Jurisdiction:
+This Agreement shall be governed by and construed in accordance with the laws of the United States of America. Any disputes arising out of or in connection with this Agreement shall be resolved under the jurisdiction of the courts in the United States.
+
+9. MISCELLANEOUS
+9.1 Entire Agreement:
+This Agreement constitutes the entire agreement between the parties and supersedes any prior or contemporaneous understandings, whether written or oral, relating to the Software.
+
+9.2 Severability:
+If any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.
+
+9.3 No Competition:
+The Licensee is not restricted from competing with the Licensor or developing competing software.
+
+By installing, copying, or using the Software, the Licensee acknowledges that they have read, understood, and agree to be bound by the terms of this End-User License Agreement.
+
+Licensor: The Portfolio Strategist
+Support Email: cswm7876@yahoo.com
