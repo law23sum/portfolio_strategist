@@ -1,0 +1,11 @@
+beautifulsoup4
+requests
+pandas
+yfinance
+selenium
+webdriver-manager
+pyinstaller
+pandas
+PySide6
+numpy
+markdown
