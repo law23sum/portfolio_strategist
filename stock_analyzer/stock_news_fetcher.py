@@ -165,5 +165,5 @@ class StockNewsFetcher:
         """
         Close the WebDriver session.
         """
-        # print("Closing the Selenium WebDriver...")
+        print("Closing the Selenium WebDriver...")
         self.driver.quit()

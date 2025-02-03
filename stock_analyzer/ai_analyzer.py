@@ -66,12 +66,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     news_text = clean_html(articles_html_all)
 
     # Limit the length of the financial ratios and news text if needed
-    max_ratio_length = 1000  # Limit the financial ratios string length
-    max_news_length = 7575  # Limit the news text length
-
-    # Truncate if the content exceeds the maximum length
-    if len(ratios_str) > max_ratio_length:
-        ratios_str = ratios_str[:max_ratio_length] + "..."
+    max_news_length = 7000  # Limit the news text length
 
     if len(news_text) > max_news_length:
         news_text = news_text[:max_news_length] + "..."
@@ -105,10 +100,10 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
                 model = "gpt-4o-mini",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
                 messages = messages,
                 temperature = 0.0,  # Set to 0 for deterministic responses
-                max_tokens = 1350,  # Decrease max_tokens to prevent exceeding the limit
+                max_tokens = 1200,  # Decrease max_tokens to prevent exceeding the limit
                 # top_p = 0.3,  # Limits to top 30% probability mass
-                # frequency_penalty = 0.0,  # Strongly penalizes repeated tokens
-                # presence_penalty = 0.0  # Strongly penalizes reuse of topics
+                frequency_penalty = 0.0,  # Strongly penalizes repeated tokens
+                presence_penalty = 0.0  # Strongly penalizes reuse of topics
         )
 
         # Extract the text out of the response

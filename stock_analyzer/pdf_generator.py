@@ -37,35 +37,31 @@ class PDFGenerator:
 
         :param file_path: The path where the PDF will be saved
         """
-        c = canvas.Canvas(file_path, pagesize=letter)
+        c = canvas.Canvas(file_path, pagesize = letter)
         self.width, self.height = letter  # Ensure width and height are set
 
-        current_y = self.height - self.top_margin
+        # **Title (Fixed Font Size)**
+        c.setFont("Helvetica-Bold", 14)  # Reduced from 20 to 14
+        c.drawCentredString(self.width / 2.0, self.height - 50, f"Stock Report: {self.stock_symbol}")
 
-        # Title
-        c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(self.width / 2.0, current_y, f"Stock Report: {self.stock_symbol}")
-
-        # Draw a line below the title
-        current_y -= 10
+        # **Draw a line below the title**
         c.setStrokeColor(colors.gray)
         c.setLineWidth(1)
-        c.line(self.left_margin, current_y, self.width - self.right_margin, current_y)
-        current_y -= 20  # Space after the line
+        c.line(50, self.height - 55, self.width - 50, self.height - 55)
 
-        # Stock Details
-        current_y = self._add_stock_details(c, current_y)
+        # **Stock Details**
+        self._add_stock_details(c, self.height - 80)
 
-        # Ratios as Text
-        current_y = self._add_ratios_text(c, current_y)
+        # **Ratios as Text**
+        self._add_ratios_text(c, self.height - 150)
 
-        # Ratio Definitions
-        current_y = self._add_ratio_definitions(c, current_y)
+        # **Ratio Definitions**
+        self._add_ratio_definitions(c, self.height - 400)
 
-        # AI Assessment
-        current_y = self._add_ai_assessment(c, current_y)
+        # **AI Assessment**
+        self._add_ai_assessment(c, self.height - 500)
 
-        # Save the PDF
+        # **Save the PDF**
         c.save()
 
     def _add_stock_details(self, c, y_position):

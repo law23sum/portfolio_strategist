@@ -21,14 +21,18 @@ except ImportError:
 
 class StockApp:
     def __init__(self):
+        print("Initializing StockApp components.")
         self.fetcher = StockFetcher()
         self.analyzer = StockAnalyzer()
         self.db_handler = DatabaseHandler()
-        self.news_fetcher = StockNewsFetcher()  # Initialize your News Fetcher
+        self.news_fetcher = StockNewsFetcher()  # Initialize the News Fetcher
+        print("StockApp components initialized.")
 
     def fetch_stock_data(self, stock_symbol):
         """Fetch stock details from DB if available, otherwise from Yahoo Finance, then save."""
+        print(f"Starting stock data fetch for symbol: {stock_symbol}.")
         if not stock_symbol:
+            print("No stock symbol provided. Aborting fetch.")
             return None
 
         # Check if data is already in the DB
@@ -39,10 +43,11 @@ class StockApp:
 
         # If not in DB, pull from Yahoo Finance
         try:
+            print(f"Fetching stock data for {stock_symbol} from Yahoo Finance.")
             stock_data = self.fetcher.fetch_stock_details(stock_symbol)
             if stock_data:
                 self.db_handler.save_stock_data(stock_symbol, stock_data)
-                print(f"Fetched stock data for {stock_symbol} from Yahoo Finance and saved to DB.")
+                print(f"Stock data for {stock_symbol} fetched from Yahoo Finance and saved to DB.")
             return stock_data
         except Exception as e:
             print(f"Failed to fetch stock details: {e}")
@@ -50,11 +55,14 @@ class StockApp:
 
     def fetch_stock_news(self, stock_symbol):
         """Fetch the latest news articles for the given stock symbol from Yahoo Finance."""
+        print(f"Starting news fetch for symbol: {stock_symbol}.")
         if not stock_symbol:
+            print("No stock symbol provided for news fetch. Aborting.")
             return ""
 
         try:
             combined_html = self.news_fetcher.fetch_stock_news(stock_symbol)
+            print(f"News articles fetched for {stock_symbol}.")
             return combined_html
         except Exception as e:
             print(f"Failed to fetch news for {stock_symbol}: {e}")
@@ -62,18 +70,26 @@ class StockApp:
 
     def analyze_stock(self, stock_data):
         """Analyze stock data and return a table of ratios."""
+        print("Starting stock analysis.")
         if not stock_data:
+            print("No stock data available for analysis.")
             return None
 
         ratios = self.analyzer.calculate_ratios(stock_data)
+        print("Calculated stock ratios.")
         performance = self.analyzer.evaluate_performance(ratios)
-        return self.analyzer.build_ratios_table(ratios, performance)
+        print("Evaluated stock performance based on ratios.")
+        ratios_table = self.analyzer.build_ratios_table(ratios, performance)
+        print("Built the ratios table.")
+        return ratios_table
 
     def display_stock_data_terminal(self, stock_symbol):
-        """Fetch and display stock data in the terminal, including some fresh news."""
+        """Fetch and display stock data in the terminal, including fresh news."""
+        print(f"Displaying stock data for symbol: {stock_symbol} in terminal mode.")
         stock_data = self.fetch_stock_data(stock_symbol)
         if not stock_data:
             print("Unable to retrieve stock data.")
+            print("Ensure VPN is ON.")
             return
 
         # Print raw stock data
@@ -95,7 +111,7 @@ class StockApp:
             for ratio_name in ratios_table['Ratio Name']:
                 definition = RATIO_DEFINITIONS.get(ratio_name, {}).get('Definition', 'N/A')
                 formula = RATIO_DEFINITIONS.get(ratio_name, {}).get('Formula', 'N/A')
-                print(f"\n🔍 {ratio_name}:")
+                print(f"\nRatio: {ratio_name}")
                 print(f"   Definition: {definition}")
                 print(f"   Formula: {formula}")
 
@@ -109,6 +125,7 @@ class StockApp:
         self.prompt_save_pdf(stock_symbol, stock_data, ratios_table, ai_assessment, RATIO_DEFINITIONS)
 
         # Close Selenium driver for news (optional best practice)
+        print("Closing news fetcher driver.")
         self.news_fetcher.close()
 
     def prompt_save_pdf(self, stock_symbol, stock_data, ratios_table, ai_assessment, ratio_definitions):
@@ -119,6 +136,7 @@ class StockApp:
         while True:
             choice = input("\nDo you want to save the report as a PDF? (y/n): ").strip().lower()
             if choice == 'y':
+                print("User opted to save the report as a PDF.")
                 # Prompt for save location
                 save_path = input("Enter the full path where you want to save the PDF (e.g., /path/to/report.pdf): ").strip()
                 if not save_path.endswith('.pdf'):
@@ -131,7 +149,7 @@ class StockApp:
                     print(f"Failed to save PDF: {e}")
                 break
             elif choice == 'n':
-                print("Report not saved as PDF.")
+                print("User opted not to save the report as a PDF.")
                 break
             else:
                 print("Invalid input. Please enter 'y' or 'n'.")
@@ -139,6 +157,7 @@ class StockApp:
     def start_terminal_mode(self):
         """Prompt user for a symbol and display data in the terminal."""
         stock_symbol = input("Enter the stock symbol: ").upper()
+        print(f"User entered symbol: {stock_symbol}.")
         self.display_stock_data_terminal(stock_symbol)
 
 
@@ -147,13 +166,15 @@ def main():
     Entry point for the application.
     If --gui is in sys.argv and GUI_AVAILABLE, launch the GUI. Otherwise, terminal mode.
     """
+    print("Starting the Stock Application.")
     stock_app = StockApp()
     if GUI_AVAILABLE and "--gui" in sys.argv:
+        print("GUI mode selected. Launching GUI.")
         # Import and launch GUI
         from stock_gui import run_gui
         run_gui()
     else:
-        # Default to terminal mode
+        print("Terminal mode selected. Running in terminal mode.")
         stock_app.start_terminal_mode()
 
 

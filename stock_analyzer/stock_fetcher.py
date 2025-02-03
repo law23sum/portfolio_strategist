@@ -12,6 +12,7 @@ class StockFetcher:
     def __init__(self):
         self.base_quote_url = "https://finance.yahoo.com/quote"
         self.base_statistics_url = "https://finance.yahoo.com/quote/{}/key-statistics"
+        print("Initializing StockFetcher and setting up the driver.")
         self.driver = self._setup_driver()
 
     def _setup_driver(self):
@@ -24,8 +25,10 @@ class StockFetcher:
 
         # # Path to your ChromeDriver executable
         # service = Service(executable_path = "/Users/chrisdixon/MATLAB/Projects/financia/stock_analyzer/chromedriver")
+        print("Installing and initializing ChromeDriver.")
         service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service = service, options = chrome_options)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        print("ChromeDriver setup complete.")
 
         return driver
 
@@ -35,14 +38,18 @@ class StockFetcher:
         :param stock_symbol: The stock symbol to fetch data for.
         :return: A dictionary with detailed stock metrics.
         """
+        print(f"Fetching stock details for {stock_symbol}.")
         try:
             # Fetch main quote data
+            print("Fetching main quote data.")
             quote_data = self._fetch_quote_page(stock_symbol)
 
             # Fetch key statistics data
+            print("Fetching key statistics data.")
             statistics_data = self._fetch_statistics_page(stock_symbol)
 
             # Combine and return both datasets
+            print("Combining fetched data.")
             return {**quote_data, **statistics_data}
 
         except Exception as e:
@@ -53,11 +60,13 @@ class StockFetcher:
         Fetches data from the main quote page using Selenium.
         """
         url = f"{self.base_quote_url}/{stock_symbol}"
+        print(f"Navigating to {url}.")
         self.driver.get(url)
         time.sleep(2)  # Wait for the page to load
 
         # Get the page source and parse it with BeautifulSoup
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        print("Parsing the quote page.")
 
         # Save prettified HTML for debugging
         # file_name = f"{stock_symbol}_quote.html"
@@ -90,7 +99,9 @@ class StockFetcher:
 
                 # Store in dictionary
                 data[metric_name] = metric_value
+                # print(f"Extracted metric '{metric_name}': '{metric_value}'.")
             except AttributeError:
+                print("Skipping a metric due to unexpected structure.")
                 continue  # Skip elements that do not match the expected structure
 
         return data
@@ -100,11 +111,13 @@ class StockFetcher:
         Fetches data from the key statistics page using Selenium.
         """
         url = self.base_statistics_url.format(stock_symbol)
+        print(f"Navigating to {url}.")
         self.driver.get(url)
         time.sleep(2)  # Wait for the page to load
 
         # Get the page source and parse it with BeautifulSoup
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        print("Parsing the key statistics page.")
 
         # Save prettified HTML for debugging
         # file_name = f"{stock_symbol}_statistics.html"
@@ -125,11 +138,14 @@ class StockFetcher:
 
                     # Flatten the list into a string (comma-separated values)
                     data[metric_name] = ", ".join(metric_values)
+                    # print(f"Extracted statistic '{metric_name}': '{data[metric_name]}'.")
                 except AttributeError:
+                    print("Skipping a row due to unexpected structure.")
                     continue  # Skip rows that do not match the expected structure
-
+        self.close()
         return data
 
     def close(self):
         """Close the WebDriver."""
+        print("Closing the driver.")
         self.driver.quit()
