@@ -353,7 +353,6 @@ class StockGUI(QWidget):
         self.ai_display.clear()
         self.stock_table.clear()
         self.ratios_table.clear()
-        self.analysis_page.definitions_table.clear()  # Updated reference via analysis_page
         self.logs_display.append(f"Starting data fetch for {stock_symbol}...")
         self.progress_bar.setValue(0)
 
