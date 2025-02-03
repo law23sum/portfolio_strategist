@@ -229,17 +229,6 @@ class StockGUI(QWidget):
         self.ratios_table = QTableWidget()
         left_layout.addWidget(self.ratios_table)
 
-        # Definitions Table (on Analysis page)
-        definitions_table_label = QLabel("Ratio Definitions")
-        definitions_table_label.setFont(QFont("Helvetica", 16))
-        left_layout.addWidget(definitions_table_label)
-
-        # Create the definitions table widget and attach it to the page
-        self.definitions_table = QTableWidget()
-        left_layout.addWidget(self.definitions_table)
-        # Attach the definitions table to the page for later access
-        page.definitions_table = self.definitions_table
-
         # Logs Display
         self.logs_label = QLabel("Logs")
         self.logs_label.setFont(QFont("Helvetica", 16))
