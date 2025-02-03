@@ -47,7 +47,7 @@ class StockNewsFetcher:
         :return: A single string containing the combined HTML of all pages visited.
         """
         try:
-            links_amount = 30
+            links_amount = 60
             # Navigate to the page
             news_url = self.base_news_url.format(stock_symbol)
             print(f"Navigating to URL: {news_url}")
@@ -120,16 +120,16 @@ class StockNewsFetcher:
             print(f"Extracted {len(article_links)} unique article links.")
 
             # Gather & visit links
-            combined_html = ""
+            combined_html = []
             visited_links = 0
             skipped_links = 0
 
             print("Starting to visit each link and collect HTML...")
-            for idx, full_link in enumerate(article_links, 1):
-                print(f"Visiting link {idx}: {full_link}")
+            for idx, full_link in enumerate(article_links[::2], start = 1):
+                print(f"Visiting link: {idx}: {full_link}")
 
                 try:
-                    # Visit each link (may or may not be relevant)
+                    # Visit each link
                     self.driver.get(full_link)
                     WebDriverWait(self.driver, 10).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='storyitem']"))
@@ -137,24 +137,24 @@ class StockNewsFetcher:
 
                     # Parse the article content
                     article_soup = BeautifulSoup(self.driver.page_source, "html.parser")
-                    article_content = article_soup.find("div", class_ = "article-wrap no-bb", attrs = {"data-testid": "article-content-wrapper"})
+                    article_content = article_soup.find(
+                            "div",
+                            class_ = "article-wrap no-bb",
+                            attrs = {"data-testid": "article-content-wrapper"}
+                            )
                     if article_content:
-                        page_html = article_content.prettify()
-                        combined_html += "\n" + page_html
+                        combined_html.append(article_content.prettify())
                         visited_links += 1
-                        # print(f"Successfully visited and appended HTML from link {idx}")
                     else:
-                        # print(f"No specific article content found for link {idx}: {full_link}")
                         skipped_links += 1
                 except Exception as e:
-                    # If a link fails, skip it
                     print(f"Skipping link {full_link}, error: {e}")
                     skipped_links += 1
                     continue
-
-            print(f"Completed visiting links.") #  Visited: {visited_links}, Skipped: {skipped_links}
-            # print("Combined HTML length:", len(combined_html))
+            print("Completed visiting links.")
+            print(f"Visited: {visited_links}, Skipped: {skipped_links}")
             self.close()
+            combined_html = "\n".join(combined_html)
             return combined_html
 
         except Exception as e:

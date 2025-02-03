@@ -236,7 +236,7 @@ class StockGUI(QWidget):
 
         self.logs_display = QTextEdit()
         self.logs_display.setReadOnly(True)
-        self.logs_display.setFont(QFont("Courier", 14))
+        self.logs_display.setFont(QFont("Courier", 16))
         left_layout.addWidget(self.logs_display)
 
         page_layout.addLayout(left_layout, 2)
@@ -245,7 +245,7 @@ class StockGUI(QWidget):
         right_layout = QVBoxLayout()
 
         # AI Assessment Label
-        self.ai_label = QLabel("AI Analysis: Overall Stock Assessment")
+        self.ai_label = QLabel("AI Analysis: Summary Stock Assessment")
         self.ai_label.setAlignment(Qt.AlignCenter)
         self.ai_label.setFont(QFont("Helvetica", 18))
         right_layout.addWidget(self.ai_label)
@@ -376,19 +376,6 @@ class StockGUI(QWidget):
         if ratios_table is not None and not ratios_table.empty:
             self.populate_table(self.ratios_table, ratios_table)
             self.logs_display.append("Stock ratios populated.")
-
-            # Build definitions data for each ratio
-            definitions_data = [
-                {
-                    'Ratio Name': name,
-                    'Definition': RATIO_DEFINITIONS.get(name, {}).get('Definition', 'N/A'),
-                    'Formula'   : RATIO_DEFINITIONS.get(name, {}).get('Formula', 'N/A')
-                    }
-                for name in ratios_table['Ratio Name']
-                ]
-            definitions_df = pd.DataFrame(definitions_data)
-            self.populate_table(self.analysis_page.definitions_table, definitions_df)
-            self.logs_display.append("Ratio definitions populated.")
 
         if ai_assessment:
             self.ai_display.setPlainText(ai_assessment)

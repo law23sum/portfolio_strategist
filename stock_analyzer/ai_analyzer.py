@@ -66,7 +66,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     news_text = clean_html(articles_html_all)
 
     # Limit the length of the financial ratios and news text if needed
-    max_news_length = 5555  # Limit the news text length
+    max_news_length = 8123  # Limit the news text length
     # print("Max News Length:", max_news_length)
     if len(news_text) > max_news_length:
         news_text = news_text[:max_news_length] + "..."
@@ -84,8 +84,8 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
         "Provide detailed analysis:\n"
         "1) Evaluate this stock if it is a  healthy investment: high-return and low-risk.\n"
         "2) Analyze  provided news articles to identify the main trends and themes related to "
-        "   the stock, highlighting specific details (e.g. major events, strategic initiatives, regulatory changes, "
-        "   and significant announcements).\n"
+        "   the stock, by highlighting specific details (e.g. major events, strategic initiatives, regulatory changes, "
+        "   and significant announcements) - group the events, then provide sequential reasoning.\n"
         "3) Provide a comprehensive assessment of the stock's health by combining your analysis of the financial "
         "   ratios and the news trends. Include a thorough response with in-depth insights that analyze the stock's risk-return profile."
     )

@@ -1,5 +1,3 @@
-# pdf_generator.py
-
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
@@ -17,6 +15,7 @@ class PDFGenerator:
         :param ratios_table: pandas DataFrame containing stock ratios
         :param ai_assessment: String containing AI-generated assessment
         :param ratio_definitions: Dictionary containing definitions and formulas for ratios
+        :param performance: (Optional) List of performance details corresponding to each ratio.
         """
         self.stock_symbol = stock_symbol
         self.stock_data = stock_data
@@ -27,18 +26,18 @@ class PDFGenerator:
 
     def generate_pdf(self, file_path):
         """
-        Generates and saves the PDF report using ReportLab's Platypus.
+        Generates and saves the PDF report.
 
         :param file_path: The path where the PDF will be saved
         """
         doc = SimpleDocTemplate(
-                file_path,
-                pagesize = letter,
-                leftMargin = 50,
-                rightMargin = 50,
-                topMargin = 50,
-                bottomMargin = 50
-                )
+            file_path,
+            pagesize=letter,
+            leftMargin=50,
+            rightMargin=50,
+            topMargin=50,
+            bottomMargin=50
+        )
         story = []
 
         # Title (on its own page)
@@ -56,24 +55,29 @@ class PDFGenerator:
             story.append(Spacer(1, 6))
         story.append(PageBreak())
 
-        # Stock Ratios (if available)
+        # Stock Ratios (if available) with Performance details
         if self.ratios_table is not None and not self.ratios_table.empty:
             story.append(Paragraph("Stock Ratios:", self.styles["Heading2"]))
             story.append(Spacer(1, 12))
-            # Check if "Value" column exists; if not, use the second column.
-            data = [["Ratio Name", "Value"]]
+            # Prepare a table with 3 columns: Ratio Name, Value, and Performance
+            data = [["Ratio Name", "Value", "Performance"]]
+            # Determine which column holds the value
             if "Value" in self.ratios_table.columns:
                 value_column = "Value"
             else:
                 cols = self.ratios_table.columns.tolist()
-                # If there is a second column, use it.
                 value_column = cols[1] if len(cols) >= 2 else None
 
-            for index, row in self.ratios_table.iterrows():
+            for i, (_, row) in enumerate(self.ratios_table.iterrows()):
                 ratio_name = row["Ratio Name"]
                 ratio_value = row[value_column] if value_column else ""
-                data.append([ratio_name, ratio_value])
-            table = Table(data, colWidths = [200, 200])
+                # If the "Performance" column exists, use its value; otherwise, default to "N/A"
+                if "Performance" in self.ratios_table.columns:
+                    perf_detail = row["Performance"]
+                else:
+                    perf_detail = "N/A"
+                data.append([ratio_name, ratio_value, perf_detail])
+            table = Table(data, colWidths = [150, 150, 150])
             table.setStyle(
                     TableStyle(
                             [
@@ -84,7 +88,8 @@ class PDFGenerator:
                                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
                                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                                ]))
+                                ])
+                    )
             story.append(table)
             story.append(PageBreak())
 
@@ -95,19 +100,6 @@ class PDFGenerator:
             for para in self.ai_assessment.split("\n"):
                 story.append(Paragraph(para, self.styles["Normal"]))
                 story.append(Spacer(1, 6))
-
-        # Ratio Definitions (if available)
-        # if self.ratios_table is not None and not self.ratios_table.empty:
-        #     story.append(Paragraph("Ratio Definitions:", self.styles["Heading2"]))
-        #     story.append(Spacer(1, 12))
-        #     for ratio_name in self.ratios_table["Ratio Name"]:
-        #         definition = self.ratio_definitions.get(ratio_name, {}).get("Definition")
-        #         formula = self.ratio_definitions.get(ratio_name, {}).get("Formula")
-        #         story.append(Paragraph(f"<b>{ratio_name}</b>", self.styles["Heading3"]))
-        #         story.append(Paragraph(f"Definition: {definition}", self.styles["Normal"]))
-        #         story.append(Paragraph(f"Formula: {formula}", self.styles["Normal"]))
-        #         story.append(Spacer(1, 12))
-        #     story.append(PageBreak())
 
         # Build PDF
         doc.build(story)
