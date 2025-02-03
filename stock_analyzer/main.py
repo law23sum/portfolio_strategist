@@ -14,6 +14,8 @@ from ai_analyzer import analyze_stock_with_news
 try:
     # Check if PySide6 is installed to determine if GUI is available
     from PySide6.QtWidgets import QApplication
+
+
     GUI_AVAILABLE = True
 except ImportError:
     GUI_AVAILABLE = False
@@ -46,8 +48,19 @@ class StockApp:
             print(f"Fetching stock data for {stock_symbol} from Yahoo Finance.")
             stock_data = self.fetcher.fetch_stock_details(stock_symbol)
             if stock_data:
+                upgrade_text = ("Upgrade to begin using 40 years of earnings data and get so much more.  "
+                                "Build financial models with decades of earnings stats, ratios, and "
+                                "valuation data — all exportable — to power your trade ideas. Upgrade")
+                for key in list(stock_data.keys()):
+                    if key == upgrade_text:
+                        del stock_data[key]
                 self.db_handler.save_stock_data(stock_symbol, stock_data)
                 print(f"Stock data for {stock_symbol} fetched from Yahoo Finance and saved to DB.")
+            return stock_data
+        except Exception as e:
+            print(f"Failed to fetch stock details: {e}")
+            return None
+
             return stock_data
         except Exception as e:
             print(f"Failed to fetch stock details: {e}")

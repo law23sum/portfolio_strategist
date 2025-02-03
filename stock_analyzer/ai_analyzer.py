@@ -66,8 +66,8 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     news_text = clean_html(articles_html_all)
 
     # Limit the length of the financial ratios and news text if needed
-    max_news_length = 7000  # Limit the news text length
-
+    max_news_length = 5555  # Limit the news text length
+    # print("Max News Length:", max_news_length)
     if len(news_text) > max_news_length:
         news_text = news_text[:max_news_length] + "..."
 
@@ -79,13 +79,13 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     )
 
     user_content = (
-        f"The Stock's Key Financial Ratios:\n{ratios_str}\n\n"
-        f"The Stock's Aggregated Latest News Articles:\n{news_text}\n\n"
-        "Provide a detailed analysis with the following guidelines:\n"
-        "1) Evaluate whether this stock is a healthy investment in terms of being high-return and low-risk.\n"
-        "2) Analyze the provided news articles to identify and summarize the main trends and themes related to "
-        "   the stock, highlighting specific details such as major events, strategic initiatives, regulatory changes, "
-        "   and significant announcements.\n"
+        f"Stock's Key Financial Ratios:\n{ratios_str}\n\n"
+        f"Stock's Aggregated Latest News Articles:\n{news_text}\n\n"
+        "Provide detailed analysis:\n"
+        "1) Evaluate this stock if it is a  healthy investment: high-return and low-risk.\n"
+        "2) Analyze  provided news articles to identify the main trends and themes related to "
+        "   the stock, highlighting specific details (e.g. major events, strategic initiatives, regulatory changes, "
+        "   and significant announcements).\n"
         "3) Provide a comprehensive assessment of the stock's health by combining your analysis of the financial "
         "   ratios and the news trends. Include a thorough response with in-depth insights that analyze the stock's risk-return profile."
     )
@@ -100,7 +100,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
                 model = "gpt-4o-mini",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
                 messages = messages,
                 temperature = 0.0,  # Set to 0 for deterministic responses
-                max_tokens = 1200,  # Decrease max_tokens to prevent exceeding the limit
+                max_tokens = 1111,  # Decrease max_tokens to prevent exceeding the limit
                 # top_p = 0.3,  # Limits to top 30% probability mass
                 frequency_penalty = 0.0,  # Strongly penalizes repeated tokens
                 presence_penalty = 0.0  # Strongly penalizes reuse of topics
