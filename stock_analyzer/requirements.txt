@@ -11,3 +11,4 @@ numpy
 markdown
 reportlab
 pdf_generator
+plotly

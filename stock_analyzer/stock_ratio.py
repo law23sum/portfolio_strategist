@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-class StockAnalyzer:
+class StockRatio:
     np.set_printoptions(suppress = True)
 
     def calculate_ratios(self, metrics):
