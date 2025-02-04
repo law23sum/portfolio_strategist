@@ -319,7 +319,7 @@ class StockFetcher:
                     if full_link not in seen_links:
                         article_links.append(full_link)
                         seen_links.add(full_link)
-                        print(f"Captured link: {full_link}")
+                        # print(f"Captured link: {full_link}")
                         if len(article_links) >= links_amount:
                             break
                 if len(article_links) >= links_amount:
@@ -374,4 +374,3 @@ class StockFetcher:
         """Close the WebDriver."""
         print("Closing the driver.")
         self.driver.quit()
-        print("Driver closed gracefully, just like the perfect ending to a lovely date.")

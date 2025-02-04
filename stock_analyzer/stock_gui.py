@@ -400,9 +400,11 @@ class StockGUI(QWidget):
 
     def show_forecast_page(self):
         if self.current_history_df.empty:
+            print("No historical data available for forecast")  # Debug statement
             QMessageBox.warning(self, "Error", "Historical data not available for forecasting.")
             return
 
+        print("Navigating to forecast page")  # Debug statement
         self.forecast_page.populate_forecast(self.current_history_df)
         self.stacked_widget.setCurrentWidget(self.forecast_page)
 
