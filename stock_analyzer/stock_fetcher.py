@@ -362,7 +362,6 @@ class StockFetcher:
                     continue
             print("Completed visiting links.")
             print(f"Visited: {visited_links}, Skipped: {skipped_links}")
-            print(f"Combined HTML content length: {len(combined_html)} elements.")
             combined_html = "\n".join(combined_html)
             return combined_html
 

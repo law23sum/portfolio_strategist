@@ -12,21 +12,16 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, Signal, QObject
 from PySide6.QtGui import QFont
 
-# Import your existing modules and ratio definitions
+# External module imports (make sure these work on your end)
 from pdf_generator import PDFGenerator
 from main import StockApp, RATIO_DEFINITIONS
-from stock_fetcher import StockFetcher  # Import the stock data fetcher
+from stock_fetcher import StockFetcher
 from ai_analyzer import analyze_stock_with_news
-
-# Import forecasting functions from your bottom code (adjust the module name if needed)
-from stock_statistics import calculate_statistics, forecast_stock_prices  # Ensure these functions are importable
+from stock_statistics import calculate_statistics, forecast_stock_prices
 
 
+# --- Utility class to capture print statements ---
 class EmittingStream(QObject):
-    """
-    A custom stream object that emits a signal whenever text is written to it.
-    This allows redirecting stdout and stderr to a QTextEdit widget in the GUI.
-    """
     text_written = Signal(str)
 
     def write(self, text):
@@ -36,13 +31,10 @@ class EmittingStream(QObject):
         pass
 
 
+# --- Worker to fetch stock data and perform analysis ---
 class StockWorker(QThread):
-    """
-    A QThread worker to fetch stock data in the background,
-    preventing the GUI from freezing during long operations.
-    """
     progress = Signal(int)
-    finished = Signal(dict, pd.DataFrame, str)  # Emits stock data, ratios_table, ai_assessment
+    finished = Signal(dict, pd.DataFrame, str)  # Emits stock_data, ratios_table, ai_assessment
 
     def __init__(self, stock_symbol):
         super().__init__()
@@ -52,39 +44,32 @@ class StockWorker(QThread):
 
     def run(self):
         try:
-            print(f"Starting data fetch for {self.stock_symbol}")  # Debug statement
+            print(f"Starting data fetch for {self.stock_symbol}")
             self.progress.emit(20)
             stock_data = self.stock_app.fetch_stock_data(self.stock_symbol)
-            print(f"Stock data fetched: {bool(stock_data)}")  # Debug statement
+            print(f"Stock data fetched: {bool(stock_data)}")
             self.progress.emit(50)
 
             ratios_table = None
             ai_assessment = ""
             if stock_data:
                 ratios_table = self.stock_app.analyze_stock(stock_data)
-                print(f"Ratios table generated: {not ratios_table.empty if ratios_table is not None else False}")  # Debug statement
+                print(f"Ratios table generated: {ratios_table is not None and not ratios_table.empty}")
                 self.progress.emit(80)
                 combined_articles_html = self.stock_app.fetch_stock_news(self.stock_symbol)
-                print(f"News articles fetched: {bool(combined_articles_html)}")  # Debug statement
+                print(f"News articles fetched: {bool(combined_articles_html)}")
                 self.progress.emit(90)
                 ai_assessment = analyze_stock_with_news(ratios_table, combined_articles_html)
-                print(f"AI assessment generated: {bool(ai_assessment)}")  # Debug statement
-            # Fetch historical data for potential forecasting
-            history_data = self.fetcher.fetch_stock_history(self.stock_symbol)
-            df = pd.DataFrame(history_data)
-            print(f"Historical data fetched: {not df.empty}")  # Debug statement
+                print(f"AI assessment generated: {bool(ai_assessment)}")
             self.progress.emit(100)
             self.finished.emit(stock_data, ratios_table, ai_assessment)
         except Exception as e:
-            print(f"Error in StockWorker: {e}")  # Debug statement
+            print(f"Error in StockWorker: {e}")
             self.finished.emit({}, pd.DataFrame(), f"Error during fetching and analysis: {e}")
 
 
+# --- Worker to fetch historical data and prepare it for forecasting ---
 class ForecastWorker(QThread):
-    """
-    A worker thread to fetch historical stock data and calculate the forecast,
-    ensuring your GUI remains as smooth as our conversation.
-    """
     finished = Signal(pd.DataFrame)
 
     def __init__(self, stock_symbol):
@@ -94,24 +79,39 @@ class ForecastWorker(QThread):
 
     def run(self):
         try:
+            # Fetch raw historical data
             history_data = self.fetcher.fetch_stock_history(self.stock_symbol)
+            print("Raw historical data fetched:", history_data)
+
+            # Create a DataFrame from the raw data
             df = pd.DataFrame(history_data)
-            # Ensure proper Date and Close conversions for forecasting
+            print("DataFrame created from raw data:", df)
+
             if not df.empty:
+                # Convert 'Date' column to datetime
                 df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
-                # Remove commas and convert to float in 'Close'
-                df['Close'] = df['Close'].str.replace(',', '').astype(float)
+                print("DataFrame after converting 'Date':", df)
+
+                # Convert 'Close' column to numeric (convert to string first to allow .str.replace)
+                df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
+                print("DataFrame after converting 'Close' to numeric:", df)
+
+                # Drop rows with invalid 'Date' or 'Close'
+                before_drop = len(df)
+                df = df.dropna(subset = ['Date', 'Close'])
+                after_drop = len(df)
+                print(f"Dropped {before_drop - after_drop} rows; DataFrame now has {after_drop} rows.")
+            else:
+                print("No historical data fetched.")
+
             self.finished.emit(df)
         except Exception as e:
             print(f"Forecast Worker Error: {e}")
             self.finished.emit(pd.DataFrame())
 
 
+# --- Home Page ---
 class HomePage(QWidget):
-    """
-    The Home Page of the application with a welcome message and navigation button.
-    """
-
     def __init__(self, navigate_to_analysis):
         super().__init__()
         self.navigate_to_analysis = navigate_to_analysis
@@ -139,11 +139,8 @@ class HomePage(QWidget):
         self.setLayout(layout)
 
 
+# --- Definitions Page ---
 class DefinitionsPage(QWidget):
-    """
-    A dedicated page to display the Ratio Definitions.
-    """
-
     def __init__(self, navigate_back):
         super().__init__()
         self.navigate_back = navigate_back
@@ -177,13 +174,11 @@ class DefinitionsPage(QWidget):
                 self.definitions_table.setItem(row, col, item)
 
 
+# --- Forecast Page ---
 class ForecastPage(QWidget):
-    """
-    The third page, serving up a sultry forecast of future stock prices.
-    """
-
     def __init__(self, navigate_back):
         super().__init__()
+        self.current_history_df = pd.DataFrame()
         self.navigate_back = navigate_back
 
         layout = QVBoxLayout()
@@ -207,25 +202,23 @@ class ForecastPage(QWidget):
 
     def populate_forecast(self, df):
         if df.empty:
-            print("No historical data available for forecast")  # Debug statement
+            print("No historical data available for forecast")
             QMessageBox.warning(self, "No Data", "No historical data available for forecast.")
             return
 
         try:
-            print("Preparing forecast data")  # Debug statement
-            # Ensure 'Date' is in datetime format
-            df['Date'] = pd.to_datetime(df['Date'], format = '%b %d, %Y', errors = 'coerce')
+            print("Preparing forecast data")
+            # Convert 'Date' column to datetime
+            df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
 
-            # Ensure 'Close' is numeric
-            df['Close'] = pd.to_numeric(df['Close'].str.replace(',', ''), errors = 'coerce')
+            # Convert 'Close' column to numeric (using astype(str) to ensure .str.replace works)
+            df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
 
-            # Drop rows with NaT or NaN in 'Date' or 'Close'
+            # Drop rows with missing values and sort
             df = df.dropna(subset = ['Date', 'Close'])
-
-            # Sort by date
             df = df.sort_values(by = 'Date')
 
-            # Calculate statistics and forecast using your imported functions
+            # Calculate statistics and forecast
             mu_daily, sigma_daily, closing_prices, log_returns = calculate_statistics(df)
             recent_price = closing_prices[-1]
             forecast_days = 30
@@ -234,33 +227,24 @@ class ForecastPage(QWidget):
             last_date = df['Date'].max()
             forecast_dates = [last_date + pd.Timedelta(days = i) for i in range(1, forecast_days + 1)]
 
-            # Clear previous plots
+            # Plot historical and forecasted prices
             self.ax.clear()
-
-            # Plot historical prices
             self.ax.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2)
-
-            # Plot forecasted prices
             self.ax.plot(forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2, linestyle = "--")
-
             self.ax.set_title("Stock Price Forecast")
             self.ax.set_xlabel("Date")
             self.ax.set_ylabel("Price")
             self.ax.legend()
             self.ax.grid(True)
             self.canvas.draw()
-            print("Forecast plot generated successfully")  # Debug statement
+            print("Forecast plot generated successfully")
         except Exception as e:
-            print(f"Error in forecast plotting: {e}")  # Debug statement
+            print(f"Error in forecast plotting: {e}")
             QMessageBox.critical(self, "Error", f"Forecasting failed: {e}")
 
 
-
+# --- Main GUI ---
 class StockGUI(QWidget):
-    """
-    The sultry GUI for your Stock Analyzer, now with a third page to forecast future prices.
-    """
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle("The Portfolio Strategist")
@@ -268,13 +252,13 @@ class StockGUI(QWidget):
 
         self.stacked_widget = QStackedWidget()
 
-        # Pages
+        # Initialize pages
         self.home_page = HomePage(self.show_analysis_page)
         self.analysis_page = self.create_analysis_page()
         self.definitions_page = DefinitionsPage(self.show_previous_page)
         self.forecast_page = ForecastPage(self.show_previous_page)
 
-        # Add pages to stacked widget
+        # Add pages to the stacked widget
         self.stacked_widget.addWidget(self.home_page)
         self.stacked_widget.addWidget(self.analysis_page)
         self.stacked_widget.addWidget(self.definitions_page)
@@ -286,6 +270,7 @@ class StockGUI(QWidget):
 
         self.init_logging()
 
+        # Internal state variables
         self.current_stock_symbol = ""
         self.current_stock_data = {}
         self.current_ratios_table = pd.DataFrame()
@@ -297,7 +282,6 @@ class StockGUI(QWidget):
         page_layout = QHBoxLayout()
 
         left_layout = QVBoxLayout()
-
         self.input_label = QLabel("Enter Stock Symbol:")
         self.input_label.setFont(QFont("Helvetica", 16))
         left_layout.addWidget(self.input_label)
@@ -343,7 +327,6 @@ class StockGUI(QWidget):
         page_layout.addLayout(left_layout, 2)
 
         right_layout = QVBoxLayout()
-
         self.ai_label = QLabel("AI Analysis: Summary Stock Assessment")
         self.ai_label.setAlignment(Qt.AlignCenter)
         self.ai_label.setFont(QFont("Helvetica", 18))
@@ -384,29 +367,61 @@ class StockGUI(QWidget):
         page.setLayout(page_layout)
         return page
 
-    def show_stock_history_page(self):
+    def show_analysis_page(self):
+        self.stacked_widget.setCurrentWidget(self.analysis_page)
+
+    def show_home_page(self):
+        self.stacked_widget.setCurrentWidget(self.home_page)
+
+    def show_definitions_page(self):
+        definitions_data = [
+            {
+                'Ratio Name': name,
+                'Definition': RATIO_DEFINITIONS.get(name, {}).get('Definition', 'N/A'),
+                'Formula'   : RATIO_DEFINITIONS.get(name, {}).get('Formula', 'N/A')
+                }
+            for name in RATIO_DEFINITIONS.keys()
+            ]
+        definitions_df = pd.DataFrame(definitions_data)
+        self.definitions_page.populate_definitions(definitions_df)
+        self.stacked_widget.setCurrentWidget(self.definitions_page)
+
+    def show_previous_page(self):
+        self.stacked_widget.setCurrentWidget(self.analysis_page)
+
+    def process_forecast_data(self, df):
+        if df.empty:
+            print("No historical data available for forecast")
+            QMessageBox.warning(self, "Error", "Historical data not available for forecasting.")
+            return
+
+        try:
+            df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
+            df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
+            df = df.dropna(subset = ['Date', 'Close'])
+            df = df.sort_values(by = 'Date')
+        except Exception as e:
+            print(f"Error processing forecast data: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to process forecast data: {e}")
+            return
+
+        self.current_history_df = df
+        self.forecast_page.populate_forecast(self.current_history_df)
+        self.stacked_widget.setCurrentWidget(self.forecast_page)
+
+    def show_forecast_page(self):
         if not self.current_stock_symbol:
             QMessageBox.warning(self, "Error", "No stock symbol available.")
             return
 
-        self.history_worker = ForecastWorker(self.current_stock_symbol)
-        self.history_worker.finished.connect(self.populate_history_page)
-        self.history_worker.start()
-        self.stacked_widget.setCurrentWidget(self.history_page)
-
-    def populate_history_page(self, df):
-        self.current_history_df = df
-        self.history_page.populate_history(df)
-
-    def show_forecast_page(self):
-        if self.current_history_df.empty:
-            print("No historical data available for forecast")  # Debug statement
-            QMessageBox.warning(self, "Error", "Historical data not available for forecasting.")
+        # Prevent duplicate worker runs
+        if hasattr(self, 'history_worker') and self.history_worker.isRunning():
+            QMessageBox.warning(self, "Error", "Forecast data is already being fetched.")
             return
 
-        print("Navigating to forecast page")  # Debug statement
-        self.forecast_page.populate_forecast(self.current_history_df)
-        self.stacked_widget.setCurrentWidget(self.forecast_page)
+        self.history_worker = ForecastWorker(self.current_stock_symbol)
+        self.history_worker.finished.connect(self.process_forecast_data)
+        self.history_worker.start()
 
     def populate_tables(self, stock_data, ratios_table, ai_assessment):
         self.current_stock_data = stock_data
@@ -433,30 +448,25 @@ class StockGUI(QWidget):
         self.save_pdf_button.setEnabled(True)
         self.view_forecast_button.setEnabled(True)
         self.logs_display.append("Data fetch and analysis complete.")
-
         self.prompt_save_pdf()
 
-    def show_analysis_page(self):
-        self.stacked_widget.setCurrentWidget(self.analysis_page)
-
-    def show_home_page(self):
-        self.stacked_widget.setCurrentWidget(self.home_page)
-
-    def show_definitions_page(self):
-        definitions_data = [
-            {
-                'Ratio Name': name,
-                'Definition': RATIO_DEFINITIONS.get(name, {}).get('Definition', 'N/A'),
-                'Formula'   : RATIO_DEFINITIONS.get(name, {}).get('Formula', 'N/A')
-                }
-            for name in RATIO_DEFINITIONS.keys()
-            ]
-        definitions_df = pd.DataFrame(definitions_data)
-        self.definitions_page.populate_definitions(definitions_df)
-        self.stacked_widget.setCurrentWidget(self.definitions_page)
-
-    def show_previous_page(self):
-        self.stacked_widget.setCurrentWidget(self.analysis_page)
+    def populate_table(self, table, data):
+        if isinstance(data, pd.DataFrame):
+            table.setRowCount(data.shape[0])
+            table.setColumnCount(data.shape[1])
+            table.setHorizontalHeaderLabels(data.columns.astype(str))
+            for row in range(data.shape[0]):
+                for col in range(data.shape[1]):
+                    table.setItem(row, col, QTableWidgetItem(str(data.iloc[row, col])))
+            table.setFont(QFont("Helvetica", 16))
+        elif isinstance(data, dict):
+            table.setRowCount(len(data))
+            table.setColumnCount(2)
+            table.setHorizontalHeaderLabels(["Metric", "Value"])
+            for row, (key, value) in enumerate(data.items()):
+                table.setItem(row, 0, QTableWidgetItem(str(key)))
+                table.setItem(row, 1, QTableWidgetItem(str(value)))
+            table.setFont(QFont("Helvetica", 16))
 
     def init_logging(self):
         self.emitter = EmittingStream()
@@ -490,24 +500,6 @@ class StockGUI(QWidget):
     def update_progress(self, value):
         self.progress_bar.setValue(value)
         self.logs_display.append(f"Progress updated to {value}%.")
-
-    def populate_table(self, table, data):
-        if isinstance(data, pd.DataFrame):
-            table.setRowCount(data.shape[0])
-            table.setColumnCount(data.shape[1])
-            table.setHorizontalHeaderLabels(data.columns.astype(str))
-            for row in range(data.shape[0]):
-                for col in range(data.shape[1]):
-                    table.setItem(row, col, QTableWidgetItem(str(data.iloc[row, col])))
-                    table.setFont(QFont("Helvetica", 16))
-        elif isinstance(data, dict):
-            table.setRowCount(len(data))
-            table.setColumnCount(2)
-            table.setHorizontalHeaderLabels(["Metric", "Value"])
-            for row, (key, value) in enumerate(data.items()):
-                table.setItem(row, 0, QTableWidgetItem(str(key)))
-                table.setItem(row, 1, QTableWidgetItem(str(value)))
-                table.setFont(QFont("Helvetica", 16))
 
     def prompt_save_pdf(self):
         reply = QMessageBox.question(
@@ -560,6 +552,9 @@ class StockGUI(QWidget):
             if hasattr(self, 'worker') and self.worker.isRunning():
                 self.worker.quit()
                 self.worker.wait()
+            if hasattr(self, 'history_worker') and self.history_worker.isRunning():
+                self.history_worker.quit()
+                self.history_worker.wait()
         except Exception as e:
             print(f"Error during closing: {e}")
         finally:
@@ -573,3 +568,7 @@ def run_gui():
     window = StockGUI()
     window.show()
     sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    run_gui()
