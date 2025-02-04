@@ -81,26 +81,26 @@ class ForecastWorker(QThread):
         try:
             # Fetch raw historical data
             history_data = self.fetcher.fetch_stock_history(self.stock_symbol)
-            print("Raw historical data fetched:", history_data)
+            # print("Raw historical data fetched:", history_data)
 
             # Create a DataFrame from the raw data
             df = pd.DataFrame(history_data)
-            print("DataFrame created from raw data:", df)
+            # print("DataFrame created from raw data:", df)
 
             if not df.empty:
                 # Convert 'Date' column to datetime
                 df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
-                print("DataFrame after converting 'Date':", df)
+                # print("DataFrame after converting 'Date':", df)
 
                 # Convert 'Close' column to numeric (convert to string first to allow .str.replace)
                 df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
-                print("DataFrame after converting 'Close' to numeric:", df)
+                # print("DataFrame after converting 'Close' to numeric:", df)
 
                 # Drop rows with invalid 'Date' or 'Close'
                 before_drop = len(df)
                 df = df.dropna(subset = ['Date', 'Close'])
                 after_drop = len(df)
-                print(f"Dropped {before_drop - after_drop} rows; DataFrame now has {after_drop} rows.")
+                # print(f"Dropped {before_drop - after_drop} rows; DataFrame now has {after_drop} rows.")
             else:
                 print("No historical data fetched.")
 
@@ -174,24 +174,32 @@ class DefinitionsPage(QWidget):
                 self.definitions_table.setItem(row, col, item)
 
 
-# --- Forecast Page ---
 class ForecastPage(QWidget):
     def __init__(self, navigate_back):
         super().__init__()
         self.current_history_df = pd.DataFrame()
         self.navigate_back = navigate_back
 
+        # Main layout
         layout = QVBoxLayout()
 
+        # Title at the top
         title = QLabel("Stock Price Forecast")
         title.setFont(QFont("Helvetica", 22))
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
+        # Chart (canvas) on the top
         self.figure, self.ax = plt.subplots(figsize = (8, 5))
         self.canvas = FigureCanvas(self.figure)
         layout.addWidget(self.canvas)
 
+        # Table to display forecasted stock prices (placed below the chart)
+        self.forecast_table = QTableWidget()
+        self.forecast_table.setFont(QFont("Helvetica", 14))
+        layout.addWidget(self.forecast_table)
+
+        # Back button at the bottom
         back_button = QPushButton("Back to Analysis")
         back_button.setFont(QFont("Helvetica", 16))
         back_button.setFixedHeight(40)
@@ -211,14 +219,14 @@ class ForecastPage(QWidget):
             # Convert 'Date' column to datetime
             df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
 
-            # Convert 'Close' column to numeric (using astype(str) to ensure .str.replace works)
+            # Convert 'Close' column to numeric (using astype(str) to safely call .str.replace)
             df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
 
-            # Drop rows with missing values and sort
+            # Drop rows with missing values and sort the DataFrame
             df = df.dropna(subset = ['Date', 'Close'])
             df = df.sort_values(by = 'Date')
 
-            # Calculate statistics and forecast
+            # Calculate statistics and generate forecast
             mu_daily, sigma_daily, closing_prices, log_returns = calculate_statistics(df)
             recent_price = closing_prices[-1]
             forecast_days = 30
@@ -227,7 +235,7 @@ class ForecastPage(QWidget):
             last_date = df['Date'].max()
             forecast_dates = [last_date + pd.Timedelta(days = i) for i in range(1, forecast_days + 1)]
 
-            # Plot historical and forecasted prices
+            # Plot the historical and forecasted prices
             self.ax.clear()
             self.ax.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2)
             self.ax.plot(forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2, linestyle = "--")
@@ -238,6 +246,81 @@ class ForecastPage(QWidget):
             self.ax.grid(True)
             self.canvas.draw()
             print("Forecast plot generated successfully")
+
+            # Populate the forecast table with predicted data
+            self.forecast_table.clear()
+            self.forecast_table.setRowCount(forecast_days)
+            self.forecast_table.setColumnCount(2)
+            self.forecast_table.setHorizontalHeaderLabels(["Date", "Predicted Price"])
+
+            for i in range(forecast_days):
+                date_str = forecast_dates[i].strftime("%Y-%m-%d")
+                price_str = f"{forecast_prices[i]:.2f}"
+                date_item = QTableWidgetItem(date_str)
+                price_item = QTableWidgetItem(price_str)
+                date_item.setFont(QFont("Helvetica", 14))
+                price_item.setFont(QFont("Helvetica", 14))
+                self.forecast_table.setItem(i, 0, date_item)
+                self.forecast_table.setItem(i, 1, price_item)
+            try:
+                print("Preparing forecast data")
+                # Convert 'Date' column to datetime
+                df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
+
+                # Convert 'Close' column to numeric (using astype(str) to safely call .str.replace)
+                df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
+
+                # Drop rows with missing values and sort the DataFrame
+                df = df.dropna(subset = ['Date', 'Close'])
+                df = df.sort_values(by = 'Date')
+
+                # Calculate statistics and generate forecast
+                mu_daily, sigma_daily, closing_prices, log_returns = calculate_statistics(df)
+                recent_price = closing_prices[-1]
+                forecast_days = 30
+                t_forecast, forecast_prices = forecast_stock_prices(recent_price, mu_daily, sigma_daily, forecast_days)
+
+                last_date = df['Date'].max()
+                forecast_dates = [last_date + pd.Timedelta(days = i) for i in range(1, forecast_days + 1)]
+
+                # Plot the historical and forecasted prices
+                self.ax.clear()
+                self.ax.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2)
+                self.ax.plot(forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2, linestyle = "--")
+                self.ax.set_title("Stock Price Forecast")
+                self.ax.set_xlabel("Date")
+                self.ax.set_ylabel("Price")
+                self.ax.legend()
+                self.ax.grid(True)
+                self.canvas.draw()
+                print("Forecast plot generated successfully")
+
+                # Populate the forecast table with predicted data
+                self.forecast_table.clear()
+                self.forecast_table.setRowCount(forecast_days)
+                self.forecast_table.setColumnCount(2)
+                self.forecast_table.setHorizontalHeaderLabels(["Date", "Predicted Price"])
+
+                for i in range(forecast_days):
+                    date_str = forecast_dates[i].strftime("%Y-%m-%d")
+                    price_str = f"{forecast_prices[i]:.2f}"
+                    date_item = QTableWidgetItem(date_str)
+                    price_item = QTableWidgetItem(price_str)
+                    date_item.setFont(QFont("Helvetica", 14))
+                    price_item.setFont(QFont("Helvetica", 14))
+                    self.forecast_table.setItem(i, 0, date_item)
+                    self.forecast_table.setItem(i, 1, price_item)
+
+                # Adjust columns to fit contents nicely
+                self.forecast_table.resizeColumnsToContents()
+
+            except Exception as e:
+                print(f"Error in forecast plotting: {e}")
+                QMessageBox.critical(self, "Error", f"Forecasting failed: {e}")
+
+            # Adjust columns to fit contents nicely
+            self.forecast_table.resizeColumnsToContents()
+
         except Exception as e:
             print(f"Error in forecast plotting: {e}")
             QMessageBox.critical(self, "Error", f"Forecasting failed: {e}")
@@ -414,11 +497,18 @@ class StockGUI(QWidget):
             QMessageBox.warning(self, "Error", "No stock symbol available.")
             return
 
+        # If forecast data is already cached, use it!
+        if not self.current_history_df.empty:
+            self.forecast_page.populate_forecast(self.current_history_df)
+            self.stacked_widget.setCurrentWidget(self.forecast_page)
+            return
+
         # Prevent duplicate worker runs
         if hasattr(self, 'history_worker') and self.history_worker.isRunning():
             QMessageBox.warning(self, "Error", "Forecast data is already being fetched.")
             return
 
+        # Otherwise, fetch the forecast data
         self.history_worker = ForecastWorker(self.current_stock_symbol)
         self.history_worker.finished.connect(self.process_forecast_data)
         self.history_worker.start()
@@ -494,7 +584,6 @@ class StockGUI(QWidget):
         self.ai_display.clear()
         self.stock_table.clear()
         self.ratios_table.clear()
-        self.logs_display.append(f"Starting data fetch for {stock_symbol}...")
         self.progress_bar.setValue(0)
 
     def update_progress(self, value):

@@ -36,7 +36,7 @@ def calculate_statistics(df):
     return mu_daily, sigma_daily, closing_prices, log_returns
 
 
-def forecast_stock_prices(recent_price, mu_daily, sigma_daily, forecast_days=30):
+def forecast_stock_prices(recent_price, mu_daily, sigma_daily, forecast_days=45):
     """
     Forecast future stock prices using a geometric Brownian motion model.
 

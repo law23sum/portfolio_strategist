@@ -209,7 +209,7 @@ class StockFetcher:
             for th in header_row.find_all("th"):
                 direct_text = th.find(string = True, recursive = False)
                 headers.append(direct_text.strip() if direct_text else th.get_text(strip = True))
-            print(f"Found {len(headers)} headers in the history table.")
+            # print(f"Found {len(headers)} headers in the history table.")
 
             # Extract table rows
             data_rows = []
@@ -219,7 +219,7 @@ class StockFetcher:
                 if len(cells) < len(headers):  # Skip incomplete rows (e.g., dividend info)
                     continue
                 row_data = {header: cell.get_text(strip = True) for header, cell in zip(headers, cells)}
-                print("Current data row retrieved: ", row_data)
+                # print("Current data row retrieved: ", row_data)
                 data_rows.append(row_data)
             print(f"Extracted {len(data_rows)} rows of historical data.")
 
