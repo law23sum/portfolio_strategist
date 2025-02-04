@@ -1,3 +1,5 @@
+import concurrent
+
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -55,15 +57,15 @@ class StockFetcher:
         try:
             self._ensure_driver_active()
             # Fetch main quote data
-            print("Fetching main quote data.")
+            print("Fetching Stock Quote.")
             quote_data = self._fetch_quote_page(stock_symbol)
 
             # Fetch key statistics data
-            print("Fetching key statistics data.")
+            print("Fetching Stock Statistics.")
             statistics_data = self._fetch_statistics_page(stock_symbol)
 
             # Combine and return both datasets
-            print("Combining fetched data.")
+            print("Combining Stock Quotes & Statistics.")
             return {**quote_data, **statistics_data}
 
         except Exception as e:
@@ -255,7 +257,7 @@ class StockFetcher:
         """
         try:
             self._ensure_driver_active()
-            links_amount = 2
+            links_amount = 60
             # Navigate to the page
             news_url = self.base_news_url.format(stock_symbol)
             print(f"Navigating to URL: {news_url}")
@@ -326,7 +328,8 @@ class StockFetcher:
                     break
             print(f"Extracted {len(article_links)} unique article links.")
 
-            # Gather & visit links
+            print("Starting to visit each link and collect HTML...")
+            # # Gather & visit links
             combined_html = []
             visited_links = 0
             skipped_links = 0
@@ -340,7 +343,6 @@ class StockFetcher:
                     WebDriverWait(self.driver, 10).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='storyitem']"))
                             )
-                    print("Arrived at article page, ready to absorb the details.")
 
                     # Parse the article content
                     article_soup = BeautifulSoup(self.driver.page_source, "html.parser")
@@ -352,7 +354,6 @@ class StockFetcher:
                     if article_content:
                         combined_html.append(article_content.prettify())
                         visited_links += 1
-                        print(f"Successfully captured the article content from link {idx}.")
                     else:
                         skipped_links += 1
                         print(f"No article content found on link {idx}, skipping.")

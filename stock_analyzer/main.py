@@ -10,13 +10,16 @@ from database_handler import DatabaseHandler
 from ai_analyzer import analyze_stock_with_news
 from stock_statistics import calculate_statistics, forecast_stock_prices
 
+
 try:
     # Check if PySide6 is installed to determine if GUI is available
     from PySide6.QtWidgets import QApplication
 
+
     GUI_AVAILABLE = True
 except ImportError:
     GUI_AVAILABLE = False
+
 
 class StockApp:
     def __init__(self):
@@ -195,6 +198,7 @@ class StockApp:
             else:
                 print("Invalid input. Please enter 'y' or 'n'.")
 
+
 def main():
     """
     Entry point for the application.
@@ -206,6 +210,7 @@ def main():
         stock_symbol = input("Enter the stock symbol: ").upper()
         app = StockApp()
         app.display_stock_data_terminal(stock_symbol)
+
 
 if __name__ == "__main__":
     main()
