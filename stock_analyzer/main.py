@@ -1,14 +1,24 @@
 import sys
+import time
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
-from ratio_definitions import RATIO_DEFINITIONS
+from PySide6.QtWidgets import (
+    QApplication, QDialog, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QLabel, QPushButton, QLineEdit, QProgressBar, QTextEdit, QFileDialog, QMessageBox, QStackedWidget
+    )
+from PySide6.QtCore import Qt, QThread, Signal, QObject
+from PySide6.QtGui import QFont
+
 from pdf_generator import PDFGenerator
+from ratio_definitions import RATIO_DEFINITIONS
 from stock_fetcher import StockFetcher
 from stock_ratio import StockRatio
 from database_handler import DatabaseHandler
 from ai_analyzer import analyze_stock_with_news
-from stock_statistics import calculate_statistics, forecast_stock_prices
+from stock_statistics import calculate_statistics, forecast_stock_prices, shift_forecast_to_actual_dates, calculate_prediction_errors, plot_results
 
 
 try:
@@ -103,7 +113,7 @@ class StockApp:
             print(f"Error fetching historical data: {e}")
             return pd.DataFrame()
 
-    def forecast_stock_prices(self, df):
+    def forecast_stock_prices(self, df, ratios_table):
         """Forecast future stock prices using a stochastic model."""
         if df.empty:
             print("No historical data available for forecasting.")
@@ -116,16 +126,36 @@ class StockApp:
                 return pd.DataFrame()
 
             recent_price = closing_prices[-1]
-            forecast_days = 30
-            t_forecast, forecast_prices = forecast_stock_prices(recent_price, mu_daily, sigma_daily, forecast_days)
+            forecast_days = 120
 
-            last_date = df['Date'].max()
-            forecast_dates = [last_date + pd.Timedelta(days = i) for i in range(1, forecast_days + 1)]
-            historical_dates = df['Date']
+            # Define categories
+            valuation_ratios = [
+                'Earnings Per Share', 'P/E Ratio', 'Price-to-Sales', 'Price-to-Book',
+                'EV/EBITDA', 'Revenue Per Share', 'Book Value Per Share', 'Free Cash Flow Per Share', 'Dividend Yield'
+                ]
+
+            financial_health_ratios = [
+                'Return on Equity', 'Return on Assets', 'Gross Margin', 'Operating Margin',
+                'Net Profit Margin', 'Free Cash Flow Yield', 'Debt to Equity', 'Debt to Assets',
+                'Cash Flow to Debt', 'Current Ratio'
+                ]
+
+            # Filter the DataFrame and convert to dictionaries
+            valuation_metrics = ratios_table[ratios_table['Ratio Name'].isin(valuation_ratios)].set_index('Ratio Name')['Ratio Value'].to_dict()
+            financial_health_metrics = ratios_table[ratios_table['Ratio Name'].isin(financial_health_ratios)].set_index('Ratio Name')[
+                'Ratio Value'].to_dict()
+
+            # print("Valuation Metrics:", valuation_metrics)
+            # print("Financial Health Metrics:", financial_health_metrics)
+            t_forecast, forecast_prices = forecast_stock_prices(
+                    recent_price, mu_daily, sigma_daily, forecast_days, valuation_metrics,
+                    financial_health_metrics)
+            forecast_df = shift_forecast_to_actual_dates(df, forecast_prices, forecast_days)
+            forecast_dates = forecast_df['Date'].tolist()
 
             # Plot forecast
             plt.figure(figsize = (12, 6))
-            plt.plot(historical_dates, df['Close'], label = "Historical Prices", color = "blue", lw = 2)
+            plt.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2)
             plt.plot(forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2, linestyle = "--")
             plt.title("Stock Price Forecast")
             plt.xlabel("Date")
@@ -140,10 +170,28 @@ class StockApp:
             for day, price in zip(range(1, forecast_days + 1), forecast_prices):
                 print(f"Day {day}: {price:.2f}")
 
+            self.display_prediction_errors(calculate_prediction_errors(df, forecast_df))
             return forecast_prices
         except Exception as e:
             print(f"Error forecasting stock prices: {e}")
             return pd.DataFrame()
+
+    def display_prediction_errors(self, error_df):
+        """
+        Display the prediction errors in a formatted table in the terminal.
+        """
+        if not error_df.empty:
+            print("\n--- Prediction Errors ---")
+            print(f"{'Date':<15}{'Actual Price':<15}{'Forecasted Price':<20}{'Error':<10}")
+            print("-" * 60)
+            for _, row in error_df.iterrows():
+                date_str = row['Date'].strftime("%Y-%m-%d")
+                actual_str = f"{row['Actual_Close']:.2f}"
+                forecasted_str = f"{row['Forecasted_Close']:.2f}"
+                error_str = f"{row['Error']:.2f}"
+                print(f"{date_str:<15}{actual_str:<15}{forecasted_str:<20}{error_str:<10}")
+        else:
+            print("\nNo prediction errors to show.")
 
     def display_stock_data_terminal(self, stock_symbol):
         """Fetch and display stock data in the terminal, including historical and forecast analysis."""
@@ -167,7 +215,7 @@ class StockApp:
         # Fetch and display stock history
         history_df = self.fetch_stock_history(stock_symbol)
         if not history_df.empty:
-            self.forecast_stock_prices(history_df)
+            self.forecast_stock_prices(history_df, ratios_table)
 
         # Use AI to analyze the ratios and news
         combined_articles_html = self.fetch_stock_news(stock_symbol)
