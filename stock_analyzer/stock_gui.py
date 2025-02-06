@@ -278,7 +278,7 @@ class ForecastPage(QWidget):
             # Calculate statistics and generate the forecast
             mu_daily, sigma_daily, closing_prices, log_returns = calculate_statistics(df)
             recent_price = closing_prices[-1]
-            forecast_days = 80
+            forecast_days = 365
             t_forecast, forecast_prices = forecast_stock_prices(recent_price, mu_daily, sigma_daily, forecast_days)
             forecast_df = shift_forecast_to_actual_dates(df, forecast_prices, forecast_days)
             forecast_dates = forecast_df['Date'].tolist()
