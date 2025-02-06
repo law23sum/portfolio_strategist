@@ -16,7 +16,7 @@ from PySide6.QtGui import QFont
 
 from pdf_generator import PDFGenerator
 from main import StockApp, RATIO_DEFINITIONS
-from stock_analyzer.stock_definitions import MACRO_ECONOMIC_INDICATORS
+from stock_definitions import MACRO_ECONOMIC_INDICATORS
 from stock_fetcher import StockFetcher
 from ai_analyzer import analyze_stock_with_news
 from stock_statistics import (

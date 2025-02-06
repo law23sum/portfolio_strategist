@@ -297,14 +297,16 @@ class StockApp:
 
 
 def main():
-    """Entry point for the application."""
-    if GUI_AVAILABLE and "--gui" in sys.argv:
+    """Always run GUI if PySide6 is available."""
+    if GUI_AVAILABLE:
+        from stock_gui import run_gui
+        run_gui()
+    elif "--gui" in sys.argv:
         from stock_gui import run_gui
         run_gui()
     else:
-        stock_symbol = input("Enter the stock symbol: ").upper()
-        app = StockApp()
-        app.display_stock_data_terminal(stock_symbol)
+        print("PySide6 not available. Exiting or fallback to console ...")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

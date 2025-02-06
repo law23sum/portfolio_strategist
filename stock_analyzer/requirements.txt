@@ -20,3 +20,6 @@ zipfile
 sys
 reportlab
 mplcursors
+tenacity
+scikit-learn
+mplcursors
