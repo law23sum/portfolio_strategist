@@ -16,12 +16,11 @@ from pdf_generator import PDFGenerator
 from stock_definitions import RATIO_DEFINITIONS
 from stock_fetcher import StockFetcher
 from stock_ratio import StockRatio
-from database_handler import DatabaseHandler
 from ai_analyzer import analyze_stock_with_news
 from stock_statistics import (
-    calculate_statistics, forecast_stock_prices, shift_forecast_to_actual_dates,
+    calculate_eta_theta, calculate_factor_betas, calculate_interest_rate_beta, calculate_market_beta, calculate_statistics, calculate_volatility_beta, fetch_stock_data, forecast_stock_prices, shift_forecast_to_actual_dates,
     calculate_prediction_errors, plot_results
-)
+    )
 # calculate_eta_theta, calculate_factor_betas, calculate_interest_rate_beta, calculate_market_beta,
 #     calculate_statistics, calculate_volatility_beta, fetch_stock_data,
 
@@ -39,7 +38,6 @@ class StockApp:
         print("Initializing StockApp components.")
         self.fetcher = StockFetcher()
         self.analyzer = StockRatio()
-        self.db_handler = DatabaseHandler()
         print("StockApp components initialized.")
 
     def fetch_stock_data(self, stock_symbol):
@@ -49,13 +47,6 @@ class StockApp:
             print("No stock symbol provided. Aborting fetch.")
             return None
 
-        # Check if data is already in the DB
-        db_data = self.db_handler.fetch_stock_data(stock_symbol)
-        if db_data:
-            print(f"Fetched stock data for {stock_symbol} from the database.")
-            return db_data
-
-        # If not in DB, pull from Yahoo Finance
         try:
             print(f"Fetching stock data for {stock_symbol} from Yahoo Finance.")
             stock_data = self.fetcher.fetch_stock_details(stock_symbol)
@@ -66,8 +57,7 @@ class StockApp:
                 for key in list(stock_data.keys()):
                     if key == upgrade_text:
                         del stock_data[key]
-                self.db_handler.save_stock_data(stock_symbol, stock_data)
-                print(f"Stock data for {stock_symbol} fetched from Yahoo Finance and saved to DB.")
+                print(f"Stock data for {stock_symbol} fetched from Yahoo Finance.")
             return stock_data
         except Exception as e:
             print(f"Failed to fetch stock details: {e}")

@@ -100,7 +100,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
                 model = "gpt-4o-mini",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
                 messages = messages,
                 temperature = 0.0,  # Set to 0 for deterministic responses
-                max_tokens = 1111,  # Decrease max_tokens to prevent exceeding the limit
+                max_tokens = 1234,  # Decrease max_tokens to prevent exceeding the limit
                 # top_p = 0.3,  # Limits to top 30% probability mass
                 frequency_penalty = 0.0,  # Strongly penalizes repeated tokens
                 presence_penalty = 0.0  # Strongly penalizes reuse of topics

@@ -239,6 +239,7 @@ def forecast_stock_prices(
     print(f"Forecasting {N} days using {equation_type} model.")
 
     # Initialize adjustments for valuation and financial health metrics
+    # Initialize adjustments for valuation and financial health metrics
     valuation_adjustment = 1.0
     financial_health_adjustment = 1.0
 
