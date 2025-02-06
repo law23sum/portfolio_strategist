@@ -200,7 +200,7 @@ class StockFetcher:
             start_time = time.time()
             while time.time() - start_time < scroll_duration:
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(1)
+                time.sleep(3)
             print("Finished scrolling the history page.")
 
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
