@@ -18,3 +18,5 @@ os
 requests
 zipfile
 sys
+reportlab
+mplcursors

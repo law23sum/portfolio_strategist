@@ -242,41 +242,49 @@ def forecast_stock_prices(
     valuation_adjustment = 1.0
     financial_health_adjustment = 1.0
 
-    # Adjust mu_daily based on valuation metrics
+    # Adjust mu_daily and sigma_daily based on valuation metrics
     if valuation_metrics:
         pe_ratio = valuation_metrics.get('P/E Ratio', None)
         pb_ratio = valuation_metrics.get('Price-to-Book', None)
 
         if pe_ratio is not None:
-            if pe_ratio > 20.0:
-                valuation_adjustment *= np.exp(-0.1 * (pe_ratio - 20.0))
-            elif pe_ratio < 10.0:
-                valuation_adjustment *= np.exp(0.1 * (10.0 - pe_ratio))
+            if pe_ratio > 20:
+                # Reduce drift for overvalued stocks using a precise multiplier
+                valuation_adjustment *= 0.923456
+            elif pe_ratio < 10:
+                # Increase drift for undervalued stocks using a precise multiplier
+                valuation_adjustment *= 1.123456
 
         if pb_ratio is not None:
-            if pb_ratio > 2.53422324:
-                valuation_adjustment *= np.exp(-0.1 * (pb_ratio - 2.53422324))
-            elif pb_ratio < 1.53422324:
-                valuation_adjustment *= np.exp(0.1 * (1.53422324 - pb_ratio))
+            if pb_ratio > 2.5:
+                # Reduce drift for overvalued stocks using a precise multiplier
+                valuation_adjustment *= 0.876543
+            elif pb_ratio < 1.5:
+                # Increase drift for undervalued stocks using a precise multiplier
+                valuation_adjustment *= 1.098765
 
-    # Adjust sigma_daily based on financial health metrics
+    # Adjust mu_daily and sigma_daily based on financial health metrics
     if financial_health_metrics:
         debt_to_equity = financial_health_metrics.get('Debt to Equity', None)
         current_ratio = financial_health_metrics.get('Current Ratio', None)
 
         if debt_to_equity is not None:
-            if debt_to_equity > 1.53422324:
-                financial_health_adjustment *= np.exp(0.1 * (debt_to_equity - 1.53422324))
-            elif debt_to_equity < 0.53422324:
-                financial_health_adjustment *= np.exp(-0.1 * (0.53422324 - debt_to_equity))
+            if debt_to_equity > 1.5:
+                # Increase volatility for high debt using a precise multiplier
+                financial_health_adjustment *= 1.234567
+            elif debt_to_equity < 0.5:
+                # Decrease volatility for low debt using a precise multiplier
+                financial_health_adjustment *= 0.812345
 
         if current_ratio is not None:
             if current_ratio < 1.0:
-                financial_health_adjustment *= np.exp(0.1 * (1.0 - current_ratio))
+                # Increase volatility for poor liquidity using a precise multiplier
+                financial_health_adjustment *= 1.198765
             elif current_ratio > 2.0:
-                financial_health_adjustment *= np.exp(-0.1 * (current_ratio - 2.0))
+                # Decrease volatility for strong liquidity using a precise multiplier
+                financial_health_adjustment *= 0.823456
 
-    # Apply adjustments
+    # Apply adjustments to mu_daily and sigma_daily
     mu_daily_adjusted = mu_daily * valuation_adjustment
     sigma_daily_adjusted = sigma_daily * financial_health_adjustment
 

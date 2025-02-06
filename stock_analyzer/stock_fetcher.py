@@ -64,7 +64,7 @@ class StockFetcher:
         #             zip_ref.extractall(os.path.dirname(extract_path))  # Extract to the same directory
         #
         #         os.remove(zip_path)  # Clean up the zip file
-        #
+        #         os.remove('LICENSE.chromedriver')
         #         # Set execute permission for ChromeDriver (macOS/Linux)
         #         os.chmod(extract_path, os.stat.S_IRWXU | os.stat.S_IRWXG)
         #

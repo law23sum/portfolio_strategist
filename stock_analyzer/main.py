@@ -13,8 +13,7 @@ from PySide6.QtCore import Qt, QThread, Signal, QObject
 from PySide6.QtGui import QFont
 
 from pdf_generator import PDFGenerator
-from ratio_definitions import RATIO_DEFINITIONS
-from stock_analyzer.stock_statistics import calculate_statistics
+from stock_definitions import RATIO_DEFINITIONS
 from stock_fetcher import StockFetcher
 from stock_ratio import StockRatio
 from database_handler import DatabaseHandler

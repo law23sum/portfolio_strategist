@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import yfinance as yf
+import mplcursors
 
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
@@ -15,6 +16,7 @@ from PySide6.QtGui import QFont
 
 from pdf_generator import PDFGenerator
 from main import StockApp, RATIO_DEFINITIONS
+from stock_analyzer.stock_definitions import MACRO_ECONOMIC_INDICATORS
 from stock_fetcher import StockFetcher
 from ai_analyzer import analyze_stock_with_news
 from stock_statistics import (
@@ -127,7 +129,7 @@ class HomePage(QWidget):
         description = QLabel("Analyze stock data, view AI-driven insights, and generate comprehensive PDF reports.")
         description.setAlignment(Qt.AlignCenter)
         description.setWordWrap(True)
-        description.setFont(QFont("Helvetica", 16))
+        description.setFont(QFont("Helvetica", 15))
         layout.addWidget(description)
 
         navigate_button = QPushButton("Get Started")
@@ -147,7 +149,7 @@ class DefinitionsPage(QWidget):
 
         layout = QVBoxLayout()
 
-        title = QLabel("Ratio Definitions")
+        title = QLabel("Financial Definitions")
         title.setFont(QFont("Helvetica", 22))
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
@@ -156,7 +158,7 @@ class DefinitionsPage(QWidget):
         layout.addWidget(self.definitions_table)
 
         back_button = QPushButton("Back")
-        back_button.setFont(QFont("Helvetica", 16))
+        back_button.setFont(QFont("Helvetica", 15))
         back_button.setFixedHeight(40)
         back_button.clicked.connect(self.navigate_back)
         layout.addWidget(back_button)
@@ -170,7 +172,7 @@ class DefinitionsPage(QWidget):
         for row in range(definitions_df.shape[0]):
             for col in range(definitions_df.shape[1]):
                 item = QTableWidgetItem(str(definitions_df.iloc[row, col]))
-                item.setFont(QFont("Helvetica", 16))
+                item.setFont(QFont("Helvetica", 15))
                 self.definitions_table.setItem(row, col, item)
 
 
@@ -214,12 +216,12 @@ class ForecastPage(QWidget):
 
         # --- Left Table: Error Details ---
         self.error_table = QTableWidget()
-        self.error_table.setFont(QFont("Helvetica", 14))
+        self.error_table.setFont(QFont("Helvetica", 13))
         tables_layout.addWidget(self.error_table)
 
         # --- Right Table: Future Predicted Prices ---
         self.forecast_table = QTableWidget()
-        self.forecast_table.setFont(QFont("Helvetica", 14))
+        self.forecast_table.setFont(QFont("Helvetica", 13))
         tables_layout.addWidget(self.forecast_table)
 
         main_layout.addLayout(tables_layout)
@@ -228,12 +230,16 @@ class ForecastPage(QWidget):
         # Back Button at the Bottom
         # **************************
         back_button = QPushButton("Back to Analysis")
-        back_button.setFont(QFont("Helvetica", 16))
+        back_button.setFont(QFont("Helvetica", 15))
         back_button.setFixedHeight(40)
         back_button.clicked.connect(self.navigate_back)
         main_layout.addWidget(back_button)
 
         self.setLayout(main_layout)
+
+        # Initialize mplcursors for interactivity
+        self.cursor_original = None
+        self.cursor_error = None
 
     def on_original_chart_click(self, event):
         """Double-click to expand the original forecast chart in full screen."""
@@ -320,7 +326,8 @@ class ForecastPage(QWidget):
                         "SMB": np.random.normal(0, 0.01, min_len),
                         "HML": np.random.normal(0, 0.01, min_len),
                         "MOM": np.random.normal(0, 0.01, min_len)
-                        })
+                        }
+                    )
 
             # Calculate eta and theta
             eta, theta = calculate_eta_theta(price_series)
@@ -379,8 +386,10 @@ class ForecastPage(QWidget):
 
             # --- Update the Original Chart ---
             self.ax_original.clear()
-            self.ax_original.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2, linestyle = "--")
-            self.ax_original.plot(forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2, linestyle = "--")
+            historical_line, = self.ax_original.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2, linestyle = "--")
+            forecast_line, = self.ax_original.plot(
+                    forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2,
+                    linestyle = "--")
             self.ax_original.set_title("Stock Price Forecast")
             self.ax_original.set_xlabel("Date")
             self.ax_original.set_ylabel("Price")
@@ -389,6 +398,12 @@ class ForecastPage(QWidget):
             self.canvas_original.draw()
             print("Original forecast plot generated successfully.")
 
+            # Add interactive cursor to the original chart
+            if self.cursor_original:
+                self.cursor_original.remove()
+            self.cursor_original = mplcursors.cursor([historical_line, forecast_line], hover = True)
+            self.cursor_original.connect("add", lambda sel: sel.annotation.set_text(f"Date: {sel.target[0]:%Y-%m-%d}\nPrice: {sel.target[1]:.2f}"))
+
             # --- Calculate Prediction Errors ---
             error_df = calculate_prediction_errors(df, forecast_df)
             self.error_df = error_df  # Save for table display
@@ -396,7 +411,7 @@ class ForecastPage(QWidget):
             # --- Update the Error Chart ---
             self.ax_error.clear()
             if not error_df.empty:
-                self.ax_error.plot(
+                error_line, = self.ax_error.plot(
                         error_df['Date'], error_df['Error'],
                         label = "Prediction Error", color = "purple", lw = 2, linestyle = "--"
                         )
@@ -405,12 +420,18 @@ class ForecastPage(QWidget):
                 self.ax_error.set_ylabel("Error")
                 self.ax_error.legend()
                 self.ax_error.grid(True)
+
+                # Add interactive cursor to the error chart
+                if self.cursor_error:
+                    self.cursor_error.remove()
+                self.cursor_error = mplcursors.cursor(error_line, hover = True)
+                self.cursor_error.connect("add", lambda sel: sel.annotation.set_text(f"Date: {sel.target[0]:%Y-%m-%d}\nError: {sel.target[1]:.2f}"))
             else:
                 self.ax_error.text(
                         0.5, 0.5,
-                        "No prediction errors to display, darling!",
+                        "No prediction errors to display...",
                         horizontalalignment = 'center', verticalalignment = 'center',
-                        transform = self.ax_error.transAxes, fontsize = 16
+                        transform = self.ax_error.transAxes, fontsize = 15
                         )
             self.canvas_error.draw()
 
@@ -428,8 +449,8 @@ class ForecastPage(QWidget):
                 price_str = f"{future_prices[i]:.2f}"
                 date_item = QTableWidgetItem(date_str)
                 price_item = QTableWidgetItem(price_str)
-                date_item.setFont(QFont("Helvetica", 14))
-                price_item.setFont(QFont("Helvetica", 14))
+                date_item.setFont(QFont("Helvetica", 13))
+                price_item.setFont(QFont("Helvetica", 13))
                 self.forecast_table.setItem(i, 0, date_item)
                 self.forecast_table.setItem(i, 1, price_item)
             self.forecast_table.resizeColumnsToContents()
@@ -450,10 +471,10 @@ class ForecastPage(QWidget):
                     actual_item = QTableWidgetItem(actual_str)
                     forecasted_item = QTableWidgetItem(forecasted_str)
                     error_item = QTableWidgetItem(error_str)
-                    date_item.setFont(QFont("Helvetica", 14))
-                    actual_item.setFont(QFont("Helvetica", 14))
-                    forecasted_item.setFont(QFont("Helvetica", 14))
-                    error_item.setFont(QFont("Helvetica", 14))
+                    date_item.setFont(QFont("Helvetica", 13))
+                    actual_item.setFont(QFont("Helvetica", 13))
+                    forecasted_item.setFont(QFont("Helvetica", 13))
+                    error_item.setFont(QFont("Helvetica", 13))
                     self.error_table.setItem(idx, 0, date_item)
                     self.error_table.setItem(idx, 1, actual_item)
                     self.error_table.setItem(idx, 2, forecasted_item)
@@ -461,7 +482,7 @@ class ForecastPage(QWidget):
                 self.error_table.resizeColumnsToContents()
             else:
                 self.error_table.hide()
-                print("No prediction errors to show, darling!")
+                print("No prediction errors to show...")
 
         except Exception as e:
             print(f"Error in forecast plotting: {e}")
@@ -514,45 +535,45 @@ class StockGUI(QWidget):
 
         left_layout = QVBoxLayout()
         self.input_label = QLabel("Enter Stock Symbol:")
-        self.input_label.setFont(QFont("Helvetica", 16))
+        self.input_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(self.input_label)
 
         self.stock_input = QLineEdit()
-        self.stock_input.setFont(QFont("Helvetica", 14))
+        self.stock_input.setFont(QFont("Helvetica", 13))
         left_layout.addWidget(self.stock_input)
 
         self.fetch_button = QPushButton("Fetch Stock Data")
-        self.fetch_button.setFont(QFont("Helvetica", 16))
+        self.fetch_button.setFont(QFont("Helvetica", 15))
         self.fetch_button.setFixedHeight(40)
         self.fetch_button.clicked.connect(self.start_fetching)
         left_layout.addWidget(self.fetch_button)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setAlignment(Qt.AlignCenter)
-        self.progress_bar.setFont(QFont("Helvetica", 14))
+        self.progress_bar.setFont(QFont("Helvetica", 13))
         left_layout.addWidget(self.progress_bar)
 
         stock_details_label = QLabel("Stock Details")
-        stock_details_label.setFont(QFont("Helvetica", 16))
+        stock_details_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(stock_details_label)
 
         self.stock_table = QTableWidget()
         left_layout.addWidget(self.stock_table)
 
         ratios_table_label = QLabel("Stock Ratios")
-        ratios_table_label.setFont(QFont("Helvetica", 16))
+        ratios_table_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(ratios_table_label)
 
         self.ratios_table = QTableWidget()
         left_layout.addWidget(self.ratios_table)
 
         self.logs_label = QLabel("Logs")
-        self.logs_label.setFont(QFont("Helvetica", 16))
+        self.logs_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(self.logs_label)
 
         self.logs_display = QTextEdit()
         self.logs_display.setReadOnly(True)
-        self.logs_display.setFont(QFont("Courier", 14))
+        self.logs_display.setFont(QFont("Courier", 13))
         left_layout.addWidget(self.logs_display)
 
         page_layout.addLayout(left_layout, 2)
@@ -565,40 +586,64 @@ class StockGUI(QWidget):
 
         self.ai_display = QTextEdit()
         self.ai_display.setReadOnly(True)
-        self.ai_display.setFont(QFont("Helvetica", 16))
+        self.ai_display.setFont(QFont("Helvetica", 15))
         right_layout.addWidget(self.ai_display)
 
         self.save_pdf_button = QPushButton("Save Report as PDF")
-        self.save_pdf_button.setFont(QFont("Helvetica", 16))
+        self.save_pdf_button.setFont(QFont("Helvetica", 15))
         self.save_pdf_button.setFixedHeight(40)
         self.save_pdf_button.clicked.connect(self.save_pdf)
         self.save_pdf_button.setEnabled(False)
         right_layout.addWidget(self.save_pdf_button)
 
         self.view_definitions_button = QPushButton("View Ratio Definitions")
-        self.view_definitions_button.setFont(QFont("Helvetica", 16))
+        self.view_definitions_button.setFont(QFont("Helvetica", 15))
         self.view_definitions_button.setFixedHeight(40)
         self.view_definitions_button.clicked.connect(self.show_definitions_page)
         right_layout.addWidget(self.view_definitions_button)
 
         equation_label = QLabel("Select Forecasting Model:")
-        equation_label.setFont(QFont("Helvetica", 16))
+        equation_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(equation_label)
         self.equation_dropdown = QComboBox()
-        self.equation_dropdown.setFont(QFont("Helvetica", 14))
+        self.equation_dropdown.setFont(QFont("Helvetica", 13))
         self.equation_dropdown.addItems(
                 ["GeometricBrownianMotion", "GeometricBrownianMotionwithMeanReversion", "GeometricBrownianMotionExternalMacroeconomicFactors"])
         left_layout.addWidget(self.equation_dropdown)
 
+        market_ticker_label = QLabel("Market Ticker:")
+        market_ticker_label.setFont(QFont("Helvetica", 15))
+        left_layout.addWidget(market_ticker_label)
+        self.market_ticker_dropdown = QComboBox()
+        self.market_ticker_dropdown.setFont(QFont("Helvetica", 13))
+        self.market_ticker_dropdown.addItems(["^GSPC", "^DJI", "^IXIC"])
+        left_layout.addWidget(self.market_ticker_dropdown)
+
+        vix_ticker_label = QLabel("Volatility Ticker:")
+        vix_ticker_label.setFont(QFont("Helvetica", 15))
+        left_layout.addWidget(vix_ticker_label)
+        self.vix_ticker_dropdown = QComboBox()
+        self.vix_ticker_dropdown.setFont(QFont("Helvetica", 13))
+        self.vix_ticker_dropdown.addItems(["^VIX"])
+        left_layout.addWidget(self.vix_ticker_dropdown)
+
+        tnx_ticker_label = QLabel("Interest Rate Ticker:")
+        tnx_ticker_label.setFont(QFont("Helvetica", 15))
+        left_layout.addWidget(tnx_ticker_label)
+        self.tnx_ticker_dropdown = QComboBox()
+        self.tnx_ticker_dropdown.setFont(QFont("Helvetica", 13))
+        self.tnx_ticker_dropdown.addItems(["^TNX", "^TYX"])
+        left_layout.addWidget(self.tnx_ticker_dropdown)
+
         self.view_forecast_button = QPushButton("View Stock Forecast")
-        self.view_forecast_button.setFont(QFont("Helvetica", 16))
+        self.view_forecast_button.setFont(QFont("Helvetica", 15))
         self.view_forecast_button.setFixedHeight(40)
         self.view_forecast_button.setEnabled(False)
         self.view_forecast_button.clicked.connect(self.show_forecast_page)
         left_layout.addWidget(self.view_forecast_button)
 
         self.back_home_button = QPushButton("Back to Home")
-        self.back_home_button.setFont(QFont("Helvetica", 16))
+        self.back_home_button.setFont(QFont("Helvetica", 15))
         self.back_home_button.setFixedHeight(40)
         self.back_home_button.clicked.connect(self.show_home_page)
         right_layout.addWidget(self.back_home_button)
@@ -616,12 +661,24 @@ class StockGUI(QWidget):
     def show_definitions_page(self):
         definitions_data = [
             {
-                'Ratio Name': name,
+                'Category'  : 'Financial Ratio',
+                'Name'      : name,
                 'Definition': RATIO_DEFINITIONS.get(name, {}).get('Definition', 'N/A'),
                 'Formula'   : RATIO_DEFINITIONS.get(name, {}).get('Formula', 'N/A')
                 }
             for name in RATIO_DEFINITIONS.keys()
             ]
+
+        for category, indicators in MACRO_ECONOMIC_INDICATORS.items():
+            for ticker, details in indicators.items():
+                definitions_data.append(
+                        {
+                            'Category'  : category,  # Identifies if it's Interest Rate, Volatility, or Market Ticker
+                            'Name'      : f"{ticker} - {details.get('Definition', 'N/A')}",  # Combining Ticker & Name
+                            'Definition': details.get('Purpose', 'N/A'),  # Purpose now goes under Definition
+                            'Formula'   : 'N/A'  # Macroeconomic indicators don’t have formulas
+                            })
+
         definitions_df = pd.DataFrame(definitions_data)
         self.definitions_page.populate_definitions(definitions_df)
         self.stacked_widget.setCurrentWidget(self.definitions_page)
@@ -704,7 +761,7 @@ class StockGUI(QWidget):
             for row in range(data.shape[0]):
                 for col in range(data.shape[1]):
                     table.setItem(row, col, QTableWidgetItem(str(data.iloc[row, col])))
-            table.setFont(QFont("Helvetica", 16))
+            table.setFont(QFont("Helvetica", 15))
         elif isinstance(data, dict):
             table.setRowCount(len(data))
             table.setColumnCount(2)
@@ -712,7 +769,7 @@ class StockGUI(QWidget):
             for row, (key, value) in enumerate(data.items()):
                 table.setItem(row, 0, QTableWidgetItem(str(key)))
                 table.setItem(row, 1, QTableWidgetItem(str(value)))
-            table.setFont(QFont("Helvetica", 16))
+            table.setFont(QFont("Helvetica", 15))
 
     def init_logging(self):
         self.emitter = EmittingStream()
