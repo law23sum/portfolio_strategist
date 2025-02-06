@@ -12,3 +12,9 @@ markdown
 reportlab
 pdf_generator
 plotly
+pyinstaller
+matplotlib
+os
+requests
+zipfile
+sys

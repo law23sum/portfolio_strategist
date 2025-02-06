@@ -1,6 +1,11 @@
 import concurrent
+import os
+import sys
+import zipfile
+from sys import platform
 
 import pandas as pd
+import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -13,7 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 
-links_amount = 2
+links_amount = 90
 
 
 class StockFetcher:
@@ -34,10 +39,43 @@ class StockFetcher:
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--incognito")
 
-        # # Path to your ChromeDriver executable
-        service = Service(executable_path = "/Users/chrisdixon/MATLAB/Projects/financia/stock_analyzer/chromedriver")
+        # def get_latest_chromedriver():
+        #     url = "https://chromedriver.storage.googleapis.com/LATEST_RELEASE"
+        #     latest_version = requests.get(url).text.strip()
+        #     driver_url = f"https://chromedriver.storage.googleapis.com/{latest_version}/chromedriver_mac_arm64.zip"
+        #
+        #     # Determine the extraction path
+        #     if getattr(sys, '_MEIPASS', False):  # If running as an executable
+        #         extract_path = os.path.join(sys._MEIPASS, "chromedriver")
+        #     else:  # Running as a script
+        #         extract_path = os.path.abspath("chromedriver")
+        #
+        #     # Download and extract only if not already present
+        #     if not os.path.exists(extract_path):
+        #         print(f"Downloading latest ChromeDriver for macOS ARM64 ({latest_version})...")
+        #
+        #         response = requests.get(driver_url, stream = True)
+        #         zip_path = os.path.join(sys._MEIPASS if getattr(sys, '_MEIPASS', False) else ".", "chromedriver.zip")
+        #
+        #         with open(zip_path, "wb") as file:
+        #             file.write(response.content)
+        #
+        #         with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        #             zip_ref.extractall(os.path.dirname(extract_path))  # Extract to the same directory
+        #
+        #         os.remove(zip_path)  # Clean up the zip file
+        #
+        #         # Set execute permission for ChromeDriver (macOS/Linux)
+        #         os.chmod(extract_path, os.stat.S_IRWXU | os.stat.S_IRWXG)
+        #
+        #         print(f"ChromeDriver is located at: {extract_path}")
+        #
+        #     return extract_path
+        # service = Service(get_latest_chromedriver())
+        # Path to your ChromeDriver executable
+        # service = Service(executable_path = "/Users/chrisdixon/MATLAB/Projects/financia/stock_analyzer/sys._MEIPASS/chromedriver")
         print("Installing and initializing ChromeDriver.")
-        # service = Service(ChromeDriverManager().install())
+        service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service = service, options = chrome_options)
         print("ChromeDriver setup complete.")
         return driver
