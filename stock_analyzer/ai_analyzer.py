@@ -66,7 +66,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     news_text = clean_html(articles_html_all)
 
     # Limit the length of the financial ratios and news text if needed
-    max_news_length = 8123  # Limit the news text length
+    max_news_length = 8000  # Limit the news text length
     # print("Max News Length:", max_news_length)
     if len(news_text) > max_news_length:
         news_text = news_text[:max_news_length] + "..."

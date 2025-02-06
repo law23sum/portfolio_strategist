@@ -13,6 +13,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 
+links_amount = 2
+
+
 class StockFetcher:
     def __init__(self):
         self.base_quote_url = "https://finance.yahoo.com/quote"
@@ -29,6 +32,7 @@ class StockFetcher:
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--incognito")
 
         # # Path to your ChromeDriver executable
         service = Service(executable_path = "/Users/chrisdixon/MATLAB/Projects/financia/stock_analyzer/chromedriver")
@@ -257,7 +261,6 @@ class StockFetcher:
         """
         try:
             self._ensure_driver_active()
-            links_amount = 60
             # Navigate to the page
             news_url = self.base_news_url.format(stock_symbol)
             print(f"Navigating to URL: {news_url}")
@@ -335,7 +338,7 @@ class StockFetcher:
             skipped_links = 0
 
             print("Starting to visit each link and collect HTML...")
-            for idx, full_link in enumerate(article_links[::2], start = 1):
+            for idx, full_link in enumerate(article_links[::3], start = 1):
                 print(f"Visiting link: {idx}: {full_link}")
                 try:
                     # Visit each link
