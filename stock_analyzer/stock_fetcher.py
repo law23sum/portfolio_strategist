@@ -18,7 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 
-links_amount = 90
+links_amount = 21
 
 
 class StockFetcher:

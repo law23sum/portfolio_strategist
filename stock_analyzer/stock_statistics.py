@@ -239,7 +239,6 @@ def forecast_stock_prices(
     print(f"Forecasting {N} days using {equation_type} model.")
 
     # Initialize adjustments for valuation and financial health metrics
-    # Initialize adjustments for valuation and financial health metrics
     valuation_adjustment = 1.0
     financial_health_adjustment = 1.0
 
@@ -307,32 +306,44 @@ def forecast_stock_prices(
     print(f"Mean-reversion eta: {eta}, theta: {theta}")
 
     # Apply selected forecasting model
-    if equation_type == 'GeometricBrownianMotion':  # Standard Geometric Brownian Motion
+    if equation_type == 'Geometric Brownian Motion':  # Standard Geometric Brownian Motion
         forecast_prices = recent_price * np.exp((mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * t + sigma_daily_adjusted * W)
 
-    elif equation_type == 'GeometricBrownianMotionwithMeanReversion':  # GBM with Mean Reversion
+    elif equation_type == 'Geometric Brownian Motion with Mean Reversion':  # GBM with Mean Reversion
         for i in range(1, N):
-            mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
-            forecast_prices[i] = forecast_prices[i - 1] * np.exp(
-                    (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
-                    sigma_daily_adjusted * (W[i] - W[i - 1]) +
-                    mean_reversion_term
-                    )
-
-    elif equation_type == 'GeometricBrownianMotionExternalMacroeconomicFactors':  # GBM with External Factors
-        for i in range(1, N):
+            # mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
+            # forecast_prices[i] = forecast_prices[i - 1] * np.exp(
+            #         (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
+            #         sigma_daily_adjusted * (W[i] - W[i - 1]) +
+            #         mean_reversion_term
+            #         )
             external_adjustment = 1.0
             if external_factors:
-                for factor, (coefficient, factor_value) in external_factors.items():
-                    external_adjustment *= np.exp(coefficient * factor_value)
+                macro_effect = sum(coefficient * external_factors[factor] for factor, coefficient in external_factors.items())
+                external_adjustment = np.exp(macro_effect)
 
             forecast_prices[i] = forecast_prices[i - 1] * np.exp(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
                     sigma_daily_adjusted * (W[i] - W[i - 1])
                     ) * external_adjustment
 
+    elif equation_type == 'Geometric Brownian Motion External Macroeconomic Factors':
+        for i in range(1, N):
+            mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
+
+            macro_adjustment = 0
+            if external_factors:
+                macro_adjustment = sum(coefficient * external_factors[factor] for factor, coefficient in external_factors.items())
+
+            forecast_prices[i] = forecast_prices[i - 1] * np.exp(
+                    (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
+                    sigma_daily_adjusted * (W[i] - W[i - 1]) +
+                    mean_reversion_term +
+                    macro_adjustment
+                    )
+
     else:
-        raise ValueError("Invalid equation_type. Choose 'GBM', 'GBM_MR', or 'GBM_Ext'.")
+        raise ValueError("Invalid equation_type. Choose 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion', or 'Geometric Brownian Motion External Macroeconomic Factors'.")
 
     print(f"Stock price forecast using {equation_type} model completed.")
     return t, forecast_prices

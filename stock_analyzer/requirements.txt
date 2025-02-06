@@ -23,3 +23,5 @@ mplcursors
 tenacity
 scikit-learn
 mplcursors
+pyqtgraph
+openai

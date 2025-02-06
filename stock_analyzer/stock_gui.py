@@ -2,13 +2,13 @@ import sys
 import time
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import yfinance as yf
-import mplcursors
+
+import pyqtgraph as pg
+from pyqtgraph import PlotWidget
 
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QDialog, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QApplication, QComboBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QLabel, QPushButton, QLineEdit, QProgressBar, QTextEdit, QFileDialog, QMessageBox, QStackedWidget
     )
 from PySide6.QtCore import Qt, QThread, Signal, QObject
@@ -102,7 +102,6 @@ class ForecastWorker(QThread):
                 before_drop = len(df)
                 df = df.dropna(subset = ['Date', 'Close'])
                 after_drop = len(df)
-                # print(f"Dropped {before_drop - after_drop} rows; DataFrame now has {after_drop} rows.")
             else:
                 print("No historical data fetched.")
 
@@ -176,6 +175,15 @@ class DefinitionsPage(QWidget):
                 self.definitions_table.setItem(row, col, item)
 
 
+# --- Helper function to convert datetime to float for PyQtGraph ---
+def datetime_to_float(dt_series):
+    """
+    Convert a Pandas Series of datetime objects to numeric timestamps (float).
+    """
+    return dt_series.apply(lambda d: d.timestamp() if pd.notnull(d) else None)
+
+
+# --- Forecast Page ---
 class ForecastPage(QWidget):
     def __init__(self, navigate_back):
         super().__init__()
@@ -191,21 +199,15 @@ class ForecastPage(QWidget):
         # **************************
         charts_layout = QHBoxLayout()
 
-        # --- Original Chart (Historical & Forecast Prices) ---
-        self.figure_original, self.ax_original = plt.subplots(figsize = (6, 5))
-        self.canvas_original = FigureCanvas(self.figure_original)
-        self.canvas_original.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # Connect double-click for expansion
-        self.canvas_original.mpl_connect("button_press_event", self.on_original_chart_click)
-        charts_layout.addWidget(self.canvas_original)
+        # --- Original Chart (Historical & Forecast Prices) with PyQtGraph ---
+        self.plotWidget_original = PlotWidget()
+        self.plotWidget_original.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        charts_layout.addWidget(self.plotWidget_original)
 
-        # --- Error Chart (Prediction Errors) ---
-        self.figure_error, self.ax_error = plt.subplots(figsize = (6, 5))
-        self.canvas_error = FigureCanvas(self.figure_error)
-        self.canvas_error.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # Connect double-click for expansion
-        self.canvas_error.mpl_connect("button_press_event", self.on_error_chart_click)
-        charts_layout.addWidget(self.canvas_error)
+        # --- Error Chart (Prediction Errors) with PyQtGraph ---
+        self.plotWidget_error = PlotWidget()
+        self.plotWidget_error.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        charts_layout.addWidget(self.plotWidget_error)
 
         main_layout.addLayout(charts_layout)
 
@@ -237,46 +239,15 @@ class ForecastPage(QWidget):
 
         self.setLayout(main_layout)
 
-        # Initialize mplcursors for interactivity
-        self.cursor_original = None
-        self.cursor_error = None
-
-    def on_original_chart_click(self, event):
-        """Double-click to expand the original forecast chart in full screen."""
-        if event.dblclick:
-            self.show_fullscreen_chart("original")
-
-    def on_error_chart_click(self, event):
-        """Double-click to expand the error chart in full screen."""
-        if event.dblclick:
-            self.show_fullscreen_chart("error")
-
-    def show_fullscreen_chart(self, chart_type):
-        """Display the selected chart in a full-screen dialog."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle(f"Expanded {chart_type.capitalize()} Chart")
-        dialog.setWindowState(dialog.windowState() | Qt.WindowFullScreen)
-        layout = QVBoxLayout(dialog)
-
-        if chart_type == "original":
-            # Re-use the original figure
-            canvas = FigureCanvas(self.figure_original)
-        else:
-            # Re-use the error figure
-            canvas = FigureCanvas(self.figure_error)
-
-        canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout.addWidget(canvas)
-        dialog.exec_()
-
-    def populate_forecast(self, df, ratios_table, stock_symbol, equation_type):
+    def populate_forecast(
+            self, df, ratios_table, stock_symbol,
+            equation_type, market_ticker, vix_ticker, tnx_ticker
+            ):
         if df.empty:
-            print("No historical data available for forecast, sweetheart.")
             QMessageBox.warning(self, "No Data", "No historical data available for forecast.")
             return
 
         try:
-            print("Preparing forecast data...")
             # Preprocess the DataFrame: ensure proper datetime and numeric types
             df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
             df['Close'] = pd.to_numeric(df['Close'].astype(str).str.replace(',', ''), errors = 'coerce')
@@ -288,68 +259,72 @@ class ForecastPage(QWidget):
             forecast_days = 365
 
             # ===================================================
-            # Inserted Middle Section
+            # Inserted Middle Section (Factor & Beta Calculations)
             # ===================================================
-            main_ticker = stock_symbol  # Your main ticker
-            market_ticker = "^GSPC"  # S&P 500
-            vix_ticker = "^VIX"  # Volatility Index
-            tnx_ticker = "^TNX"  # 10-Year Treasury Yield
-
-            # Download all tickers in one go (over the past year for demonstration)
-            data = yf.download([main_ticker, market_ticker, vix_ticker, tnx_ticker], period = "1y")
+            main_ticker = stock_symbol
+            total_ticker_data = None
+            for _ in range(5):
+                try:
+                    total_ticker_data = yf.download([main_ticker, market_ticker, vix_ticker, tnx_ticker], period = "1y")
+                    if not total_ticker_data.empty:
+                        break
+                except:
+                    print("Ticker data can't be retrieved from yfinance.")
 
             # Align data by dropping rows that have NA in any of these tickers
-            close_data = data["Close"].dropna(subset = [main_ticker, market_ticker, vix_ticker, tnx_ticker])
+            if total_ticker_data is not None and not total_ticker_data.empty:
+                close_data = total_ticker_data["Close"].dropna(subset = [main_ticker, market_ticker, vix_ticker, tnx_ticker])
+                stock_data = close_data[main_ticker]
+                market_data = close_data[market_ticker]
+                vix_data = close_data[vix_ticker]
+                tnx_data = close_data[tnx_ticker]
 
-            # Extract each series
-            stock_data = close_data[main_ticker]
-            market_data = close_data[market_ticker]
-            vix_data = close_data[vix_ticker]
-            tnx_data = close_data[tnx_ticker]
+                price_series = stock_data.values
+                market_prices = market_data.values
+                vix_prices = vix_data.values
+                tnx_prices = tnx_data.values
 
-            # Convert to numpy arrays
-            price_series = stock_data.values
-            market_prices = market_data.values
-            vix_prices = vix_data.values
-            tnx_prices = tnx_data.values
+                # Compute daily returns/changes
+                stock_returns = np.diff(price_series) / price_series[:-1]
+                market_returns = np.diff(market_prices) / market_prices[:-1]
+                vix_changes = np.diff(vix_prices) / vix_prices[:-1]
+                interest_rate_changes = np.diff(tnx_prices) / tnx_prices[:-1]
 
-            # Compute daily returns/changes
-            stock_returns = np.diff(price_series) / price_series[:-1]
-            market_returns = np.diff(market_prices) / market_prices[:-1]
-            vix_changes = np.diff(vix_prices) / vix_prices[:-1]
-            interest_rate_changes = np.diff(tnx_prices) / tnx_prices[:-1]
+                # Create Factor Returns (Placeholder)
+                min_len = len(stock_returns)
+                factor_returns = pd.DataFrame(
+                        {
+                            "SMB": np.random.normal(0, 0.01, min_len),
+                            "HML": np.random.normal(0, 0.01, min_len),
+                            "MOM": np.random.normal(0, 0.01, min_len)
+                            })
 
-            # Create Factor Returns (Placeholder)
-            min_len = len(stock_returns)
-            factor_returns = pd.DataFrame(
-                    {
-                        "SMB": np.random.normal(0, 0.01, min_len),
-                        "HML": np.random.normal(0, 0.01, min_len),
-                        "MOM": np.random.normal(0, 0.01, min_len)
-                        }
-                    )
+                eta, theta = calculate_eta_theta(price_series)
+                beta_m = calculate_market_beta(stock_returns, market_returns)
+                factor_betas = calculate_factor_betas(stock_returns, factor_returns)
+                beta_r = calculate_interest_rate_beta(stock_returns, interest_rate_changes)
+                beta_v = calculate_volatility_beta(stock_returns, vix_changes)
 
-            # Calculate eta and theta
-            eta, theta = calculate_eta_theta(price_series)
+                mean_reversion_params = {
+                    "eta"  : eta,
+                    "theta": theta
+                    }
 
-            # Calculate betas
-            beta_m = calculate_market_beta(stock_returns, market_returns)
-            factor_betas = calculate_factor_betas(stock_returns, factor_returns)
-            beta_r = calculate_interest_rate_beta(stock_returns, interest_rate_changes)
-            beta_v = calculate_volatility_beta(stock_returns, vix_changes)
-
-            # Prepare mean reversion and external factors
-            mean_reversion_params = {
-                "eta"  : eta,
-                "theta": theta
-                }
-
-            external_factors = {
-                "market_beta"       : beta_m,
-                "factor_betas"      : factor_betas,
-                "interest_rate_beta": beta_r,
-                "volatility_beta"   : beta_v
-                }
+                external_factors = {
+                    "market_beta"       : beta_m,
+                    "factor_betas"      : factor_betas,
+                    "interest_rate_beta": beta_r,
+                    "volatility_beta"   : beta_v
+                    }
+            else:
+                # Default/fallback if we can't get extra data
+                mean_reversion_params = {"eta": 0, "theta": 0}
+                external_factors = {
+                    "market_beta"       : 0,
+                    "factor_betas"      : pd.DataFrame(),
+                    "interest_rate_beta": 0,
+                    "volatility_beta"   : 0
+                    }
 
             valuation_ratios = [
                 'Earnings Per Share', 'P/E Ratio', 'Price-to-Sales', 'Price-to-Book',
@@ -384,56 +359,51 @@ class ForecastPage(QWidget):
             forecast_df = shift_forecast_to_actual_dates(df, forecast_prices, forecast_days)
             forecast_dates = forecast_df['Date'].tolist()
 
-            # --- Update the Original Chart ---
-            self.ax_original.clear()
-            historical_line, = self.ax_original.plot(df['Date'], df['Close'], label = "Historical Prices", color = "blue", lw = 2, linestyle = "--")
-            forecast_line, = self.ax_original.plot(
-                    forecast_dates, forecast_prices, label = "Forecast Prices", color = "red", lw = 2,
-                    linestyle = "--")
-            self.ax_original.set_title("Stock Price Forecast")
-            self.ax_original.set_xlabel("Date")
-            self.ax_original.set_ylabel("Price")
-            self.ax_original.legend()
-            self.ax_original.grid(True)
-            self.canvas_original.draw()
-            print("Original forecast plot generated successfully.")
+            # --- PyQtGraph: Plot Original (Historical) + Forecast Data ---
+            self.plotWidget_original.clear()
 
-            # Add interactive cursor to the original chart
-            if self.cursor_original:
-                self.cursor_original.remove()
-            self.cursor_original = mplcursors.cursor([historical_line, forecast_line], hover = True)
-            self.cursor_original.connect("add", lambda sel: sel.annotation.set_text(f"Date: {sel.target[0]:%Y-%m-%d}\nPrice: {sel.target[1]:.2f}"))
+            # Convert datetime to numeric for plotting
+            x_historical = datetime_to_float(df['Date'])
+            y_historical = df['Close'].values
+            x_forecast = datetime_to_float(pd.Series(forecast_dates))
+            y_forecast = forecast_prices
+
+            self.plotWidget_original.plot(
+                    x_historical, y_historical,
+                    pen = pg.mkPen(color = 'b', width = 2),
+                    name = "Historical Prices"
+                    )
+            self.plotWidget_original.plot(
+                    x_forecast, y_forecast,
+                    pen = pg.mkPen(color = 'r', width = 2),
+                    name = "Forecast Prices"
+                    )
+            self.plotWidget_original.setLabel('bottom', 'Date (timestamp)')
+            self.plotWidget_original.setLabel('left', 'Price')
+            self.plotWidget_original.setTitle("Stock Price Forecast")
+            self.plotWidget_original.showGrid(x = True, y = True)
 
             # --- Calculate Prediction Errors ---
             error_df = calculate_prediction_errors(df, forecast_df)
-            self.error_df = error_df  # Save for table display
+            self.error_df = error_df
 
-            # --- Update the Error Chart ---
-            self.ax_error.clear()
+            # --- PyQtGraph: Plot Error Chart ---
+            self.plotWidget_error.clear()
             if not error_df.empty:
-                error_line, = self.ax_error.plot(
-                        error_df['Date'], error_df['Error'],
-                        label = "Prediction Error", color = "purple", lw = 2, linestyle = "--"
+                x_error = datetime_to_float(error_df['Date'])
+                y_error = error_df['Error'].values
+                self.plotWidget_error.plot(
+                        x_error, y_error,
+                        pen = pg.mkPen(color = 'm', width = 2),
+                        name = "Prediction Error"
                         )
-                self.ax_error.set_title("Prediction Errors")
-                self.ax_error.set_xlabel("Date")
-                self.ax_error.set_ylabel("Error")
-                self.ax_error.legend()
-                self.ax_error.grid(True)
-
-                # Add interactive cursor to the error chart
-                if self.cursor_error:
-                    self.cursor_error.remove()
-                self.cursor_error = mplcursors.cursor(error_line, hover = True)
-                self.cursor_error.connect("add", lambda sel: sel.annotation.set_text(f"Date: {sel.target[0]:%Y-%m-%d}\nError: {sel.target[1]:.2f}"))
+                self.plotWidget_error.setLabel('bottom', 'Date (timestamp)')
+                self.plotWidget_error.setLabel('left', 'Error')
+                self.plotWidget_error.setTitle("Prediction Errors")
+                self.plotWidget_error.showGrid(x = True, y = True)
             else:
-                self.ax_error.text(
-                        0.5, 0.5,
-                        "No prediction errors to display...",
-                        horizontalalignment = 'center', verticalalignment = 'center',
-                        transform = self.ax_error.transAxes, fontsize = 15
-                        )
-            self.canvas_error.draw()
+                # Show a message in the plot if no errors
+                self.plotWidget_error.setTitle("No prediction errors to display.")
 
             # --- Update the Forecast Table (Right Table) ---
             overlap = len(error_df) if not error_df.empty else 0
@@ -482,7 +452,6 @@ class ForecastPage(QWidget):
                 self.error_table.resizeColumnsToContents()
             else:
                 self.error_table.hide()
-                print("No prediction errors to show...")
 
         except Exception as e:
             print(f"Error in forecast plotting: {e}")
@@ -528,6 +497,10 @@ class StockGUI(QWidget):
         self.current_ratios_table = pd.DataFrame()
         self.current_ai_assessment = ""
         self.current_history_df = pd.DataFrame()
+
+        self.selected_market_ticker = "^GSPC"
+        self.selected_vix_ticker = "^VIX"
+        self.selected_tnx_ticker = "^TNX"
 
     def create_analysis_page(self):
         page = QWidget()
@@ -602,13 +575,37 @@ class StockGUI(QWidget):
         self.view_definitions_button.clicked.connect(self.show_definitions_page)
         right_layout.addWidget(self.view_definitions_button)
 
-        equation_label = QLabel("Select Forecasting Model:")
+        market_ticker_map = {
+            "^GSPC" : "S&P 500 (SPX)",
+            "^DJI"  : "Dow Jones (DJIA)",
+            "^IXIC" : "Nasdaq Composite (IXIC)",
+            "^RUT"  : "Russell 2000 (RUT)",
+            "^FTSE" : "FTSE 100 (UK)",
+            "^GDAXI": "DAX (Germany)",
+            }
+
+        vix_ticker_map = {
+            "^VIX" : "CBOE VIX",
+            "^VVIX": "VVIX",
+            "^VXN" : "Nasdaq 100 Volatility Index",
+            "^RVX" : "Russell 2000 Volatility Index",
+            "^VXD" : "Dow 30 Volatility Index",
+            }
+
+        tnx_ticker_map = {
+            "^TNX": "10Y Treasury Yield",
+            "^TYX": "30Y Treasury Yield",
+            "^FVX": "5Y Treasury Yield",
+            }
+
+        equation_label = QLabel("Forecasting Model:")
         equation_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(equation_label)
         self.equation_dropdown = QComboBox()
         self.equation_dropdown.setFont(QFont("Helvetica", 13))
         self.equation_dropdown.addItems(
-                ["GeometricBrownianMotion", "GeometricBrownianMotionwithMeanReversion", "GeometricBrownianMotionExternalMacroeconomicFactors"])
+                ["Geometric Brownian Motion", "Geometric Brownian Motion with Mean Reversion",
+                 "Geometric Brownian Motion External Macroeconomic Factors"])
         left_layout.addWidget(self.equation_dropdown)
 
         market_ticker_label = QLabel("Market Ticker:")
@@ -616,7 +613,10 @@ class StockGUI(QWidget):
         left_layout.addWidget(market_ticker_label)
         self.market_ticker_dropdown = QComboBox()
         self.market_ticker_dropdown.setFont(QFont("Helvetica", 13))
-        self.market_ticker_dropdown.addItems(["^GSPC", "^DJI", "^IXIC"])
+        for ticker, desc in market_ticker_map.items():
+            self.market_ticker_dropdown.addItem(desc, ticker)
+        self.market_ticker_dropdown.setCurrentIndex(0)
+        self.market_ticker_dropdown.currentIndexChanged.connect(self.on_market_ticker_changed)
         left_layout.addWidget(self.market_ticker_dropdown)
 
         vix_ticker_label = QLabel("Volatility Ticker:")
@@ -624,7 +624,9 @@ class StockGUI(QWidget):
         left_layout.addWidget(vix_ticker_label)
         self.vix_ticker_dropdown = QComboBox()
         self.vix_ticker_dropdown.setFont(QFont("Helvetica", 13))
-        self.vix_ticker_dropdown.addItems(["^VIX"])
+        for ticker, desc in vix_ticker_map.items():
+            self.vix_ticker_dropdown.addItem(desc, ticker)
+        self.vix_ticker_dropdown.currentIndexChanged.connect(self.on_vix_ticker_changed)
         left_layout.addWidget(self.vix_ticker_dropdown)
 
         tnx_ticker_label = QLabel("Interest Rate Ticker:")
@@ -632,7 +634,9 @@ class StockGUI(QWidget):
         left_layout.addWidget(tnx_ticker_label)
         self.tnx_ticker_dropdown = QComboBox()
         self.tnx_ticker_dropdown.setFont(QFont("Helvetica", 13))
-        self.tnx_ticker_dropdown.addItems(["^TNX", "^TYX"])
+        for ticker, desc in tnx_ticker_map.items():
+            self.tnx_ticker_dropdown.addItem(desc, ticker)
+        self.tnx_ticker_dropdown.currentIndexChanged.connect(self.on_tnx_ticker_changed)
         left_layout.addWidget(self.tnx_ticker_dropdown)
 
         self.view_forecast_button = QPushButton("View Stock Forecast")
@@ -651,6 +655,21 @@ class StockGUI(QWidget):
         page_layout.addLayout(right_layout, 3)
         page.setLayout(page_layout)
         return page
+
+    def on_market_ticker_changed(self):
+        selected_data = self.market_ticker_dropdown.itemData(self.market_ticker_dropdown.currentIndex())
+        self.selected_market_ticker = selected_data
+        print(f"Market Ticker: {self.selected_market_ticker}")
+
+    def on_vix_ticker_changed(self):
+        selected_data = self.vix_ticker_dropdown.itemData(self.vix_ticker_dropdown.currentIndex())
+        self.selected_vix_ticker = selected_data
+        print(f"Volatility Ticker: {self.selected_vix_ticker}")
+
+    def on_tnx_ticker_changed(self):
+        selected_data = self.tnx_ticker_dropdown.itemData(self.tnx_ticker_dropdown.currentIndex())
+        self.selected_tnx_ticker = selected_data
+        print(f"Interest Rate Ticker: {self.selected_tnx_ticker}")
 
     def show_analysis_page(self):
         self.stacked_widget.setCurrentWidget(self.analysis_page)
@@ -673,10 +692,10 @@ class StockGUI(QWidget):
             for ticker, details in indicators.items():
                 definitions_data.append(
                         {
-                            'Category'  : category,  # Identifies if it's Interest Rate, Volatility, or Market Ticker
-                            'Name'      : f"{ticker} - {details.get('Definition', 'N/A')}",  # Combining Ticker & Name
-                            'Definition': details.get('Purpose', 'N/A'),  # Purpose now goes under Definition
-                            'Formula'   : 'N/A'  # Macroeconomic indicators don’t have formulas
+                            'Category'  : category,
+                            'Name'      : f"{ticker} - {details.get('Definition', 'N/A')}",
+                            'Definition': details.get('Purpose', 'N/A'),
+                            'Formula'   : 'N/A'
                             })
 
         definitions_df = pd.DataFrame(definitions_data)
@@ -703,28 +722,43 @@ class StockGUI(QWidget):
             return
 
         self.current_history_df = df
-        self.forecast_page.populate_forecast(self.current_history_df, self.current_ratios_table, self.current_stock_symbol, equation_type)
+        self.forecast_page.populate_forecast(
+                self.current_history_df,
+                self.current_ratios_table,
+                self.current_stock_symbol,
+                equation_type,
+                self.selected_market_ticker,
+                self.selected_vix_ticker,
+                self.selected_tnx_ticker
+                )
         self.stacked_widget.setCurrentWidget(self.forecast_page)
 
     def show_forecast_page(self):
+        # 1. Still bail out if we have no symbol
         if not self.current_stock_symbol:
-            QMessageBox.warning(self, "Error", "No stock symbol available.")
             return
 
-        equation_type = self.equation_dropdown.currentText()  # Get selected equation
+        equation_type = self.equation_dropdown.currentText()
 
-        if not self.current_history_df.empty:
-            self.forecast_page.populate_forecast(self.current_history_df, self.current_ratios_table, self.current_stock_symbol, equation_type)
-            self.stacked_widget.setCurrentWidget(self.forecast_page)
-            return
+        # 2. Directly call populate_forecast every time
+        self.forecast_page.populate_forecast(
+                self.current_history_df,  # Might be empty, but we'll just pass it along
+                self.current_ratios_table,
+                self.current_stock_symbol,
+                equation_type,
+                self.selected_market_ticker,
+                self.selected_vix_ticker,
+                self.selected_tnx_ticker
+                )
+        self.stacked_widget.setCurrentWidget(self.forecast_page)
 
-        if hasattr(self, 'history_worker') and self.history_worker.isRunning():
-            QMessageBox.warning(self, "Error", "Forecast data is already being fetched.")
-            return
-
-        self.history_worker = ForecastWorker(self.current_stock_symbol)
-        self.history_worker.finished.connect(lambda df: self.process_forecast_data(df, equation_type))
-        self.history_worker.start()
+        # 3. Optionally, fetch new historical data if not already in progress
+        if not hasattr(self, 'history_worker') or not self.history_worker.isRunning():
+            self.history_worker = ForecastWorker(self.current_stock_symbol)
+            self.history_worker.finished.connect(
+                    lambda df: self.process_forecast_data(df, equation_type)
+                    )
+            self.history_worker.start()
 
     def populate_tables(self, stock_data, ratios_table, ai_assessment):
         self.current_stock_data = stock_data

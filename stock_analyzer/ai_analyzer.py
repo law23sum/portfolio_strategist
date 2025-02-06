@@ -1,11 +1,14 @@
 import os
-import openai
+
+from dotenv import load_dotenv
+from openai import OpenAI
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
 
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def strip_markdown(text: str) -> str:
@@ -66,7 +69,7 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     news_text = clean_html(articles_html_all)
 
     # Limit the length of the financial ratios and news text if needed
-    max_news_length = 8000  # Limit the news text length
+    max_news_length = 7777  # Limit the news text length
     # print("Max News Length:", max_news_length)
     if len(news_text) > max_news_length:
         news_text = news_text[:max_news_length] + "..."
@@ -93,21 +96,20 @@ def analyze_stock_with_news(ratios_table: pd.DataFrame, articles_html_all: str) 
     messages = [
         {"role": "system", "content": system_content},
         {"role": "user", "content": user_content},
-    ]
+        ]
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
                 model = "gpt-4o-mini",  # "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"
                 messages = messages,
                 temperature = 0.0,  # Set to 0 for deterministic responses
-                max_tokens = 1234,  # Decrease max_tokens to prevent exceeding the limit
-                # top_p = 0.3,  # Limits to top 30% probability mass
-                frequency_penalty = 0.0,  # Strongly penalizes repeated tokens
-                presence_penalty = 0.0  # Strongly penalizes reuse of topics
-        )
+                max_tokens = 250,  # Decrease max_tokens to prevent exceeding the limit
+                top_p = 0.1,  # Limits to top 30% probability mass
+                frequency_penalty = 1.7,  # Strongly penalizes repeated tokens
+                presence_penalty = 1.7)  # Strongly penalizes reuse of topics)
 
         # Extract the text out of the response
-        assistant_message = response.choices[0].message["content"].strip()
+        assistant_message = response.choices[0].message.content.strip()
         return strip_markdown(assistant_message)
     except Exception as e:
         return f"Oops, ChatGPT had an issue: {e}"
