@@ -1,7 +1,11 @@
+import json
+
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
+
+from pykalman import KalmanFilter
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 
@@ -266,8 +270,8 @@ def forecast_stock_prices(
         "3mo": 90.0,            # approximate
     }
 
-    # default fallback
-    dt_interval = interval_map.get(stock_interval, 1.0)  # default: '1d' if not found
+    stock_interval_str = json.dumps(stock_interval)
+    dt_interval = interval_map.get(stock_interval_str.strip(), 1.0)
 
     # ----------------------------------------------------
     # 2) Number of steps => forecast_days / dt_interval

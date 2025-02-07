@@ -12,3 +12,7 @@
 ## Build Binary Executable & Application Executable
 
     pyinstaller main.spec
+
+## Execution
+    
+    python main.py LMT 1y 1d

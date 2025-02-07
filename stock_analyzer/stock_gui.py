@@ -884,6 +884,13 @@ class HomePage(QWidget):
         self.definitions_button.clicked.connect(self.navigate_to_definitions)
         left_layout.addWidget(self.definitions_button)
 
+        # 5) "Stock Reset"
+        self.reset_button = QPushButton("Stock Reset")
+        self.reset_button.setFont(QFont("Helvetica", 15))
+        self.reset_button.setFixedHeight(40)
+        self.reset_button.clicked.connect(self.reset_stock_data)
+        left_layout.addWidget(self.reset_button)
+
         main_layout.addLayout(left_layout, 2)
 
         # Right side => Logs
@@ -1009,6 +1016,31 @@ class HomePage(QWidget):
     def update_progress(self, value):
         self.progress_bar.setValue(value)
         print(f"Progress updated to {value}%.")
+
+    def reset_stock_data(self):
+        """
+        Clears the current state so user can start fresh with a new symbol.
+        """
+        self.current_stock_symbol = ""
+        self.current_ratios_table = pd.DataFrame()
+        self.current_ai_assessment = ""
+        self.current_stock_data = {}
+        self.history_df = pd.DataFrame()
+
+        # Clear UI elements
+        self.stock_input.clear()
+        self.logs_display.clear()
+        self.progress_bar.setValue(0)
+
+        # Disable detail & forecast buttons until new data is populated
+        self.detailed_button.setEnabled(False)
+        self.forecast_button.setEnabled(False)
+
+        # Reset worker references
+        self.detail_worker = None
+        self.forecast_worker = None
+
+        self.logs_display.append("All stock data has been reset. Please enter a new stock symbol.")
 
 
 # --------------------------------------------------------------------------

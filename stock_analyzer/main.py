@@ -122,14 +122,14 @@ class StockApp:
             print("Ratios could not be generated or are empty.\n")
         return ratios_table
 
-    def fetch_stock_history(self, stock_symbol):
+    def fetch_stock_history(self, stock_symbol, period, interval):
         """
         Fetch historical price data (typically from Yahoo Finance),
         return as a pandas DataFrame with columns [Date, Open, High, Low, Close, Volume].
         """
         print(f"Fetching historical data for {stock_symbol}...\n")
         try:
-            history_df = self.fetcher.fetch_stock_history(stock_symbol)
+            history_df = self.fetcher.fetch_stock_history(stock_symbol, period, interval)
             if not history_df.empty:
                 # Basic cleaning if needed
                 history_df['Date'] = pd.to_datetime(history_df['Date'], errors = 'coerce')
@@ -359,9 +359,6 @@ class StockApp:
         except Exception:
             print("mplcursors not available or an error occurred with interactive cursor.\n")
 
-        plt.tight_layout()
-        plt.show()
-
         # Display errors in the terminal
         if not error_df.empty:
             print("\n--- Prediction Errors ---")
@@ -375,7 +372,11 @@ class StockApp:
                         f"Forecasted: {forecasted_str}, Error: {error_str}")
             print("")
 
-    def display_stock_data_terminal(self, stock_symbol):
+        plt.tight_layout()
+        plt.show()
+
+
+    def display_stock_data_terminal(self, stock_symbol, stock_period, stock_interval):
         """
         Fetch fundamental data, news, analyze ratios, fetch historical,
         forecast (with advanced approach), plot results, do AI analysis,
@@ -396,7 +397,7 @@ class StockApp:
             print(ratios_table.to_string(index = False), "\n")
 
         # 3) Fetch historical data
-        df_history = self.fetch_stock_history(stock_symbol)
+        df_history = self.fetch_stock_history(stock_symbol, stock_period, stock_interval)
         if df_history.empty:
             print("No historical data, so forecasting is not possible.\n")
         else:
@@ -406,9 +407,9 @@ class StockApp:
 
             # Let's define some enumerated choices and defaults:
             equation_type_options = {
-                "1": "GeometricBrownianMotion",
-                "2": "GeometricBrownianMotionWithMeanReversion",
-                "3": "GeometricBrownianMotionExternalMacroeconomicFactors"
+                "1": "Geometric Brownian Motion",
+                "2": "Geometric Brownian Motion with Mean Reversion",
+                "3": "Geometric Brownian Motion External Macroeconomic Factors"
                 }
             default_eq_type_key = "3"  # index key corresponding to the default type
 
@@ -584,18 +585,16 @@ def main():
     if len(sys.argv) > 1:
         # Symbol via command line argument
         stock_symbol = sys.argv[1].strip().upper()
+        stock_period = sys.argv[2].strip()
+        stock_interval = sys.argv[3].strip()
         app = StockApp()
-        app.display_stock_data_terminal(stock_symbol)
+        app.display_stock_data_terminal(stock_symbol, stock_period, stock_interval)
     elif GUI_AVAILABLE:
         from stock_gui import run_gui
         run_gui()
     elif "--gui" in sys.argv:
         from stock_gui import run_gui
         run_gui()
-    else:
-        stock_symbol = input("Enter a stock symbol (e.g. AAPL): ").strip().upper()
-        app = StockApp()
-        app.display_stock_data_terminal(stock_symbol)
 
 
 if __name__ == "__main__":
