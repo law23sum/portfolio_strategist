@@ -1,73 +1,106 @@
-END-USER LICENSE AGREEMENT (EULA)
-IMPORTANT: PLEASE READ THIS LICENSE AGREEMENT CAREFULLY.
-This End-User License Agreement ("Agreement") is a legal agreement between you ("Licensee" or "User") and [Your Company Name] ("Licensor" or "Developer"). By installing, copying, or otherwise using The Portfolio Strategist ("Software"), you agree to be bound by the terms and conditions set forth in this Agreement.
+1. ACCEPTANCE OF TERMS
 
-If you do not agree to these terms, do not install or use the Software.
+This End-User License Agreement (“Agreement”) is a binding legal contract between you (“Licensee” or “User”) and [Your Company Name] (“Licensor” or “Developer”). By installing, copying, accessing, or otherwise using the Portfolio Strategist (“Software”), you affirm that you have read, understood, and agree to be bound by all of the terms and conditions of this Agreement. If you do not agree, do not install or use the Software.
 
-1. GRANT OF LICENSE
-1.1 License Type:
-Licensor grants Licensee a non-exclusive, non-transferable subscription-based license to use the Software on a single device only. The Software is licensed, not sold, and the Licensee may not sublicense, rent, lease, or distribute it.
+2. GRANT OF LICENSE
+	1.	License Type
+Licensor grants Licensee a non-exclusive, non-transferable, subscription-based license to use the Software on a single device. The Software is licensed, not sold. Licensee may not sublicense, rent, lease, lend, or distribute the Software without explicit written permission from Licensor.
+	2.	Software Updates
+Unless otherwise stated, this Agreement also applies to all future versions, patches, and updates of the Software provided by Licensor. Licensor reserves the right to modify or discontinue the Software or any portion thereof at any time, without prior notice, and without incurring any obligation to Licensee.
+	3.	Subscription Scope
+Use of the Software is contingent upon maintaining an active paid subscription. If at any time the subscription lapses, access to all or part of the Software may be suspended or terminated at Licensor’s sole discretion.
 
-1.2 Software Updates:
-This Agreement applies to all future versions and updates of the Software provided by Licensor, unless otherwise stated.
+3. RESTRICTIONS ON USE
+	1.	Modifications & Reverse Engineering
+Licensee may not, under any circumstances, modify, translate, adapt, reverse engineer, decompile, disassemble, or create derivative works from the Software. Any attempt to do so is a serious violation of this Agreement and may subject Licensee to damages, injunctive relief, and other legal remedies.
+	2.	Unauthorized Distribution
+Licensee shall not sell, rent, lease, host, redistribute, or otherwise transfer the Software in any manner inconsistent with this Agreement. Any unauthorized transfer or distribution will result in immediate license termination without refund and may incur legal action.
+	3.	Compliance with Laws
+Licensee agrees to use the Software in compliance with all applicable local, state, federal, and international laws and regulations. Licensee further agrees not to use the Software to conduct or facilitate any illegal or unauthorized activities.
 
-2. USAGE RESTRICTIONS
-2.1 Modifications & Reverse Engineering:
-The Licensee may not modify, reverse-engineer, decompile, or create derivative works from the Software. Any attempt to do so constitutes a violation of this Agreement.
+4. TECHNICAL SUPPORT
+	1.	Support Services
+Licensor will provide support via email during the term of the Licensee’s active subscription. Licensor strives to respond promptly but makes no guarantees regarding response times or issue resolution times.
+	2.	Limitations
+Technical support does not cover training, in-depth consultation, or customization of the Software unless expressly agreed in writing by Licensor.
 
-2.2 Redistribution:
-The Licensee may not redistribute the Software, either in its original or modified form, in whole or in part.
+5. FEES AND PAYMENTS
+	1.	Subscription Fees
+Licensee agrees to pay the subscription fees in accordance with the payment terms presented at the time of purchase or renewal. Non-payment or delayed payment may result in suspension or termination of the license.
+	2.	Late Fees and Collection
+If Licensee fails to make timely payments, Licensor may impose late fees and/or refer the matter to a collections agency or legal counsel. Licensee will be responsible for any associated costs, including reasonable attorneys’ fees, incurred by Licensor in seeking to enforce payment.
+	3.	No Refunds
+All subscription fees and charges are non-refundable, except where otherwise mandated by applicable law. Licensee acknowledges that once fees are paid, Licensee gains immediate access to valuable proprietary Software and services.
 
-3. TECHNICAL SUPPORT
-3.1 Support Services:
-Licensor will provide email-based technical support to Licensee during the term of the subscription. Support inquiries should be sent to the designated support email address provided by the Licensor.
+6. TERMINATION
+	1.	Termination by Licensor
+Licensor may terminate this Agreement immediately, at its sole discretion, if Licensee breaches any term of this Agreement or fails to pay subscription fees. Upon termination, Licensee must immediately uninstall and cease all use of the Software.
+	2.	Termination by Licensee
+Licensee may terminate the subscription by ceasing to pay the recurring fees. However, no refunds or credits will be provided for partial billing cycles.
+	3.	Effect of Termination
+Upon termination of this Agreement, Licensee’s rights to use the Software automatically cease. Certain provisions, such as Sections on Ownership, Indemnification, Disclaimers, Limitation of Liability, Governing Law, and Dispute Resolution, will survive termination.
 
-4. FEES AND PAYMENTS
-4.1 Payment Terms:
-The Software is available under a subscription-based license, which is billed on a monthly basis. Licensee agrees to pay the subscription fee according to the payment terms provided during registration.
+7. INTELLECTUAL PROPERTY
+	1.	Ownership
+Licensor retains all rights, titles, and interests, including all intellectual property rights, in and to the Software, including but not limited to any trademarks, copyrights, patents, trade secrets, or other proprietary information. Nothing in this Agreement shall be construed to transfer or assign any such rights to Licensee.
+	2.	Trademarks
+Licensee may not use any trademarks, service marks, or logos associated with the Software without prior written consent from Licensor.
+	3.	Feedback
+Any suggestions, feedback, or comments provided by Licensee may be used by Licensor without any restriction or compensation.
 
-4.2 Late Fees:
-If the Licensee fails to make timely payments, a late fee may be applied to the outstanding balance, as specified by the Licensor.
+8. DISCLAIMER OF WARRANTIES
+	1.	As-Is Basis
+THE SOFTWARE IS PROVIDED ON AN “AS IS” AND “AS AVAILABLE” BASIS. LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR TITLE.
+	2.	Informational Purposes Only
+If the Software provides financial, investment, or other professional information, such information is for informational purposes only and does not constitute legal, financial, or investment advice. Licensor assumes no responsibility for any financial outcomes, losses, or damages resulting from reliance on the information provided by the Software.
+	3.	No Warranties of Availability
+Licensor does not guarantee that the Software will be available at all times or that it will be free of errors or interruptions. Licensee acknowledges that Software updates, patches, or planned/unplanned maintenance may result in temporary unavailability.
 
-4.3 No Refunds:
-All subscription fees are non-refundable, except as required by applicable law.
+9. LIMITATION OF LIABILITY
+	1.	Maximum Liability
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION WITH THE USE OR INABILITY TO USE THE SOFTWARE. LICENSOR’S TOTAL LIABILITY FOR ANY CLAIM, WHETHER IN CONTRACT, TORT, OR ANY OTHER THEORY OF LIABILITY, SHALL NOT EXCEED THE AMOUNT PAID BY LICENSEE TO LICENSOR FOR THE SOFTWARE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+	2.	Assumption of Risk
+Licensee acknowledges and agrees that it assumes all risk associated with the use of the Software, including risk of data loss, service interruptions, system damage, or financial loss.
+	3.	No Liability for Third Parties
+Licensor is not responsible for the acts, omissions, software, hardware, services, or failures of any third party, including but not limited to internet service providers, hosting services, or payment processors.
 
-5. TERMINATION
-5.1 License Termination:
-Licensor may terminate this Agreement and the License granted herein if the Licensee fails to comply with any term or condition of this Agreement, including failure to pay subscription fees. Upon termination, Licensee must immediately uninstall and cease using the Software.
+10. INDEMNIFICATION
 
-5.2 Uninstallation Upon Termination:
-Upon termination of this Agreement, Licensee agrees to promptly uninstall the Software from all devices.
+Licensee agrees to defend, indemnify, and hold harmless Licensor and its officers, directors, employees, agents, successors, and assigns from and against all claims, losses, damages, liabilities, costs, and expenses (including attorneys’ fees) arising out of or related to:
+	•	(a) Licensee’s breach of any term of this Agreement;
+	•	(b) Licensee’s use or misuse of the Software;
+	•	(c) Violation of any applicable law or regulation by Licensee;
+	•	(d) Any claims alleging that Licensee’s data or content infringes the intellectual property or other rights of any third party.
 
-6. INTELLECTUAL PROPERTY
-6.1 Ownership:
-Licensor retains full ownership of the Software, including all rights, titles, and intellectual property associated with it, including but not limited to trademarks, copyrights, and patents.
+11. GOVERNING LAW AND DISPUTE RESOLUTION
+	1.	Governing Law
+This Agreement is governed by and construed in accordance with the laws of the United States of America, without regard to conflict-of-laws principles.
+	2.	Dispute Resolution
+Any dispute arising out of or related to this Agreement or the Software shall be resolved by binding arbitration before a single arbitrator, conducted in English, under the rules of the American Arbitration Association. The seat of arbitration shall be in the United States, and the decision of the arbitrator shall be final and binding.
+	3.	Class Action Waiver
+Licensee agrees to resolve disputes with Licensor on an individual basis, and waives any right to participate in a class, consolidated, or representative action.
+	4.	Injunctive Relief
+Licensee acknowledges and agrees that a breach of the provisions of this Agreement by Licensee may cause irreparable harm to Licensor, for which monetary damages alone would be inadequate. Accordingly, Licensor shall be entitled to seek injunctive or other equitable relief in any court of competent jurisdiction to prevent or restrain such breach, without waiving other potential remedies.
 
-6.2 Trademarks:
-The Licensee is prohibited from using any trademarks associated with the Software without prior written permission from the Licensor.
+12. EXPORT COMPLIANCE
 
-7. WARRANTIES AND LIABILITIES
-7.1 No Warranty:
-The Software is provided "as-is," with no warranty of any kind, either express or implied, including but not limited to the warranties of merchantability or fitness for a particular purpose.
+Licensee agrees to comply with all applicable U.S. and international export laws and regulations. The Software may not be used in any country or in any manner prohibited by such laws and regulations.
 
-7.2 Limitation of Liability:
-Licensor shall not be liable for any direct, indirect, incidental, special, or consequential damages arising from the use of the Software, even if Licensor has been advised of the possibility of such damages. In no event shall Licensor’s liability exceed the total amount paid by the Licensee for the Software during the 12-month period preceding the claim.
+13. MISCELLANEOUS
+	1.	Entire Agreement
+This Agreement, together with any documents expressly referenced herein, constitutes the entire agreement between the parties and supersedes all prior or contemporaneous communications and proposals, whether oral or written.
+	2.	Amendments
+Licensor reserves the right to modify or update this Agreement at any time. Any material changes will be communicated to Licensee, and continued use of the Software after such notification constitutes acceptance of the revised terms.
+	3.	Severability
+If any provision of this Agreement is held to be invalid or unenforceable by a court of competent jurisdiction, the remaining provisions shall remain in full force and effect.
+	4.	No Waiver
+The failure of Licensor to exercise or enforce any right or provision of this Agreement shall not constitute a waiver of such right or provision.
+	5.	Survival
+Any provisions that by their nature should survive termination of this Agreement shall so survive, including but not limited to sections regarding Ownership, Disclaimers, Limitation of Liability, Indemnification, and Dispute Resolution.
+	6.	No Competition
+Nothing in this Agreement restricts Licensee from developing or offering software that competes with the Software.
 
-8. GOVERNING LAW
-8.1 Jurisdiction:
-This Agreement shall be governed by and construed in accordance with the laws of the United States of America. Any disputes arising out of or in connection with this Agreement shall be resolved under the jurisdiction of the courts in the United States.
-
-9. MISCELLANEOUS
-9.1 Entire Agreement:
-This Agreement constitutes the entire agreement between the parties and supersedes any prior or contemporaneous understandings, whether written or oral, relating to the Software.
-
-9.2 Severability:
-If any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.
-
-9.3 No Competition:
-The Licensee is not restricted from competing with the Licensor or developing competing software.
-
-By installing, copying, or using the Software, the Licensee acknowledges that they have read, understood, and agree to be bound by the terms of this End-User License Agreement.
+14. CONTACT INFORMATION
 
 Licensor: The Portfolio Strategist
 Support Email: cswm7876@yahoo.com
