@@ -25,7 +25,7 @@ links_amount = 21
 class StockFetcher:
     def __init__(self):
         self.base_quote_url = "https://finance.yahoo.com/quote"
-        # self.base_statistics_url = "https://finance.yahoo.com/quote/{}/key-statistics"
+        self.base_statistics_url = "https://finance.yahoo.com/quote/{}/key-statistics"
         self.base_news_url = "https://finance.yahoo.com/quote/{}/news"
         self.base_history_url = "https://finance.yahoo.com/quote/{}/history/"
         print("Initializing StockFetcher and setting up the driver.")
@@ -89,7 +89,7 @@ class StockFetcher:
             print("WebDriver Active.")
 
     @retry(stop = stop_after_attempt(3), wait = wait_fixed(2))
-    def fetch_stock_details(self, stock_symbol, stock_period, stock_interval):
+    def fetch_stock_details(self, stock_symbol):
         """
         Fetches detailed stock metrics from Yahoo Finance and Key Statistics page.
         :param stock_symbol: The stock symbol to fetch data for.
@@ -104,7 +104,7 @@ class StockFetcher:
 
             # Fetch key statistics data
             print("Fetching Stock Statistics.")
-            statistics_data = self._fetch_statistics_page(stock_symbol, stock_period, stock_interval)
+            statistics_data = self._fetch_statistics_page(stock_symbol)
 
             # Combine and return both datasets
             print("Combining Stock Quotes & Statistics.")
@@ -165,56 +165,49 @@ class StockFetcher:
                 continue  # Skip elements that do not match the expected structure
         return data
 
-    def _fetch_statistics_page(self, stock_symbol, period, interval):
+    def _fetch_statistics_page(self, stock_symbol):
         """
         Fetches data from the key statistics page using Selenium.
         """
-        data = yf.download(
-                tickers = stock_symbol,
-                period = period,
-                interval = interval
+        self._ensure_driver_active()
+        url = self.base_statistics_url.format(stock_symbol)
+        print(f"Navigating to {url}.")
+        self.driver.get(url)
+        WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
                 )
+
+        # Get the page source and parse it with BeautifulSoup
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+
+        # Save prettified HTML for debugging
+        # file_name = f"{stock_symbol}_statistics.html"
+        # with open(file_name, "w", encoding="utf-8") as file:
+        #     file.write(soup.prettify())
+        # print(f"Prettified statistics page HTML saved to {file_name}")
+
+        # Parse key statistics
+        data = {}
+        tables = soup.find_all('table')  # All tables on the page
+        print(f"Found {len(tables)} tables on the statistics page.")
+
+        for table in tables:
+            rows = table.find_all('tr')  # All rows in the table
+            for row in rows:
+                try:
+                    metric_name = row.find('td').text.strip()
+                    metric_values = [td.text.strip() for td in row.find_all('td')[1:]]
+                    # Flatten the list into a string (comma-separated values)
+                    data[metric_name] = ", ".join(metric_values)
+                    # print(f"Extracted statistic '{metric_name}': '{data[metric_name]}'.")
+                except AttributeError:
+                    print("Skipping a row due to unexpected structure.")
+                    continue  # Skip rows that do not match the expected structure
         print(f"Extracted a total of {len(data)} statistics entries.")
         return data
-        # self._ensure_driver_active()
-        # url = self.base_statistics_url.format(stock_symbol)
-        # print(f"Navigating to {url}.")
-        # self.driver.get(url)
-        # WebDriverWait(self.driver, 10).until(
-        #         EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
-        #         )
-        #
-        # # Get the page source and parse it with BeautifulSoup
-        # soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-        #
-        # # Save prettified HTML for debugging
-        # # file_name = f"{stock_symbol}_statistics.html"
-        # # with open(file_name, "w", encoding="utf-8") as file:
-        # #     file.write(soup.prettify())
-        # # print(f"Prettified statistics page HTML saved to {file_name}")
-        #
-        # # Parse key statistics
-        # data = {}
-        # tables = soup.find_all('table')  # All tables on the page
-        # print(f"Found {len(tables)} tables on the statistics page.")
-        #
-        # for table in tables:
-        #     rows = table.find_all('tr')  # All rows in the table
-        #     for row in rows:
-        #         try:
-        #             metric_name = row.find('td').text.strip()
-        #             metric_values = [td.text.strip() for td in row.find_all('td')[1:]]
-        #             # Flatten the list into a string (comma-separated values)
-        #             data[metric_name] = ", ".join(metric_values)
-        #             # print(f"Extracted statistic '{metric_name}': '{data[metric_name]}'.")
-        #         except AttributeError:
-        #             print("Skipping a row due to unexpected structure.")
-        #             continue  # Skip rows that do not match the expected structure
-        # print(f"Extracted a total of {len(data)} statistics entries.")
-        # return data
 
     @retry(stop = stop_after_attempt(3), wait = wait_fixed(2))
-    def fetch_stock_history(self, stock_symbol, scroll_duration = 5):
+    def fetch_stock_history(self, stock_symbol, period, interval):
         """
         Fetch historical stock data from Yahoo Finance.
 
@@ -228,69 +221,98 @@ class StockFetcher:
         :param scroll_duration: Seconds to scroll the page (if required).
         :return: A DataFrame containing historical stock data.
         """
-        try:
-            self._ensure_driver_active()
-            history_url = self.base_history_url.format(stock_symbol)
-            print(f"Navigating to history URL: {history_url}")
-            self.driver.get(history_url)
+        for _ in range(3):
+            try:
+                data_rows = yf.download(
+                        tickers = stock_symbol,
+                        period = period,
+                        interval = interval
+                        )
+                if not data_rows.empty:
+                    break
+            except Exception:
+                time.sleep(1)
+                print("Retrying yfinance data download...")
+        print(f"Extracted a total of {len(data_rows)} statistics entries.")
+        print("Creating a DataFrame from the historical data...")
+        df = pd.DataFrame(data_rows)
+        df.reset_index(inplace = True)
+        df.columns = df.columns.to_flat_index()
+        df.columns = ["_".join(col).strip() for col in df.columns]
+        df.rename(columns = {"Datetime_": "Date"}, inplace = True)
+        df.rename(columns = {"Date_": "Date"}, inplace = True)
+        df.rename(columns = {f"Close_{stock_symbol}": "Close"},inplace = True)
+        df.rename(columns = {f"High_{stock_symbol}": "High"}, inplace = True)
+        df.rename(columns = {f"Low_{stock_symbol}": "Low"}, inplace = True)
+        df.rename(columns = {f"Open_{stock_symbol}": "Open"}, inplace = True)
+        df.rename(columns = {f"Volume_{stock_symbol}": "Volume"}, inplace = True)
+        df.rename(columns = {f"Price_{stock_symbol}": "Price"}, inplace = True)
+        # print(df.head())
+        return df
 
-            # Wait for the historical table to load
-            print("Waiting for the history table to load...")
-            WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
-                    )
-            print("History table is now visible.")
-
-            # Optionally scroll a bit if more data loads dynamically
-            start_time = time.time()
-            while time.time() - start_time < scroll_duration:
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(3)
-            print("Finished scrolling the history page.")
-
-            soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            table = soup.find("table")
-            if not table:
-                raise Exception("Historical data table not found.")
-            print("Historical table successfully extracted.")
-
-            # Extract table headers while skipping tooltip text
-            headers = []
-            header_row = table.find("thead").find("tr")
-            for th in header_row.find_all("th"):
-                direct_text = th.find(string = True, recursive = False)
-                headers.append(direct_text.strip() if direct_text else th.get_text(strip = True))
-            # print(f"Found {len(headers)} headers in the history table.")
-
-            # Extract table rows
-            data_rows = []
-            tbody = table.find("tbody")
-            for tr in tbody.find_all("tr"):
-                cells = tr.find_all("td")
-                if len(cells) < len(headers):  # Skip incomplete rows (e.g., dividend info)
-                    continue
-                row_data = {header: cell.get_text(strip = True) for header, cell in zip(headers, cells)}
-                # print("Current data row retrieved: ", row_data)
-                data_rows.append(row_data)
-            print(f"Extracted {len(data_rows)} rows of historical data.")
-
-            print("Creating a DataFrame from the historical data...")
-            df = pd.DataFrame(data_rows)
-
-            if not df.empty:
-                # Ensure the 'Date' column is in datetime format
-                df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
-                # Ensure the 'Close' column is numeric
-                df['Close'] = df['Close'].str.replace(',', '').astype(float)
-                # Sort by date in ascending order
-                df = df.sort_values('Date', ascending = True)
-                print("DataFrame columns converted and sorted by date.")
-
-            return df
-
-        except Exception as e:
-            print(f"Error fetching stock history for {stock_symbol}: {e}")
-            return pd.DataFrame()
+        # try:
+        #     self._ensure_driver_active()
+        #     history_url = self.base_history_url.format(stock_symbol)
+        #     print(f"Navigating to history URL: {history_url}")
+        #     self.driver.get(history_url)
+        #
+        #     # Wait for the historical table to load
+        #     print("Waiting for the history table to load...")
+        #     WebDriverWait(self.driver, 10).until(
+        #             EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
+        #             )
+        #     print("History table is now visible.")
+        #
+        #     # Optionally scroll a bit if more data loads dynamically
+        #     start_time = time.time()
+        #     while time.time() - start_time < scroll_duration:
+        #         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        #         time.sleep(3)
+        #     print("Finished scrolling the history page.")
+        #
+        #     soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        #     table = soup.find("table")
+        #     if not table:
+        #         raise Exception("Historical data table not found.")
+        #     print("Historical table successfully extracted.")
+        #
+        #     # Extract table headers while skipping tooltip text
+        #     headers = []
+        #     header_row = table.find("thead").find("tr")
+        #     for th in header_row.find_all("th"):
+        #         direct_text = th.find(string = True, recursive = False)
+        #         headers.append(direct_text.strip() if direct_text else th.get_text(strip = True))
+        #     # print(f"Found {len(headers)} headers in the history table.")
+        #
+        #     # Extract table rows
+        #     data_rows = []
+        #     tbody = table.find("tbody")
+        #     for tr in tbody.find_all("tr"):
+        #         cells = tr.find_all("td")
+        #         if len(cells) < len(headers):  # Skip incomplete rows (e.g., dividend info)
+        #             continue
+        #         row_data = {header: cell.get_text(strip = True) for header, cell in zip(headers, cells)}
+        #         # print("Current data row retrieved: ", row_data)
+        #         data_rows.append(row_data)
+        #     print(f"Extracted {len(data_rows)} rows of historical data.")
+        #
+        #     print("Creating a DataFrame from the historical data...")
+        #     df = pd.DataFrame(data_rows)
+        #
+        #     if not df.empty:
+        #         # Ensure the 'Date' column is in datetime format
+        #         df['Date'] = pd.to_datetime(df['Date'], errors = 'coerce')
+        #         # Ensure the 'Close' column is numeric
+        #         df['Close'] = df['Close'].str.replace(',', '').astype(float)
+        #         # Sort by date in ascending order
+        #         df = df.sort_values('Date', ascending = True)
+        #         print("DataFrame columns converted and sorted by date.")
+        #
+        #     return df
+        #
+        # except Exception as e:
+        #     print(f"Error fetching stock history for {stock_symbol}: {e}")
+        #     return pd.DataFrame()
 
     @retry(stop = stop_after_attempt(3), wait = wait_fixed(2))
     def fetch_stock_news(self, stock_symbol):

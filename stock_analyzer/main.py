@@ -56,7 +56,7 @@ class StockApp:
         self.analyzer = StockRatio()
         print("StockApp components initialized.\n")
 
-    def fetch_stock_data(self, stock_symbol, stock_period, stock_interval):
+    def fetch_stock_data(self, stock_symbol):
         """
         Fetch stock details from Yahoo Finance (via StockFetcher).
         Return a dictionary containing the stock data.
@@ -66,7 +66,7 @@ class StockApp:
             print("No stock symbol provided. Aborting fetch.\n")
             return None
         try:
-            stock_data = self.fetcher.fetch_stock_details(stock_symbol, stock_period, stock_interval)
+            stock_data = self.fetcher.fetch_stock_details(stock_symbol)
             if stock_data:
                 # Remove extraneous "upgrade" text if present
                 upgrade_text = (
@@ -152,7 +152,7 @@ class StockApp:
             df,
             stock_symbol,
             ratios_table,
-            equation_type = "Geometric Brownian Motion External Macroeconomic Factors",
+            equation_type = "GeometricBrownianMotionExternalMacroeconomicFactors",
             market_ticker = "^GSPC",
             vix_ticker = "^VIX",
             tnx_ticker = "^TNX",
@@ -185,7 +185,7 @@ class StockApp:
         # Attempt to fetch extra data from yfinance for external factor betas
         main_ticker = stock_symbol
         total_ticker_data = None
-        for _ in range(3):
+        for _ in range(10):
             try:
                 total_ticker_data = yf.download([main_ticker, market_ticker, vix_ticker, tnx_ticker], period = "1y")
                 if not total_ticker_data.empty:
@@ -286,7 +286,6 @@ class StockApp:
                 mean_reversion_params,
                 external_factors
                 )
-
         forecast_df = shift_forecast_to_actual_dates(df, forecast_prices, forecast_days)
         print("Forecast generation complete.\n")
 
@@ -376,14 +375,14 @@ class StockApp:
                         f"Forecasted: {forecasted_str}, Error: {error_str}")
             print("")
 
-    def display_stock_data_terminal(self, stock_symbol, stock_period, stock_interval):
+    def display_stock_data_terminal(self, stock_symbol):
         """
         Fetch fundamental data, news, analyze ratios, fetch historical,
         forecast (with advanced approach), plot results, do AI analysis,
         and optionally save PDF — all from the terminal, baby!
         """
         # 1) Fetch fundamental data
-        stock_data = self.fetch_stock_data(stock_symbol, stock_period, stock_interval)
+        stock_data = self.fetch_stock_data(stock_symbol)
         if not stock_data:
             print("Could not retrieve fundamental data. Exiting.\n")
             return
@@ -407,9 +406,9 @@ class StockApp:
 
             # Let's define some enumerated choices and defaults:
             equation_type_options = {
-                "1": "Geometric Brownian Motion",
-                "2": "Geometric Brownian Motion with Mean Reversion",
-                "3": "Geometric Brownian Motion External Macroeconomic Factors"
+                "1": "GeometricBrownianMotion",
+                "2": "GeometricBrownianMotionWithMeanReversion",
+                "3": "GeometricBrownianMotionExternalMacroeconomicFactors"
                 }
             default_eq_type_key = "3"  # index key corresponding to the default type
 
@@ -516,11 +515,11 @@ class StockApp:
                     df_history,
                     stock_symbol,
                     ratios_table,
-                    equation_type,
-                    market_ticker,
-                    vix_ticker,
-                    tnx_ticker,
-                    forecast_days
+                    equation_type = equation_type,
+                    market_ticker = market_ticker,
+                    vix_ticker = vix_ticker,
+                    tnx_ticker = tnx_ticker,
+                    forecast_days = forecast_days
                     )
 
             if not forecast_df.empty:
@@ -585,10 +584,8 @@ def main():
     if len(sys.argv) > 1:
         # Symbol via command line argument
         stock_symbol = sys.argv[1].strip().upper()
-        stock_period = sys.argv[2].strip().upper()
-        stock_interval = sys.argv[3].strip().upper()
         app = StockApp()
-        app.display_stock_data_terminal(stock_symbol,stock_period,stock_interval)
+        app.display_stock_data_terminal(stock_symbol)
     elif GUI_AVAILABLE:
         from stock_gui import run_gui
         run_gui()

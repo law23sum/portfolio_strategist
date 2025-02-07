@@ -21,11 +21,17 @@ def fetch_stock_data(ticker, forecast_days):
     start_date = end_date - pd.Timedelta(days = forecast_days)
     print(f"Fetching data for {ticker} from {start_date.date()} to {end_date.date()}")
 
-    stock_data = yf.download(
-            ticker,
-            start = start_date.strftime('%Y-%m-%d'),
-            end = end_date.strftime('%Y-%m-%d')
-            )
+    for _ in range(5):
+        try:
+            stock_data = yf.download(
+                    ticker,
+                    start = start_date.strftime('%Y-%m-%d'),
+                    end = end_date.strftime('%Y-%m-%d')
+                    )
+            if not stock_data.empty:
+                break
+        except:
+            print("Ticker data can't be retrieved from yfinance.")
     return stock_data
 
 
@@ -209,36 +215,88 @@ def calculate_statistics(df):
 
 
 def forecast_stock_prices(
-        equation_type, recent_price, mu_daily, sigma_daily, forecast_days,
-        valuation_metrics = None, financial_health_metrics = None,
-        mean_reversion_params = None, external_factors = None
-        ):
+    equation_type,
+    recent_price,
+    mu_daily,
+    sigma_daily,
+    forecast_days,
+    stock_interval="1d",
+    valuation_metrics=None,
+    financial_health_metrics=None,
+    mean_reversion_params=None,
+    external_factors=None
+):
     """
-    Forecast future stock prices using different stochastic models.
+    Forecast future stock prices using different stochastic models,
+    now incorporating 'stock_interval' as the size of each time step.
 
     Parameters:
-    - recent_price: The most recent closing price (float).
-    - mu_daily: Estimated daily drift (float).
-    - sigma_daily: Estimated daily volatility (float).
-    - forecast_days: Number of days to forecast (int).
-    - equation_type: Specifies which equation to use ('GBM', 'GBM_MR', 'GBM_Ext') (string).
-    - valuation_metrics: A dictionary containing valuation metrics (dict, optional).
-    - financial_health_metrics: A dictionary containing financial health metrics (dict, optional).
-    - mean_reversion_params: A dictionary containing mean-reversion parameters (dict, optional).
-    - external_factors: A dictionary containing external factors and their coefficients (dict, optional).
+      - equation_type: 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion',
+                      or 'Geometric Brownian Motion External Macroeconomic Factors'
+      - recent_price: The most recent closing price (float)
+      - mu_daily: Estimated daily drift (float)
+      - sigma_daily: Estimated daily volatility (float)
+      - forecast_days: Total number of calendar days to forecast (int)
+      - stock_interval: Interval string (e.g. '1m', '1d', '1wk')
+        to determine how small each time step (dt) is.
+      - valuation_metrics, financial_health_metrics, mean_reversion_params, external_factors
+        are optional dicts to shape the forecast.
 
     Returns:
-    - t: Array of time points (in days) (numpy array).
-    - forecast_prices: Array of forecasted stock prices (numpy array).
+      t:   np.array of time points (in days),
+      forecast_prices: np.array of forecasted prices (same length as t)
     """
 
-    dt = 1  # Time step (1 day)
-    N = forecast_days  # Number of days to forecast
-    t = np.linspace(0, N, N)  # Time array
+    # ----------------------------------------------------
+    # 1) Map interval => fraction of a day (float dt)
+    # ----------------------------------------------------
+    interval_map = {
+        "1m": 1.0 / (24 * 60),   # 1 minute
+        "2m": 2.0 / (24 * 60),
+        "5m": 5.0 / (24 * 60),
+        "15m": 15.0 / (24 * 60),
+        "30m": 30.0 / (24 * 60),
+        "60m": 1.0 / 24,        # 1 hour
+        "90m": 1.5 / 24,
+        "1h": 1.0 / 24,         # also 1 hour
+        "1d": 1.0,              # 1 day
+        "5d": 5.0,              # 5 days
+        "1wk": 7.0,             # 7 days
+        "1mo": 30.0,            # approximate
+        "3mo": 90.0,            # approximate
+    }
 
-    print(f"Forecasting {N} days using {equation_type} model.")
+    # default fallback
+    dt_interval = interval_map.get(stock_interval, 1.0)  # default: '1d' if not found
 
-    # Initialize adjustments for valuation and financial health metrics
+    # ----------------------------------------------------
+    # 2) Number of steps => forecast_days / dt_interval
+    # ----------------------------------------------------
+    # e.g., if forecast_days=30 and stock_interval='1d',
+    # steps => 30 / 1 = 30
+    # if stock_interval='60m' => dt=1/24 => steps => 30 / (1/24)=720
+    steps_float = forecast_days / dt_interval
+
+    N = int(round(steps_float))
+    if N < 1:
+        N = 1
+
+    print(
+        f"Forecasting ~{forecast_days} days using {equation_type} model with interval {stock_interval} "
+        f"=> dt={dt_interval:.4f} days, total steps={N}.")
+
+    # We'll define dt as dt_interval in 'days'
+    dt = dt_interval
+
+    # We'll define time array from 0..forecast_days in N steps
+    # so it extends from day 0 to day = forecast_days
+    t = np.linspace(0, forecast_days, N)
+
+    # ----------------------------------------------------
+    # The rest is basically your original code
+    # with references to dt replaced by this dt
+    # ----------------------------------------------------
+    # Initialize adjustments
     valuation_adjustment = 1.0
     financial_health_adjustment = 1.0
 
@@ -326,18 +384,22 @@ def forecast_stock_prices(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
                     sigma_daily_adjusted * (W[i] - W[i - 1])
                     ) * external_adjustment
+
     elif equation_type == 'Geometric Brownian Motion External Macroeconomic Factors':
         for i in range(1, N):
             mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
+
             macro_adjustment = 0
             if external_factors:
                 macro_adjustment = sum(coefficient * external_factors[factor] for factor, coefficient in external_factors.items())
+
             forecast_prices[i] = forecast_prices[i - 1] * np.exp(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
                     sigma_daily_adjusted * (W[i] - W[i - 1]) +
                     mean_reversion_term +
                     macro_adjustment
                     )
+
     else:
         raise ValueError(
                 "Invalid equation_type. Choose 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion', "
