@@ -1,4 +1,5 @@
 import os
+import sys
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -6,8 +7,16 @@ import pandas as pd
 import re
 from bs4 import BeautifulSoup
 
+if getattr(sys, 'frozen', False):
+    # Running in a PyInstaller bundle
+    base_path = sys._MEIPASS
+else:
+    # Running in normal Python environment
+    base_path = os.path.dirname(__file__)
 
-load_dotenv()
+env_path = os.path.join(base_path, '.env')
+load_dotenv(dotenv_path=env_path)
+# load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 

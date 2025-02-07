@@ -397,6 +397,15 @@ class AnalysisPredictionsPage(QWidget):
                     .to_dict()
                 )
 
+            # Use mu_daily & sigma_daily as initial guesses and refine them
+            n_trim = int(len(df['Close']) * 1)
+            # In case 7% is too small, default to all data
+            if n_trim < 1:
+                n_trim = len(df['Close'])
+
+            trimmed_closing_prices = df['Close'][-n_trim:]
+            print(f"Trimming data to the last {n_trim} points (~7% of total).")
+
             # Forecast
             t_forecast, forecast_prices = forecast_stock_prices(
                     equation_type,
@@ -404,11 +413,12 @@ class AnalysisPredictionsPage(QWidget):
                     mu_daily,
                     sigma_daily,
                     forecast_days,
+                    trimmed_closing_prices,
                     stock_interval,
                     valuation_metrics,
                     financial_health_metrics,
                     mean_reversion_params,
-                    external_factors
+                    external_factors,
                     )
 
             forecast_df = shift_forecast_to_actual_dates(df, forecast_prices, forecast_days)
@@ -884,8 +894,8 @@ class HomePage(QWidget):
         self.definitions_button.clicked.connect(self.navigate_to_definitions)
         left_layout.addWidget(self.definitions_button)
 
-        # 5) "Stock Reset"
-        self.reset_button = QPushButton("Stock Reset")
+        # 5) "Reset Stock"
+        self.reset_button = QPushButton("Reset Stock")
         self.reset_button.setFont(QFont("Helvetica", 15))
         self.reset_button.setFixedHeight(40)
         self.reset_button.clicked.connect(self.reset_stock_data)

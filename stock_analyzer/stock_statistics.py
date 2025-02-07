@@ -1,6 +1,7 @@
-import json
-
 import numpy as np
+import json
+from numpy.linalg import inv
+from scipy.linalg import sqrtm
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
@@ -8,6 +9,12 @@ from datetime import datetime, timedelta
 from pykalman import KalmanFilter
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+
+
+try:
+    from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
+except ImportError:
+    print("You need to install filterpy (e.g., 'pip install filterpy') to use the UKF features.")
 
 
 def fetch_stock_data(ticker, forecast_days):
@@ -219,183 +226,310 @@ def calculate_statistics(df):
 
 
 def forecast_stock_prices(
-    equation_type,
-    recent_price,
-    mu_daily,
-    sigma_daily,
-    forecast_days,
-    stock_interval="1d",
-    valuation_metrics=None,
-    financial_health_metrics=None,
-    mean_reversion_params=None,
-    external_factors=None
-):
+        equation_type,
+        recent_price,
+        mu_daily,
+        sigma_daily,
+        forecast_days,
+        trimmed_closing_prices,
+        stock_interval = "1d",
+        valuation_metrics = None,
+        financial_health_metrics = None,
+        mean_reversion_params = None,
+        external_factors = None,
+
+        ):
     """
     Forecast future stock prices using different stochastic models,
-    now incorporating 'stock_interval' as the size of each time step.
+    now with an integrated UKF-based initialization step.
+
+    1) Use a 1D UKF (log-price state) to assimilate 'trimmed_closing_prices'
+       if provided, refining the starting log-price.
+    2) "Pass the baton" to a standard model (GBM, GBM+Mean Reversion, etc.)
+       for the forecast horizon with no further updates.
 
     Parameters:
-      - equation_type: 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion',
-                      or 'Geometric Brownian Motion External Macroeconomic Factors'
+      - trimmed_closing_prices: Small set of measured prices to initialize the state.
+      - equation_type:
+            'Geometric Brownian Motion',
+            'Geometric Brownian Motion with Mean Reversion',
+            'Geometric Brownian Motion External Macroeconomic Factors'
       - recent_price: The most recent closing price (float)
       - mu_daily: Estimated daily drift (float)
       - sigma_daily: Estimated daily volatility (float)
-      - forecast_days: Total number of calendar days to forecast (int)
-      - stock_interval: Interval string (e.g. '1m', '1d', '1wk')
-        to determine how small each time step (dt) is.
+      - forecast_days: Total forecast horizon (in days)
+      - stock_interval: e.g. '1d', '1wk', used to define time-step dt
       - valuation_metrics, financial_health_metrics, mean_reversion_params, external_factors
-        are optional dicts to shape the forecast.
+        are optional dicts that can shape drift/vol adjustments or add macro terms.
 
     Returns:
-      t:   np.array of time points (in days),
+      t:   np.array of time points (in days) for the forecast,
       forecast_prices: np.array of forecasted prices (same length as t)
     """
 
     # ----------------------------------------------------
-    # 1) Map interval => fraction of a day (float dt)
+    # 1) Convert stock_interval => dt (fraction of a day)
     # ----------------------------------------------------
     interval_map = {
-        "1m": 1.0 / (24 * 60),   # 1 minute
-        "2m": 2.0 / (24 * 60),
-        "5m": 5.0 / (24 * 60),
+        "1m" : 1.0 / (24 * 60),  # 1 minute
+        "2m" : 2.0 / (24 * 60),
+        "5m" : 5.0 / (24 * 60),
         "15m": 15.0 / (24 * 60),
         "30m": 30.0 / (24 * 60),
-        "60m": 1.0 / 24,        # 1 hour
+        "60m": 1.0 / 24,  # 1 hour
         "90m": 1.5 / 24,
-        "1h": 1.0 / 24,         # also 1 hour
-        "1d": 1.0,              # 1 day
-        "5d": 5.0,              # 5 days
-        "1wk": 7.0,             # 7 days
-        "1mo": 30.0,            # approximate
-        "3mo": 90.0,            # approximate
-    }
-
+        "1h" : 1.0 / 24,  # also 1 hour
+        "1d" : 1.0,  # 1 day
+        "5d" : 5.0,  # 5 days
+        "1wk": 7.0,  # 7 days
+        "1mo": 30.0,  # approximate
+        "3mo": 90.0,  # approximate
+        }
     stock_interval_str = json.dumps(stock_interval)
     dt_interval = interval_map.get(stock_interval_str.strip(), 1.0)
 
     # ----------------------------------------------------
-    # 2) Number of steps => forecast_days / dt_interval
+    # 2) Number of forecast steps => forecast_days / dt_interval
     # ----------------------------------------------------
-    # e.g., if forecast_days=30 and stock_interval='1d',
-    # steps => 30 / 1 = 30
-    # if stock_interval='60m' => dt=1/24 => steps => 30 / (1/24)=720
-    steps_float = forecast_days / dt_interval
+    print("forecast_days ",type(forecast_days))
+    print("dt_interval " ,type(dt_interval))
+    # forecast_days = list(forecast_days.values())[0]
+    steps_float = float(forecast_days) / dt_interval
 
     N = int(round(steps_float))
     if N < 1:
         N = 1
 
     print(
-        f"Forecasting ~{forecast_days} days using {equation_type} model with interval {stock_interval} "
-        f"=> dt={dt_interval:.4f} days, total steps={N}.")
+            f"Forecasting ~{forecast_days} days using {equation_type} model with interval {stock_interval} "
+            f"=> dt={dt_interval:.4f} days, total steps={N}."
+            )
 
-    # We'll define dt as dt_interval in 'days'
     dt = dt_interval
-
-    # We'll define time array from 0..forecast_days in N steps
-    # so it extends from day 0 to day = forecast_days
     t = np.linspace(0, forecast_days, N)
 
     # ----------------------------------------------------
-    # The rest is basically your original code
-    # with references to dt replaced by this dt
+    # 3) Adjust mu_daily / sigma_daily based on fundamentals
     # ----------------------------------------------------
-    # Initialize adjustments
     valuation_adjustment = 1.0
     financial_health_adjustment = 1.0
 
-    # Adjust mu_daily and sigma_daily based on valuation metrics
     if valuation_metrics:
         pe_ratio = valuation_metrics.get('P/E Ratio', None)
         pb_ratio = valuation_metrics.get('Price-to-Book', None)
 
         if pe_ratio is not None:
             if pe_ratio > 20:
-                # Reduce drift for overvalued stocks using a precise multiplier
                 valuation_adjustment *= 0.923456
             elif pe_ratio < 10:
-                # Increase drift for undervalued stocks using a precise multiplier
                 valuation_adjustment *= 1.123456
 
         if pb_ratio is not None:
             if pb_ratio > 2.5:
-                # Reduce drift for overvalued stocks using a precise multiplier
                 valuation_adjustment *= 0.876543
             elif pb_ratio < 1.5:
-                # Increase drift for undervalued stocks using a precise multiplier
                 valuation_adjustment *= 1.098765
 
-    # Adjust mu_daily and sigma_daily based on financial health metrics
     if financial_health_metrics:
         debt_to_equity = financial_health_metrics.get('Debt to Equity', None)
         current_ratio = financial_health_metrics.get('Current Ratio', None)
 
         if debt_to_equity is not None:
             if debt_to_equity > 1.5:
-                # Increase volatility for high debt using a precise multiplier
                 financial_health_adjustment *= 1.234567
             elif debt_to_equity < 0.5:
-                # Decrease volatility for low debt using a precise multiplier
                 financial_health_adjustment *= 0.812345
 
         if current_ratio is not None:
             if current_ratio < 1.0:
-                # Increase volatility for poor liquidity using a precise multiplier
                 financial_health_adjustment *= 1.198765
             elif current_ratio > 2.0:
-                # Decrease volatility for strong liquidity using a precise multiplier
                 financial_health_adjustment *= 0.823456
 
-    # Apply adjustments to mu_daily and sigma_daily
     mu_daily_adjusted = mu_daily * valuation_adjustment
     sigma_daily_adjusted = sigma_daily * financial_health_adjustment
 
-    # Generate random Brownian motion
+    # ----------------------------------------------------
+    # 4) UKF-based Assimilation for Initial Log-Price
+    #    ("pass the baton" once data is exhausted)
+    # ----------------------------------------------------
+    # If there's historical data, refine the initial log-price
+    if trimmed_closing_prices is not None and len(trimmed_closing_prices) > 1:
+        """
+          Merged UKF approach for Geometric Brownian Motion.
+          Assimilates historical prices, then provides the final UKF log-price estimate.
+          """
+
+        # -----------------------------------------
+        # 1) Manual Unscented Transform Initialization
+        # -----------------------------------------
+        print(f"UKF Initialization: Assimilating {len(trimmed_closing_prices)} measured prices...")
+        print("trimmed_closing_prices ", type(trimmed_closing_prices))
+        # Convert to log-prices
+        log_prices = np.log(trimmed_closing_prices)
+        init_sample_size = len(trimmed_closing_prices)
+
+        # Parameters for sigma points
+        n = 1  # State dimension (log-price)
+        alpha = 1e-3
+        beta = 2
+        kappa = 0
+        lambda_ = alpha ** 2 * (n + kappa) - n
+
+        # Initial state estimate (using the first log-price)
+        x_hat = log_prices[0]
+        # Initial covariance
+        P = np.eye(n) * 0.01
+
+        # Process noise covariance (for GBM: ~ sigma^2 * dt)
+        Q = np.eye(n) * (sigma_daily ** 2 * dt)
+        # Measurement noise covariance
+        R = np.eye(n) * 0.01
+
+        # Generate manual sigma points
+        sigma_points = np.zeros((2 * n + 1, n))
+        sigma_points[0] = x_hat
+        U = sqrtm((n + lambda_) * P)
+        for i in range(n):
+            sigma_points[i + 1] = x_hat + U[i]
+            sigma_points[n + i + 1] = x_hat - U[i]
+
+        # Sigma point weights
+        Wm = np.full(2 * n + 1, 1 / (2 * (n + lambda_)))
+        Wm[0] = lambda_ / (n + lambda_)
+        Wc = Wm.copy()
+        Wc[0] += (1 - alpha ** 2 + beta)
+
+        # Manually assimilate data sample-by-sample
+        for i in range(1, init_sample_size):
+            # Predict step (each sigma point gets drifted)
+            sigma_points_pred = sigma_points + (mu_daily - 0.5 * sigma_daily ** 2) * dt
+            x_hat_pred = np.dot(Wm, sigma_points_pred)
+
+            # Predicted covariance
+            P_pred = np.dot(
+                    Wc * (sigma_points_pred - x_hat_pred).T,
+                    (sigma_points_pred - x_hat_pred)) + Q
+
+            # Kalman gain
+            K = P_pred @ inv(P_pred + R)
+            # Update step
+            x_hat = x_hat_pred + K @ (log_prices[i] - x_hat_pred)
+            P = P_pred - K @ P_pred
+
+            # Recompute the sigma points for next iteration
+            U = sqrtm((n + lambda_) * P)
+            sigma_points[0] = x_hat
+            for j in range(n):
+                sigma_points[j + 1] = x_hat + U[j]
+                sigma_points[n + j + 1] = x_hat - U[j]
+
+        # Final assimilation using manual approach:
+        x_hat_manual = x_hat
+        updated_price_manual = np.exp(x_hat_manual)
+        # if each is a 1D array of length 1
+        float_x_hat = x_hat_manual[0]  # or x_hat_manual.item()
+        float_price = updated_price_manual[0]  # or updated_price_manual.item()
+        print(f"Manual final assimilation => log-price={float_x_hat:.4f}, price={float_price:.4f}")
+
+        # -----------------------------------------
+        # 2) filterpy-based UKF
+        # -----------------------------------------
+        # We can now compare or continue using the library-based approach
+        # with the final assimilation in filterpy.
+
+        # Use MerweScaledSigmaPoints to define sigma points
+        sigmas = MerweScaledSigmaPoints(n = 1, alpha = 0.1, beta = 2.0, kappa = 0.0)
+
+        # Define state transition function for log-price
+        def fx(x, dt_ignored):
+            """
+            x_{t+1} = x_t + (mu - 0.5*sigma^2)*dt
+            """
+            return x + (mu_daily - 0.5 * sigma_daily ** 2) * dt
+
+        # Define measurement function: z = exp(x)
+        def hx(x):
+            return np.exp(x)
+
+        # Create UKF instance
+        ukf = UnscentedKalmanFilter(
+                dim_x = 1,
+                dim_z = 1,
+                dt = dt,
+                fx = fx,
+                hx = hx,
+                points = sigmas)
+
+        # Initial guess for log-price from first measured price
+        ukf.x = np.array([np.log(trimmed_closing_prices[0])])
+        ukf.P = np.eye(1) * 0.1  # initial state covariance
+        ukf.Q = np.eye(1) * (sigma_daily ** 2) * dt  # process noise
+        ukf.R = np.eye(1) * 1e-4  # measurement noise
+
+        # Assimilate each measured price with filterpy’s UKF
+        for z in trimmed_closing_prices[1:]:
+            ukf.predict()
+            ukf.update(z)
+
+        # Final assimilation with filterpy-based approach
+        log_price_est = ukf.x[0]
+        updated_price_filterpy = np.exp(log_price_est)
+        print(f"filterpy final assimilation => log-price={log_price_est:.4f}, price={updated_price_filterpy:.4f}")
+    else:
+        print("UKF Initialization: No (or minimal) measured data provided; skipping assimilation.")
+
+    # ----------------------------------------------------
+    # 5) Now run the chosen model (GBM, etc.) with no updates
+    # ----------------------------------------------------
+    # Prepare arrays for the forecast
+    forecast_prices = np.zeros(N)
+    forecast_prices[0] = recent_price
+
     np.random.seed(42)
     W = np.random.standard_normal(size = N)
     W = np.cumsum(W) * np.sqrt(dt)
 
-    print("Random Brownian motion (W) generated.")
-
-    # Initialize forecast_prices array
-    forecast_prices = np.zeros(N)
-    forecast_prices[0] = recent_price
-
-    # Extract mean-reversion parameters
+    # Mean reversion parameters
     eta = mean_reversion_params.get('eta', 0) if mean_reversion_params else 0
     theta = mean_reversion_params.get('theta', recent_price) if mean_reversion_params else recent_price
 
-    print(f"Mean-reversion eta: {eta}, theta: {theta}")
+    # -- Standard Models
+    if equation_type == 'Geometric Brownian Motion':
+        # Standard GBM (no reversion, no external)
+        forecast_prices = recent_price * np.exp(
+                (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * t +
+                sigma_daily_adjusted * W
+                )
 
-    # Apply selected forecasting model
-    if equation_type == 'Geometric Brownian Motion':  # Standard Geometric Brownian Motion
-        forecast_prices = recent_price * np.exp((mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * t + sigma_daily_adjusted * W)
-
-    elif equation_type == 'Geometric Brownian Motion with Mean Reversion':  # GBM with Mean Reversion
+    elif equation_type == 'Geometric Brownian Motion with Mean Reversion':
+        # Basic example of GBM with optional reversion + external factors
         for i in range(1, N):
-            # mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
-            # forecast_prices[i] = forecast_prices[i - 1] * np.exp(
-            #         (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
-            #         sigma_daily_adjusted * (W[i] - W[i - 1]) +
-            #         mean_reversion_term
-            #         )
             external_adjustment = 1.0
             if external_factors:
-                macro_effect = sum(coefficient * external_factors[factor] for factor, coefficient in external_factors.items())
+                macro_effect = sum(
+                        coefficient * external_factors[factor]
+                        for factor, coefficient in external_factors.items())
                 external_adjustment = np.exp(macro_effect)
 
+            # If you want a true reversion term, add it in the exponent or separate
+            # For demonstration, we keep it simple:
             forecast_prices[i] = forecast_prices[i - 1] * np.exp(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
                     sigma_daily_adjusted * (W[i] - W[i - 1])
+                    # + eta * (theta - forecast_prices[i-1]) * dt
                     ) * external_adjustment
 
     elif equation_type == 'Geometric Brownian Motion External Macroeconomic Factors':
+        # GBM + optional mean reversion + external macro factors
         for i in range(1, N):
-            mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
+            mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt if eta else 0
 
             macro_adjustment = 0
             if external_factors:
-                macro_adjustment = sum(coefficient * external_factors[factor] for factor, coefficient in external_factors.items())
+                macro_adjustment = sum(
+                        coefficient * external_factors[factor]
+                        for factor, coefficient in external_factors.items())
 
             forecast_prices[i] = forecast_prices[i - 1] * np.exp(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
@@ -406,10 +540,13 @@ def forecast_stock_prices(
 
     else:
         raise ValueError(
-                "Invalid equation_type. Choose 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion', "
-                "or 'Geometric Brownian Motion External Macroeconomic Factors'.")
+                "Invalid equation_type. Choose one of: "
+                "'Geometric Brownian Motion', "
+                "'Geometric Brownian Motion with Mean Reversion', "
+                "'Geometric Brownian Motion External Macroeconomic Factors'."
+                )
 
-    print(f"Stock price forecast using {equation_type} model completed.")
+    print(f"Stock price forecast ({equation_type}) completed.")
     return t, forecast_prices
 
 

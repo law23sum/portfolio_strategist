@@ -15,4 +15,4 @@
 
 ## Execution
     
-    python main.py LMT 1y 1d
+    python main.py NVDA 1y 1d

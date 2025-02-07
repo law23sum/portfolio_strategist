@@ -152,11 +152,12 @@ class StockApp:
             df,
             stock_symbol,
             ratios_table,
-            equation_type = "GeometricBrownianMotionExternalMacroeconomicFactors",
+            stock_interval,
+            equation_type = "Geometric Brownian Motion External Macroeconomic Factors",
             market_ticker = "^GSPC",
             vix_ticker = "^VIX",
             tnx_ticker = "^TNX",
-            forecast_days = 365,
+            forecast_days = 365
             ):
         """
         Forecast future stock prices with an advanced approach that
@@ -274,6 +275,15 @@ class StockApp:
                 .to_dict()
             )
 
+            # Use mu_daily & sigma_daily as initial guesses and refine them
+            n_trim = int(len(df['Close']) * 1)
+            # In case 7% is too small, default to all data
+            if n_trim < 1:
+                n_trim = len(df['Close'])
+
+            trimmed_closing_prices = df['Close'][-n_trim:]
+            print(f"Trimming data to the last {n_trim} points (~7% of total).")
+
         # Generate forecast
         t_forecast, forecast_prices = forecast_stock_prices(
                 equation_type,
@@ -281,10 +291,12 @@ class StockApp:
                 mu_daily,
                 sigma_daily,
                 forecast_days,
+                trimmed_closing_prices,
+                stock_interval,
                 valuation_metrics,
                 financial_health_metrics,
                 mean_reversion_params,
-                external_factors
+                external_factors,
                 )
         forecast_df = shift_forecast_to_actual_dates(df, forecast_prices, forecast_days)
         print("Forecast generation complete.\n")
@@ -516,11 +528,13 @@ class StockApp:
                     df_history,
                     stock_symbol,
                     ratios_table,
+                    stock_interval,
                     equation_type = equation_type,
                     market_ticker = market_ticker,
                     vix_ticker = vix_ticker,
                     tnx_ticker = tnx_ticker,
-                    forecast_days = forecast_days
+                    forecast_days = forecast_days,
+
                     )
 
             if not forecast_df.empty:
