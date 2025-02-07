@@ -16,6 +16,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tenacity import retry, stop_after_attempt, wait_fixed
+import yfinance as yf
 
 
 links_amount = 21
@@ -24,7 +25,7 @@ links_amount = 21
 class StockFetcher:
     def __init__(self):
         self.base_quote_url = "https://finance.yahoo.com/quote"
-        self.base_statistics_url = "https://finance.yahoo.com/quote/{}/key-statistics"
+        # self.base_statistics_url = "https://finance.yahoo.com/quote/{}/key-statistics"
         self.base_news_url = "https://finance.yahoo.com/quote/{}/news"
         self.base_history_url = "https://finance.yahoo.com/quote/{}/history/"
         print("Initializing StockFetcher and setting up the driver.")
@@ -72,8 +73,7 @@ class StockFetcher:
         #
         #     return extract_path
         # service = Service(get_latest_chromedriver())
-        # Path to your ChromeDriver executable
-        # service = Service(executable_path = "/Users/chrisdixon/MATLAB/Projects/financia/stock_analyzer/sys._MEIPASS/chromedriver")
+        # service = Service(executable_path = "/Users/chrisdixon/MATLAB/Projects/financia/stock_analyzer/chromedriver")
         print("Installing and initializing ChromeDriver.")
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service = service, options = chrome_options)
@@ -89,7 +89,7 @@ class StockFetcher:
             print("WebDriver Active.")
 
     @retry(stop = stop_after_attempt(3), wait = wait_fixed(2))
-    def fetch_stock_details(self, stock_symbol):
+    def fetch_stock_details(self, stock_symbol, stock_period, stock_interval):
         """
         Fetches detailed stock metrics from Yahoo Finance and Key Statistics page.
         :param stock_symbol: The stock symbol to fetch data for.
@@ -104,7 +104,7 @@ class StockFetcher:
 
             # Fetch key statistics data
             print("Fetching Stock Statistics.")
-            statistics_data = self._fetch_statistics_page(stock_symbol)
+            statistics_data = self._fetch_statistics_page(stock_symbol, stock_period, stock_interval)
 
             # Combine and return both datasets
             print("Combining Stock Quotes & Statistics.")
@@ -165,46 +165,53 @@ class StockFetcher:
                 continue  # Skip elements that do not match the expected structure
         return data
 
-    def _fetch_statistics_page(self, stock_symbol):
+    def _fetch_statistics_page(self, stock_symbol, period, interval):
         """
         Fetches data from the key statistics page using Selenium.
         """
-        self._ensure_driver_active()
-        url = self.base_statistics_url.format(stock_symbol)
-        print(f"Navigating to {url}.")
-        self.driver.get(url)
-        WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
+        data = yf.download(
+                tickers = stock_symbol,
+                period = period,
+                interval = interval
                 )
-
-        # Get the page source and parse it with BeautifulSoup
-        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-
-        # Save prettified HTML for debugging
-        # file_name = f"{stock_symbol}_statistics.html"
-        # with open(file_name, "w", encoding="utf-8") as file:
-        #     file.write(soup.prettify())
-        # print(f"Prettified statistics page HTML saved to {file_name}")
-
-        # Parse key statistics
-        data = {}
-        tables = soup.find_all('table')  # All tables on the page
-        print(f"Found {len(tables)} tables on the statistics page.")
-
-        for table in tables:
-            rows = table.find_all('tr')  # All rows in the table
-            for row in rows:
-                try:
-                    metric_name = row.find('td').text.strip()
-                    metric_values = [td.text.strip() for td in row.find_all('td')[1:]]
-                    # Flatten the list into a string (comma-separated values)
-                    data[metric_name] = ", ".join(metric_values)
-                    # print(f"Extracted statistic '{metric_name}': '{data[metric_name]}'.")
-                except AttributeError:
-                    print("Skipping a row due to unexpected structure.")
-                    continue  # Skip rows that do not match the expected structure
         print(f"Extracted a total of {len(data)} statistics entries.")
         return data
+        # self._ensure_driver_active()
+        # url = self.base_statistics_url.format(stock_symbol)
+        # print(f"Navigating to {url}.")
+        # self.driver.get(url)
+        # WebDriverWait(self.driver, 10).until(
+        #         EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
+        #         )
+        #
+        # # Get the page source and parse it with BeautifulSoup
+        # soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        #
+        # # Save prettified HTML for debugging
+        # # file_name = f"{stock_symbol}_statistics.html"
+        # # with open(file_name, "w", encoding="utf-8") as file:
+        # #     file.write(soup.prettify())
+        # # print(f"Prettified statistics page HTML saved to {file_name}")
+        #
+        # # Parse key statistics
+        # data = {}
+        # tables = soup.find_all('table')  # All tables on the page
+        # print(f"Found {len(tables)} tables on the statistics page.")
+        #
+        # for table in tables:
+        #     rows = table.find_all('tr')  # All rows in the table
+        #     for row in rows:
+        #         try:
+        #             metric_name = row.find('td').text.strip()
+        #             metric_values = [td.text.strip() for td in row.find_all('td')[1:]]
+        #             # Flatten the list into a string (comma-separated values)
+        #             data[metric_name] = ", ".join(metric_values)
+        #             # print(f"Extracted statistic '{metric_name}': '{data[metric_name]}'.")
+        #         except AttributeError:
+        #             print("Skipping a row due to unexpected structure.")
+        #             continue  # Skip rows that do not match the expected structure
+        # print(f"Extracted a total of {len(data)} statistics entries.")
+        # return data
 
     @retry(stop = stop_after_attempt(3), wait = wait_fixed(2))
     def fetch_stock_history(self, stock_symbol, scroll_duration = 5):

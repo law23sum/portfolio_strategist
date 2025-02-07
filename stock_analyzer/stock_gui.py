@@ -42,9 +42,11 @@ class StockWorker(QThread):
     progress = Signal(int)
     finished = Signal(dict, pd.DataFrame, str)  # Emits stock_data, ratios_table, ai_assessment
 
-    def __init__(self, stock_symbol):
+    def __init__(self, stock_symbol, stock_period, stock_interval):
         super().__init__()
         self.stock_symbol = stock_symbol
+        self.stock_period = stock_period
+        self.stock_interval = stock_interval
         self.stock_app = StockApp()
         self.fetcher = StockFetcher()
 
@@ -52,7 +54,7 @@ class StockWorker(QThread):
         try:
             print(f"Starting data fetch for {self.stock_symbol}")
             self.progress.emit(20)
-            stock_data = self.stock_app.fetch_stock_data(self.stock_symbol)
+            stock_data = self.stock_app.fetch_stock_data(self.stock_symbol,self.stock_period,self.stock_interval)
             print(f"Stock data fetched: {bool(stock_data)}")
             self.progress.emit(50)
 
@@ -507,13 +509,33 @@ class StockGUI(QWidget):
         page_layout = QHBoxLayout()
 
         left_layout = QVBoxLayout()
-        self.input_label = QLabel("Enter Stock Symbol:")
+        self.input_label = QLabel("Stock Symbol:")
         self.input_label.setFont(QFont("Helvetica", 15))
         left_layout.addWidget(self.input_label)
 
         self.stock_input = QLineEdit()
         self.stock_input.setFont(QFont("Helvetica", 13))
         left_layout.addWidget(self.stock_input)
+
+        # Add Stock Period dropdown
+        stock_period_label = QLabel("Stock Period:")
+        stock_period_label.setFont(QFont("Helvetica", 15))
+        left_layout.addWidget(stock_period_label)
+
+        self.stock_period_dropdown = QComboBox()
+        self.stock_period_dropdown.setFont(QFont("Helvetica", 13))
+        self.stock_period_dropdown.addItems(["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"])
+        left_layout.addWidget(self.stock_period_dropdown)
+
+        # Add Stock Interval dropdown
+        stock_interval_label = QLabel("Stock Interval:")
+        stock_interval_label.setFont(QFont("Helvetica", 15))
+        left_layout.addWidget(stock_interval_label)
+
+        self.stock_interval_dropdown = QComboBox()
+        self.stock_interval_dropdown.setFont(QFont("Helvetica", 13))
+        self.stock_interval_dropdown.addItems(["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"])
+        left_layout.addWidget(self.stock_interval_dropdown)
 
         self.fetch_button = QPushButton("Fetch Stock Data")
         self.fetch_button.setFont(QFont("Helvetica", 15))
@@ -816,12 +838,14 @@ class StockGUI(QWidget):
 
     def start_fetching(self):
         stock_symbol = self.stock_input.text().strip().upper()
+        stock_period = self.stock_period_dropdown.currentText()
+        stock_interval = self.stock_interval_dropdown.currentText()
         if not stock_symbol:
             self.logs_display.append("Please enter a valid stock symbol.")
             return
 
         self.current_stock_symbol = stock_symbol
-        self.worker = StockWorker(stock_symbol)
+        self.worker = StockWorker(stock_symbol,stock_period, stock_interval)
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.populate_tables)
         self.worker.start()

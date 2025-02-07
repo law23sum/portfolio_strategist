@@ -326,24 +326,22 @@ def forecast_stock_prices(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
                     sigma_daily_adjusted * (W[i] - W[i - 1])
                     ) * external_adjustment
-
     elif equation_type == 'Geometric Brownian Motion External Macroeconomic Factors':
         for i in range(1, N):
             mean_reversion_term = eta * (theta - forecast_prices[i - 1]) * dt
-
             macro_adjustment = 0
             if external_factors:
                 macro_adjustment = sum(coefficient * external_factors[factor] for factor, coefficient in external_factors.items())
-
             forecast_prices[i] = forecast_prices[i - 1] * np.exp(
                     (mu_daily_adjusted - 0.5 * sigma_daily_adjusted ** 2) * dt +
                     sigma_daily_adjusted * (W[i] - W[i - 1]) +
                     mean_reversion_term +
                     macro_adjustment
                     )
-
     else:
-        raise ValueError("Invalid equation_type. Choose 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion', or 'Geometric Brownian Motion External Macroeconomic Factors'.")
+        raise ValueError(
+                "Invalid equation_type. Choose 'Geometric Brownian Motion', 'Geometric Brownian Motion with Mean Reversion', "
+                "or 'Geometric Brownian Motion External Macroeconomic Factors'.")
 
     print(f"Stock price forecast using {equation_type} model completed.")
     return t, forecast_prices

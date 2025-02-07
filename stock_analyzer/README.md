@@ -7,6 +7,7 @@
     source .venv/bin/activate
     pip install -r requirements.txt
     pip install --upgrade <library>
+    brew install --cask chromedriver
 
 ## Build Binary Executable & Application Executable
 
