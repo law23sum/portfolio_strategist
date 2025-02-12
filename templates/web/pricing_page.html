@@ -1,0 +1,105 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% block page_head %}
+<style>
+    #pricing-page-head {
+        background-image: url('{% static "images/pegasus/stars-pano-banner.jpg" %}');
+    }
+</style>
+{% endblock %}
+{% block body %}
+<div id="example-page-content">
+  <div class="py-3 container">
+  </div>
+  <div class="hero" id="pricing-page-head">
+    <div class="hero-body has-text-centered">
+      <div class="container">
+        <div class="title">
+          Choose the Plan That Sweeps You Off Your Feet
+        </div>
+        <div class="subtitle">
+          All the luscious features you desire—served fresh, no matter your budget.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="plans">
+    <div id="plan-wrapper" class="container">
+      <!-- Monthly Plan -->
+      <div class="plan">
+        <div class="plan-summary">
+          <div class="plan-info">
+            <h2 class="title">Monthly</h2>
+            <h3 class="subtitle">All Features, Month-to-Month Flexibility</h3>
+          </div>
+          <div>
+            <p class="price">$15</p>
+            <p class="price-detail">per month</p>
+            <a class="button is-info is-outlined is-medium" href="#sign-up">
+              Subscribe Monthly
+            </a>
+          </div>
+        </div>
+        <div class="plan-details">
+          <ul>
+            <li>All the core features, no strings attached</li>
+            <li>Easy to upgrade or cancel anytime</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bi-Annual Plan -->
+      <div class="plan is-active">
+        <div class="plan-highlight">
+          <p>Save $15 every 6 months!</p>
+        </div>
+        <div class="plan-summary">
+          <div class="plan-info">
+            <h2 class="title">Bi-Annual</h2>
+            <h3 class="subtitle">Twice a Year, Twice the Savings</h3>
+          </div>
+          <div>
+            <p class="price">$75</p>
+            <p class="price-detail">every 6 months</p>
+            <a class="button is-primary is-medium" href="#sign-up">
+              Subscribe Bi-Annually
+            </a>
+          </div>
+        </div>
+        <div class="plan-details">
+          <ul>
+            <li>All the same fabulous features</li>
+            <li>Save $15 compared to paying monthly</li>
+            <li>Keep the romance alive, no interruptions</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Annual Plan -->
+      <div class="plan">
+        <div class="plan-summary">
+          <div class="plan-info">
+            <h2 class="title">Annual</h2>
+            <h3 class="subtitle">A Full Year of Blissful Financial Harmony</h3>
+          </div>
+          <div>
+            <p class="price">$150</p>
+            <p class="price-detail">per year</p>
+            <a class="button is-info is-outlined is-medium" href="#sign-up">
+              Subscribe Annually
+            </a>
+          </div>
+        </div>
+        <div class="plan-details">
+          <ul>
+            <li>All premium features included</li>
+            <li>Save $30 vs. paying monthly</li>
+            <li>Because commitment can be oh so sweet</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -161,3 +161,4 @@ cython_debug/
 /secret/
 .idea
  node_modules
+/static_root/

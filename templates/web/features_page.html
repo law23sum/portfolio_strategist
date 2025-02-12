@@ -1,0 +1,167 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block body %}
+<!-- CORE FUNCTIONALITIES SECTION -->
+<section class="section container">
+  <!-- Top Section: Summary Details -->
+  <div class="content has-text-centered">
+    <h3 class="title is-size-4">Our Core Functionalities</h3>
+    <p class="subtitle is-size-6">
+      How We Help You <strong>Create</strong>, <strong>Aggregate</strong>,
+      <strong>Report</strong>, &amp; <strong>Predict</strong> Your Financial Future
+    </p>
+  </div>
+
+  <div class="columns is-variable is-8">
+    <!-- CREATE -->
+    <div class="column content has-text-centered">
+      <h4 class="title is-size-5 mt-2">Create</h4>
+      <p class="is-size-6">
+        Launch brand-new financial profiles—from fresh budgeting templates to
+        tracking that new side hustle. We’ll help you map out all the juicy details
+        so you know exactly where you stand.
+      </p>
+    </div>
+
+    <!-- AGGREGATE -->
+    <div class="column content has-text-centered">
+      <h4 class="title is-size-5 mt-2">Aggregate</h4>
+      <p class="is-size-6">
+        Pull in data from banks, investment accounts, credit bureaus, and beyond
+        into one sweet dashboard—no more date-night juggling of multiple platforms.
+      </p>
+    </div>
+
+    <!-- REPORT -->
+    <div class="column content has-text-centered">
+      <h4 class="title is-size-5 mt-2">Report</h4>
+      <p class="is-size-6">
+        Transform dull numbers into visually arresting statements and summaries,
+        giving you clarity (and maybe a few heart flutters) about your earnings,
+        expenses, and everything in between.
+      </p>
+    </div>
+
+    <!-- PREDICT -->
+    <div class="column content has-text-centered">
+      <h4 class="title is-size-5 mt-2">Predict</h4>
+      <p class="is-size-6">
+        Peek into your future with our forecasting models. From potential
+        market moves to how soon you can pay off that vacation splurge,
+        we've got your crystal ball right here.
+      </p>
+    </div>
+  </div>
+
+  <!-- Bottom Section: In-Depth Details -->
+  <div class="content has-text-centered mt-6">
+    <h3 class="title is-size-4">Dive Deeper Into Our Functionalities</h3>
+    <p class="subtitle is-size-6">
+      Explore how each functionality can transform your financial management.
+    </p>
+  </div>
+
+  <!-- CREATE Details -->
+  <div class="columns is-vcentered is-variable is-8 mb-6">
+    <div class="column is-one-third">
+      <figure class="image is-256x256">
+        <img
+          src="{% static 'images/web/create.jpeg' %}"
+          alt="Create Icon"
+          style="max-width: 100%;"
+        >
+      </figure>
+    </div>
+    <div class="column">
+      <h4 class="title is-size-5 mb-4">Create</h4>
+      <p class="is-size-6 mb-4">
+        Launch brand-new financial profiles with ease. Whether you're starting a budget, tracking a side hustle, or setting financial goals, our tools help you map out every detail. From income tracking to expense categorization, we ensure you have a clear picture of your financial health.
+      </p>
+      <ul class="is-size-6">
+        <li><strong>Set Up Profiles:</strong> Create personalized financial profiles tailored to your needs.</li>
+        <li><strong>Budgeting Templates:</strong> Use pre-built templates or customize your own to track spending and savings.</li>
+        <li><strong>Goal Tracking:</strong> Define and monitor financial goals, from emergency funds to dream vacations.</li>
+        <li><strong>Expense Management:</strong> Categorize and analyze expenses to identify spending patterns.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AGGREGATE Details -->
+  <div class="columns is-vcentered is-variable is-8 mb-6">
+    <div class="column is-one-third">
+      <figure class="image is-256x256">
+        <img
+          src="{% static 'images/web/aggregate.jpeg' %}"
+          alt="Aggregate Icon"
+          style="max-width: 100%;"
+        >
+      </figure>
+    </div>
+    <div class="column">
+      <h4 class="title is-size-5 mb-4">Aggregate</h4>
+      <p class="is-size-6 mb-4">
+        Consolidate all your financial data into one unified dashboard. Connect bank accounts, credit cards, investment portfolios, and more to get a holistic view of your finances. No more juggling multiple platforms—everything you need is in one place.
+      </p>
+      <ul class="is-size-6">
+        <li><strong>Multi-Source Integration:</strong> Pull data from banks, credit bureaus, and investment accounts.</li>
+        <li><strong>Unified Dashboard:</strong> View all your financial information in a single, easy-to-navigate interface.</li>
+        <li><strong>Real-Time Updates:</strong> Stay up-to-date with automatic syncing and real-time data updates.</li>
+        <li><strong>Customizable Views:</strong> Organize and filter data to focus on what matters most to you.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- REPORT Details -->
+  <div class="columns is-vcentered is-variable is-8 mb-6">
+    <div class="column is-one-third">
+      <figure class="image is-256x256">
+        <img
+          src="{% static 'images/web/reports.jpeg' %}"
+          alt="Report Icon"
+          style="max-width: 100%;"
+        >
+      </figure>
+    </div>
+    <div class="column">
+      <h4 class="title is-size-5 mb-4">Report</h4>
+      <p class="is-size-6 mb-4">
+        Transform raw financial data into actionable insights. Our reporting tools generate visually appealing summaries and detailed analyses, helping you understand your financial health and make informed decisions.
+      </p>
+      <ul class="is-size-6">
+        <li><strong>Custom Reports:</strong> Generate tailored reports on income, expenses, investments, and more.</li>
+        <li><strong>Visual Analytics:</strong> Use charts, graphs, and heatmaps to visualize your financial data.</li>
+        <li><strong>Trend Analysis:</strong> Identify spending patterns and track progress toward financial goals.</li>
+        <li><strong>Export Options:</strong> Download reports in PDF, Excel, or CSV formats for offline use.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PREDICT Details -->
+  <div class="columns is-vcentered is-variable is-8 mb-6">
+    <div class="column is-one-third">
+      <figure class="image is-256x256">
+        <img
+          src="{% static 'images/web/predict.jpeg' %}"
+          alt="Predict Icon"
+          style="max-width: 100%;"
+        >
+      </figure>
+    </div>
+    <div class="column">
+      <h4 class="title is-size-5 mb-4">Predict</h4>
+      <p class="is-size-6 mb-4">
+        Plan for the future with confidence. Our predictive analytics tools use advanced algorithms to forecast financial trends, helping you make smarter decisions and avoid potential pitfalls.
+      </p>
+      <ul class="is-size-6">
+        <li><strong>Financial Forecasting:</strong> Predict future income, expenses, and savings based on current trends.</li>
+        <li><strong>Scenario Modeling:</strong> Test "what-if" scenarios to see how different decisions impact your finances.</li>
+        <li><strong>Risk Assessment:</strong> Identify potential risks and take proactive steps to mitigate them.</li>
+        <li><strong>Goal Projections:</strong> See how long it will take to achieve your financial goals based on your current trajectory.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

@@ -147,22 +147,6 @@ class ObjectLifecycleView(TemplateView):
         }
 
 
-class ReactObjectLifecycleView(ObjectLifecycleView):
-    template_name = "pegasus/employees/react_object_lifecycle.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(
-            {
-                "framework_url": "https://reactjs.org/",
-                "framework_name": "React",
-                "framework_icon": static("images/pegasus/react-icon.png"),
-                "url_base": reverse("pegasus_employees:react_object_lifecycle"),
-            }
-        )
-        return context
-
-
 class VueObjectLifecycleView(ObjectLifecycleView):
     template_name = "pegasus/employees/vue_object_lifecycle.html"
 

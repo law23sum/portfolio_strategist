@@ -1,9 +1,20 @@
 @charset "utf-8";
-// any customizations to Bulma go here
-// see https://bulma.io/documentation/customize/ for more information
+// Any customizations to Bulma go here
+// See https://bulma.io/documentation/customize/ for more information
 
 // Your default info color
-$info: hsl(171, 100%, 41%); // Original Bulma info color
+$text: hsl(171, 100%, 41%);
+$link: hsl(171, 100%, 41%);
+$primary: hsl(171, 100%, 41%);
+$info: hsl(171, 100%, 41%);
+$success: hsl(171, 100%, 41%);
+$warning: hsl(171, 100%, 41%);
+$danger: hsl(171, 100%, 41%);
+
+// Lighter versions of the info color
+$info-light: hsl(171, 100%, 60%);
+$info-lighter: hsl(171, 100%, 75%);
+$info-lightest: hsl(171, 100%, 90%);
 
 // Secondary colors
 $bg-grey: hsl(0, 0%, 100%);
@@ -19,11 +30,71 @@ $menu-item-active-background-color: $info;
 
 // Set up root vars for easy reference
 :root {
-  --primary: var(--bulma-primary);
-  --danger: var(--bulma-danger);
-  --success: var(--bulma-success);
-  --gray: var(--bulma-grey-light);
+  --primary: #{$primary}; // Use interpolation to reference SCSS variables in CSS
+  --info: #{$info};
+  --info-light: #{$info-light};
+  --info-lighter: #{$info-lighter};
+  --info-lightest: #{$info-lightest};
+  --danger: #{$danger};
+  --success: #{$success};
+  --gray: #f5f5f5; // Adjusted to a standard gray color
   --default-shadow: 0 2px 4px rgba(55, 63, 67, 0.3);
+}
+
+// Using the CSS variable defined in :root
+.pg-title {
+  color: var(--info);
+  transition: color 0.3s ease; // Smooth transition for hover effect
+
+  &:hover {
+    color: var(--info-light); // Use lighter color on hover
+  }
+}
+
+.pg-link {
+  text-decoration: none; // Remove underline from links
+  color: var(--info);
+
+  &:hover {
+    text-decoration: underline; // Add underline on hover
+    color: var(--info-light); // Use lighter color on hover
+  }
+}
+
+// Custom notification colors
+.notification {
+  &.is-primary {
+    background-color: $primary;
+    color: findColorInvert($primary); // Use Bulma's built-in function for contrast
+  }
+
+  &.is-success {
+    background-color: $success;
+    color: findColorInvert($success);
+  }
+
+  &.is-danger {
+    background-color: $danger;
+    color: findColorInvert($danger);
+  }
+
+  &.is-warning {
+    background-color: $warning;
+    color: findColorInvert($warning);
+  }
+
+  &.is-info {
+    background-color: $info;
+    color: findColorInvert($info);
+  }
+}
+
+// Custom styles for the delete button in notifications
+.notification .delete {
+  background-color: transparent;
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.1); // Slightly darken on hover
+  }
 }
 
 // Import your Bulma foundation plus any custom Sass
