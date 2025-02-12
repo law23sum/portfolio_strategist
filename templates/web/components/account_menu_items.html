@@ -1,0 +1,33 @@
+{% load i18n %}
+    <li>
+      <a href="{% url 'subscriptions:subscription_details' %}" class="navbar-item {% if active_tab == 'subscription' %}is-active{% endif %}">
+        <span class="pg-icon"><i class="fa fa-repeat"></i></span><span class="is-hidden-tablet-only">Subscription</span>
+      </a>
+    </li>
+<li>
+  <a href="{% url 'users:user_profile' %}" class="navbar-item{% if active_tab == 'profile' %} is-active{% endif %}"
+     title="{% translate 'Profile' %}" >
+    <span class="pg-icon"><i class="fa fa-user"></i></span>
+    <span {% if hide_on_tablet %}class="is-hidden-tablet-only"{% endif %}>
+      {% translate "Profile" %}
+    </span>
+  </a>
+</li>
+{% if user.has_usable_password %}
+<li>
+  <a href="{% url 'account_change_password' %}" class="navbar-item{% if 'accounts/password/change' in request.path %} is-active{% endif %}"
+     title="{% translate 'Change Password' %}" >
+    <span class="pg-icon"><i class="fa fa-unlock-alt"></i></span>
+    <span {% if hide_on_tablet %}class="is-hidden-tablet-only"{% endif %}>
+      {% translate "Change Password" %}
+    </span>
+  </a>
+</li>
+{% endif %}
+<li>
+  <a href="{% url 'account_logout' %}" class="navbar-item{% if 'accounts/logout' in request.path %} is-active{% endif %}"
+     title="{% translate 'Sign out' %}">
+    <span class="pg-icon"><i class="fa fa-sign-out"></i></span>
+    <span {% if hide_on_tablet %}class="is-hidden-tablet-only"{% endif %}>{% translate "Sign out" %}</span>
+  </a>
+</li>

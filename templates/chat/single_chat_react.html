@@ -1,0 +1,10 @@
+{% extends "web/chat/chat_wrapper.html" %}
+{% load static %}
+{% block chat_ui %}
+  <div id="chat-content" class="pg-chat-wrapper"/>
+{% endblock %}
+{% block page_js %}
+  {{ serialized_chat|json_script:'chat' }}
+  {{ api_urls|json_script:'api-urls' }}
+  <script src="{% static 'js/chat-bundle.js' %}" defer></script>
+{% endblock %}

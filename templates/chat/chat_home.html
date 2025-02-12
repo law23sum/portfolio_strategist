@@ -1,0 +1,52 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block app %}
+<section class="app-card">
+    <div class="pg-columns pg-columns-reversed pg-align-items-center">
+        <div class="pg-column-one-third">
+            <img class="img-fluid" src="{% static 'images/chat/chatgpt-logo.png' %}" alt="ChatGPT Logo">
+        </div>
+        <div class="pg-column">
+            <h1 class="pg-title">{% translate "AI Chat" %}</h1>
+            <p>
+              Use <a href="https://en.wikipedia.org/wiki/Large_language_model" target="_blank">LLM's</a> to automatically respond to user input or questions.
+            </p>
+        </div>
+    </div>
+</section>
+<div class="app-card">
+  <div class="flex justify-between">
+    <div>
+      <h1 class="pg-title">{% translate "My Chats" %}</h1>
+      <h2 class="pg-subtitle">{% translate "Manage your chats here." %}</h2>
+    </div>
+    <div class="pg-text-right">
+      <form method="post" action="{% url 'chat:start_chat' %}" >
+        {% csrf_token %}
+        <input class="pg-button-primary" type="submit" value="{% translate 'New Chat' %}">
+      </form>
+    </div>
+  </div>
+  {% if chats.count %}
+    <div class="table-responsive">
+        <table class="table pg-table">
+          <thead>
+          <tr>
+            <th class="pg-text-left">{% translate "Chat" %}</th>
+            <th class="pg-text-left">{% translate "Started On" %}</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for chat in chats.all %}
+            <tr>
+              <td><a class="link" href="{% url 'chat:single_chat' chat.id %}">{{ chat.name }}</a></td>
+              <td>{{ chat.created_at }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

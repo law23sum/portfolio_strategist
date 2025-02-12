@@ -1,0 +1,178 @@
+
+.pg-hidden-mobile-inline
+  @extend .is-hidden-mobile
+
+.pg-text-centered
+  @extend .has-text-centered
+
+.pg-text-left
+  @extend .has-text-left
+
+.pg-text-right
+  @extend .has-text-right
+
+.pg-title
+  @extend .title
+
+.pg-subtitle
+  @extend .subtitle
+
+.pg-content
+  @extend .content
+
+// buttons
+
+.pg-button-primary
+  @extend .button, .is-primary
+
+.pg-button-secondary
+  @extend .button, .is-primary, .is-outlined
+
+.pg-button-danger
+  @extend .button, .is-danger, .is-outlined
+
+.pg-button-light
+  @extend .button, .is-text
+
+.pg-inline-buttons
+  @extend .is-flex
+  gap: .5em
+
+.pg-justify-content-end
+  @extend .is-justify-content-flex-end
+
+.pg-align-items-center
+  @extend .is-align-items-center
+
+.pg-is-loading
+  @extend .is-loading
+
+.pg-icon
+  @extend .icon
+
+// text modifiers
+
+.pg-text-primary
+  @extend .has-text-primary
+
+.pg-text-success
+  @extend .has-text-success
+
+.pg-text-info
+  @extend .has-text-info
+
+.pg-text-danger
+  @extend .has-text-danger
+
+.pg-text-muted
+  @extend .has-text-grey
+
+//  forms
+
+.pg-label
+  @extend .label
+
+.pg-control
+  @extend .input
+
+.pg-select
+  @extend .select
+
+.pg-input-group
+  @extend .mb-3
+
+.pg-help
+  @extend .help
+
+.pg-bg-danger
+  @extend .has-background-danger-light
+
+.pg-bg-success
+  @extend .has-background-success-light
+
+// columns
+
+.pg-columns
+  @extend .columns
+
+.pg-columns-reversed
+  @extend .columns-reversed
+
+.pg-column
+  @extend .column
+
+.pg-column-one-third
+  @extend .column, .is-one-third
+
+.pg-column-one-quarter
+  @extend .column, .is-one-quarter
+
+// tables
+
+.pg-table
+  @extend .is-striped, .is-fullwidth
+
+  // vertically center table cells
+  th, td
+    vertical-align: middle
+
+  .td, .th
+    @extend .py-2, .px-2
+    border: var(--bulma-table-cell-border)
+    border-width: var(--bulma-table-cell-border-width)
+
+  .th
+    font-weight: bold
+
+.table-responsive
+  @extend .table-container
+  td
+    white-space: nowrap
+
+// breadcrumbs
+ol.pg-breadcrumbs
+  list-style: none
+
+.pg-breadcrumbs
+  @extend .mb-2
+  align-items: center
+  display: flex
+
+  li:first-child
+    padding: 0
+
+  li:not(:first-child)
+    padding: 0 0 0 0.75em
+    &::before
+      color: var(--bulma-breadcrumb-item-separator-color)
+      content: "\0002f"
+      float: left
+      padding-right: 0.75em
+
+    .pg-breadcrumb-active
+      @extend .is-active
+
+// cards
+
+.pg-card
+  @extend .card
+
+.pg-card-image
+  @extend .card-image
+
+.pg-card-body
+  @extend .card-content
+
+// ratios
+
+.pg-ratio-3x2
+  @extend .is-3by2
+
+
+// badges
+
+.pg-badge-default
+  @extend .tag, .is-rounded
+
+.pg-badge-success
+  @extend .tag, .is-rounded, .is-success

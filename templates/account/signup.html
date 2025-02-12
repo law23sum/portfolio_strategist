@@ -1,0 +1,39 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load form_tags %}
+{% block page_head %}
+  {% if turnstile_key %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {% endif %}
+{% endblock %}
+{% block body %}
+<div id="fullpage-form-wrapper">
+    <div id="fullpage-form">
+        <h1 class="title is-size-4">Sign Up</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            {% render_field form.email %}
+            {% render_field form.password1 %}
+            {% if project_settings.ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE %}
+              {% render_field form.password2 %}
+            {% endif %}
+          {% render_field form.terms_agreement %}
+          {% if turnstile_key %}
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_key }}" data-response-field-name="turnstile_token"></div>
+            {{ form.turnstile_token.errors }}
+          {% endif %}
+          <input class="button is-primary is-fullwidth" type="submit" value="Sign Up">
+        </form>
+        {% include 'account/components/social/social_buttons.html' %}
+        <hr>
+        <div class="field has-text-centered has-text-grey">
+            {% translate "Already have account?" %}
+            <a class="muted-link" href="{% url 'account_login' %}">
+                {% translate "Go to sign in." %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

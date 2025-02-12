@@ -1,0 +1,25 @@
+@charset "utf-8";
+// any customizations you want to make to bulma should go here
+// see https://bulma.io/documentation/customize/ for more information
+
+$link: hsl(217, 71%, 53%); // copied from bulma
+$bg-grey: hsl(0, 0%, 98%);
+$navbar-item-active-color: $link;
+$menu-item-active-background-color: $link;
+
+@use "~bulma/sass" with (
+  $link: $link,
+  $primary: $link,  // make link-blue the primary color
+  $body-background-color: $bg-grey,
+);
+
+:root {
+  --primary: var(--bulma-primary);
+  --danger: var(--bulma-danger);
+  --success: var(--bulma-success);
+  --gray: var(--bulma-grey-light);
+  --default-shadow: 0 2px 4px rgba(55, 63, 67, 0.3);
+}
+
+@import "app/bulma/_all";
+@import "pegasus/bulma";

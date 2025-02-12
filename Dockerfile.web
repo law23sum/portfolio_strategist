@@ -1,0 +1,89 @@
+# syntax = docker/dockerfile:1.5
+# Multi-stage Docker buildfile
+# See https://docs.docker.com/build/building/multi-stage/
+
+# Stage 1: Build the python dependencies
+FROM python:3.12-slim-bookworm as build-python
+
+# This approximately follows this guide: https://hynek.me/articles/docker-uv/
+# Which creates a standalone environment with the dependencies.
+# - Silence uv complaining about not being able to use hard links,
+# - tell uv to byte-compile packages for faster application startups,
+# - prevent uv from accidentally downloading isolated Python builds,
+# - pick a Python (use `/usr/bin/python3.12` on uv 0.5.0 and later),
+# - and finally declare `/app` as the target for `uv sync`.
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/code/.venv
+
+COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/
+
+# Since there's no point in shipping lock files, we move them
+# into a directory that is NOT copied into the runtime image.
+# The trailing slash makes COPY create `/_lock/` automagically.
+COPY pyproject.toml uv.lock /_lock/
+
+# Synchronize dependencies.
+# This layer is cached until uv.lock or pyproject.toml change.
+RUN --mount=type=cache,target=/root/.cache \
+    cd /_lock && \
+    uv sync \
+      --frozen \
+      --no-group dev \
+      --group prod
+
+# Stage 2: Build the front end files
+FROM node:22-bookworm-slim AS build-node
+RUN nodejs -v && npm -v
+WORKDIR /code
+COPY *.json *.js .babelrc /code/
+COPY assets /code/assets/
+COPY api-client /code/api-client/
+
+RUN npm install
+
+# build needs everything because it needs to be able to do the tailwind class detection / purging stuff
+COPY . /code
+RUN npm run build
+
+# Stage 3: Build the final image
+# This copies the python dependencies from the first stage
+# and the front end files from the second stage.
+# Add any runtime OS dependencies here.
+FROM python:3.12-slim-bookworm
+ENV PYTHONUNBUFFERED=1
+ENV DEBUG=0
+
+RUN \
+    apt-get update \
+    && apt-get install -y \
+    curl \
+    # psycopg2 dependencies
+    libpq-dev \
+    # Translations dependencies
+    gettext \
+    # cleaning up unused files
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
+
+RUN addgroup --system django \
+    && adduser --system --ingroup django django
+
+WORKDIR /code
+COPY --from=build-python --chown=django:django /code /code
+# make sure we use the virtualenv python and other binaries by default
+ENV PATH="/code/.venv/bin:$PATH"
+
+COPY --chown=django:django . /code
+COPY --from=build-node /code/static /code/static
+
+# why this has to be here:
+# https://stackoverflow.com/questions/59719175/where-to-run-collectstatic-when-deploying-django-app-to-heroku-using-docker
+RUN DEBUG=False python /code/manage.py collectstatic --noinput --settings=portfolio_strategist.settings_production
+RUN chown django:django -R static_root
+
+USER django
+
+
+# Run gunicorn by default
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 portfolio_strategist.wsgi:application

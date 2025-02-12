@@ -1,0 +1,15 @@
+{% load i18n %}
+<li>
+  <a href="{% url 'dashboard:dashboard' %}" class="navbar-item {% if active_tab == 'project-dashboard' %}is-active{% endif %}">
+    <span class="pg-icon">
+      <i class="fa fa-bar-chart-o"></i>
+    </span>
+    <span class="is-hidden-tablet-only">{% translate "Project Dashboard" %}</span>
+  </a>
+</li>
+<li>
+  <a href="{% url 'support:hijack_user' %}" class="navbar-item {% if active_tab == 'support' %}is-active{% endif %}">
+    <span class="pg-icon"><i class="fa fa-user-secret"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "Impersonate a User" %}</span>
+  </a>
+</li>

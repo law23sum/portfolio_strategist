@@ -1,0 +1,12 @@
+{% extends "web/app/app_base.html" %}
+{% block body_wrapper %}
+<div class="container app-two-column">
+  <div id="app-nav" class="py-4 is-hidden-touch">
+    {% block sidebar-nav %}
+    {% include "web/components/app_nav.html" %}
+    {% endblock %}
+  </div>
+  {% block chat_ui %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% load static %}
+{% load form_tags %}
+{% block app %}
+<section class="app-card">
+  <h2 class="pg-subtitle">Example Form with Alpine.js customizations</h2>
+  <form method="post" x-data="{ likeDjango: '{{ form.like_django.data|default:"yes" }}', styleValue: '{{ form.styled_options.data|default:"regular" }}' }">
+    {% csrf_token %}
+    {% render_field form.like_django %}
+    {% render_field form.like_django_other xshow="likeDjango === 'other'" xcloak='True' %}
+    {% render_field form.styled_options xbind__class="'pg-bg-' + styleValue" %}
+    <p class="mt-4">You can also use alpine to display selected values.
+      <em>
+        Like Django: <strong x-text="likeDjango"></strong>,
+        Style: <strong x-text="styleValue"></strong>
+      </em>
+    </p>
+    <input type="submit" value="Save Data" class="pg-button-secondary mt-2">
+  </form>
+</section>
+{% endblock %}

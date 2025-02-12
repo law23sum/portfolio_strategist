@@ -1,0 +1,41 @@
+
+.pg-chat-wrapper
+  @extend .is-flex, .is-flex-direction-column
+  width: 100%
+  height: 100vh
+
+.pg-chat-pane
+  @extend .is-flex, .is-flex-direction-column, .p-4, .is-flex-grow-1, .has-background-white-ter
+  overflow-y: auto
+
+
+.pg-chat-message
+  @extend .is-flex, .p-2, .my-2
+  border-radius: .75em
+
+.pg-chat-icon
+  @extend .has-text-centered
+  svg
+    width: 1.5rem
+    height: 1.5rem
+
+.pg-message-sender
+  @extend .mx-1, .is-size-7
+
+.pg-message-contents
+  @extend .mx-1
+  p
+    @extend .my-0
+
+.pg-chat-message-system
+  @extend .pg-chat-message
+  background: var(--bulma-primary-light)
+
+
+.pg-chat-message-user
+  @extend .pg-chat-message
+  background: var(--bulma-primary)
+  color: var(--bulma-white)
+
+.pg-chat-input-bar
+  @extend .is-flex, .p-3, .has-background-grey-lighter

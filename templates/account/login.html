@@ -1,0 +1,26 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load form_tags %}
+{% block body %}
+<div id="fullpage-form-wrapper">
+    <div id="fullpage-form">
+        <h1 class="title is-size-4">{% translate "Sign In" %}</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            {% render_text_input form.login %}
+            {% render_text_input form.password %}
+            <input class="button is-primary is-fullwidth" type="submit" value="{% translate "Sign In" %}">
+        </form>
+        {% include 'account/components/social/social_buttons.html' %}
+        {% if LOGIN_BY_CODE_ENABLED %}
+        <p class="pg-text-centered pg-text-muted">
+          <a class="is-size-7 muted-link" href="{{ request_login_code_url }}">
+            {% translate "Mail me a sign-in code" %}
+          </a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

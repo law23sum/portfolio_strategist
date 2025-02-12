@@ -1,0 +1,35 @@
+# syntax = docker/dockerfile:1.5
+FROM python:3.12-bookworm
+ENV PYTHONUNBUFFERED=1
+# tell uv to use a python environment outside the code directory
+ENV UV_PROJECT_ENVIRONMENT=/usr/local/venv/
+
+# install node/npm
+RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+    --mount=target=/var/cache/apt,type=cache,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get update && \
+    apt-get install -yqq nodejs \
+    # install gettext for translations
+    gettext \
+    # required on M2 / ARM architecture
+    libpq-dev
+
+# create code directory
+RUN mkdir /code
+WORKDIR /code
+
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/
+
+# install python requirements
+# copy just dependency file(s) and install before rest of code to avoid having to
+# reinstall packages during build every time code changes
+COPY uv.lock pyproject.toml ./
+RUN uv sync --frozen
+# make sure we use the right uv environment by default
+ENV PATH="/usr/local/venv/bin:$PATH"
+
+# copy code files
+COPY . /code/

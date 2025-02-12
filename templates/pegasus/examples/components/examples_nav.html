@@ -1,0 +1,37 @@
+<aside class="menu">
+  <p class="menu-label is-hidden-tablet-only">
+    Pegasus
+  </p>
+  <ul class="menu-list">
+    <li>
+      <a href="{% url 'pegasus_examples:examples_home' %}" {% if active_tab == 'home' %}class="is-active"{% endif %}>
+        <span class="pg-icon"><i class="fa fa-home"></i></span><span class="is-hidden-tablet-only">Examples Home</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pegasus_employees:object_lifecycle_home' %}" {% if active_tab == 'object_lifecycle' %}class="is-active"{% endif %}>
+        <span class="pg-icon"><i class="fa fa-users"></i></span><span class="is-hidden-tablet-only">Employee App</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pegasus_examples:tasks' %}" {% if active_tab == 'tasks' %}class="is-active"{% endif %}>
+        <span class="pg-icon"><i class="fa fa-tasks"></i></span><span class="is-hidden-tablet-only">Background Tasks</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pegasus_employees:charts' %}" {% if active_tab == 'charts' %}class="is-active"{% endif %}>
+        <span class="pg-icon"><i class="fa fa-bar-chart-o"></i></span><span class="is-hidden-tablet-only">Charts</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pegasus_examples:flags' %}" {% if active_tab == 'flags' %}class="is-active"{% endif %}>
+        <span class="pg-icon"><i class="fa fa-flag"></i></span><span class="is-hidden-tablet-only">Feature Flags</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'pegasus_examples:pricing_page' %}">
+        <span class="pg-icon"><i class="fa fa-external-link"></i></span><span class="is-hidden-tablet-only">Pricing Page</span>
+      </a>
+    </li>
+  </ul>
+</aside>

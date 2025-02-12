@@ -1,0 +1,27 @@
+{% load i18n %}
+<aside class="menu is-hidden-mobile">
+  <p class="menu-label is-hidden-tablet-only">
+    {% translate "Application" %}
+  </p>
+  <ul class="menu-list">
+    {% include "web/components/app_menu_items.html" %}
+  </ul>
+{% if not user.is_anonymous %}
+  <p class="menu-label is-hidden-tablet-only">
+    {% translate "My Account" %}
+  </p>
+  <ul class="menu-list">
+  {% with True as hide_on_tablet %}
+    {% include "web/components/account_menu_items.html" %}
+  {% endwith %}
+  </ul>
+{% endif %}
+{% if user.is_superuser %}
+  <p class="menu-label is-hidden-tablet-only">
+    {% translate "Admin" %}
+  </p>
+  <ul class="menu-list">
+    {% include "web/components/admin_menu_items.html" %}
+  </ul>
+{% endif %}
+</aside>

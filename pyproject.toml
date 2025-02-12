@@ -1,0 +1,78 @@
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".direnv",
+    ".git",
+    ".ruff_cache",
+    "node_modules",
+    "migrations",
+]
+line-length = 120
+indent-width = 4
+target-version = "py311"
+
+[tool.ruff.lint]
+fixable = [
+    "ALL",
+]
+unfixable = []
+extend-select = ["I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.setuptools]
+py-modules = []
+
+[project]
+name = "portfolio-strategist"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Django",
+    "boto3",
+    "celery",
+    "celery-progress",
+    "celery[redis]",
+    "dj-rest-auth",
+    "dj-stripe<2.9",
+    "django-allauth[socialaccount,mfa]",
+    "django-anymail[mailgun]",  # email services
+    "django-celery-beat",
+    "django-cors-headers",
+    "django-environ",
+    "django-health-check",
+    "django-hijack",
+    "django-otp",  # this is required for the allauth two-factor migration, but can be removed after that
+    "django-storages",
+    "django-waffle",
+    "djangorestframework",
+    "djangorestframework-api-key",
+    "djangorestframework-simplejwt",
+    "docutils",
+    "drf-spectacular",
+    "mailchimp3",
+    "markdown",
+    "openai",
+    "psycopg2-binary",
+    "requests",
+    "sentry-sdk",
+    "stripe",
+    "wagtail",
+    "whitenoise[brotli]",
+]
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar",
+    "pre-commit",
+    "ruff",
+]
+prod = [
+    "gunicorn",
+]

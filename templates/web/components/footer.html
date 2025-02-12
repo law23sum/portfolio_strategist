@@ -1,0 +1,17 @@
+{% load i18n %}
+<footer class="footer">
+  <div class="content has-text-centered">
+    <p>
+      {{project_meta.NAME}} &mdash; {% translate "Copyright" %} <span id="copyright-year">2024</span>
+    </p>
+    {% include "web/components/language_select.html" %}
+    <div class="mt-2">
+      <small>
+        {% blocktranslate %}🦄 Built with <a href="https://www.saaspegasus.com/" target="_blank">SaaS Pegasus</a>{% endblocktranslate %}
+      </small>
+    </div>
+  </div>
+</footer>
+<script>
+    document.getElementById('copyright-year').innerText = (new Date()).getFullYear();
+</script>

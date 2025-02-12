@@ -1,0 +1,15 @@
+@use "bulma/sass/utilities/mixins"
+
+#fullpage-form-wrapper
+  display: flex
+  justify-content: center
+
+
+#fullpage-form
+  margin: 2em
+  padding: 2em
+  // on tablets make it a pop-up style form
+  @include mixins.tablet
+    border-radius: .3em
+    box-shadow: var(--bulma-shadow)
+    background-color: var(--bulma-white)

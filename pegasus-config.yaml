@@ -1,0 +1,62 @@
+cli:
+  app_directory: apps
+  base_model: apps.utils.models.BaseModel
+  css_framework: bulma
+  module_path: apps
+  template_directory: templates
+  use_teams: false
+default_context:
+  _pegasus_version: 2025.1.1
+  author_name: Christian Dixon
+  ci: github_actions
+  css_framework: bulma
+  css_theme: default
+  database: postgres
+  deploy_platform: heroku_docker
+  description: Financia is a financial software (fintech) company that services online
+    users with intuitive, user-friendly financial tools to create, monitor, and advise
+    on budgets, portfolios, and investments, all to promote a simplified, interactive,
+    and reliable approach to easily manage your assets.
+  docker_setup: arm64
+  domain_name: localhost:8000
+  email: financiasoftwarecompany@gmail.com
+  enable_github_login: n
+  enable_google_login: y
+  enable_twitter_login: n
+  front_end_framework: react
+  github_username: financiaadmin
+  include_static_files: y
+  marketing_email_platform: mailchimp
+  plugin_chat_mode: openai
+  plugins:
+  - chat
+  post_process: y
+  project_name: The Portfolio Strategist
+  project_slug: portfolio_strategist
+  python_package_manager: uv
+  standalone_front_end: none
+  stripe_payment_mode: checkout
+  subscription_billing_model: default
+  subscription_pricing_ui: stripe_hosted
+  use_2fa: y
+  use_admin_docs: y
+  use_api_auth: y
+  use_api_keys: y
+  use_async: n
+  use_celery: y
+  use_cloud_media_storage: y
+  use_dark_mode: y
+  use_debug_toolbar: y
+  use_docker: y
+  use_ecommerce_example: n
+  use_examples: y
+  use_flowbite: n
+  use_health_checks: y
+  use_impersonation: y
+  use_sentry: y
+  use_shadcn: n
+  use_subscriptions: y
+  use_teams: n
+  use_teams_example: n
+  use_translations: y
+  use_wagtail: y

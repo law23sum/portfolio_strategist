@@ -1,0 +1,11 @@
+{% extends "web/base.html" %}
+
+{% block page_title %}{% block head_title %}{% endblock %}{% endblock %}
+
+{% block body %}
+<div id="fullpage-form-wrapper">
+    <div id="fullpage-form">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

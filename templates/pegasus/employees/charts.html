@@ -1,0 +1,61 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% load static %}
+{% block app %}
+  <section class="app-card">
+    <h1 class="pg-title">Charts Example</h1>
+    <div id="page-overview" class="pg-content">
+      <p>
+        An end-to-end implementation of charts for your application, using <a href="https://www.chartjs.org/" target="_blank">Chart.js</a>,
+        and based on data from the <a href="{% url 'pegasus_employees:object_lifecycle_home' %}">Employee App</a>.
+      </p>
+    </div>
+    <div class="pg-columns">
+      <div class="pg-column">
+        <div class="pg-subtitle pg-text-centered">Budget by Department</div>
+        <div id="department-spend-chart-wrapper">
+          <canvas id="department-spend-chart"></canvas>
+        </div>
+      </div>
+      <div class="pg-column">
+        <div class="pg-subtitle pg-text-centered">Average Salary by Department</div>
+        <div id="department-salaries-chart-wrapper">
+          <canvas id="department-salaries-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div id="crud-home"></div>
+{% endblock %}
+{% block page_js %}
+  <script src="{% static 'js/pegasus-bundle.js' %}" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      const objectUrl = '{% url "pegasus_employees:react_object_lifecycle" %}';
+      const Charts = SiteJS.pegasus.Charts;
+      const client = SiteJS.pegasus.getPegasusApiClient("{{ server_url }}");
+
+      client.employeesAggregateData().then(function (result) {
+        if (result.headcounts.length === 0) {
+          let noData = '<p class="pg-text-centered">No data! First <a href="' + objectUrl + '">create some employees</a>.</p>';
+          document.getElementById('department-spend-chart-wrapper').innerHTML = noData;
+          document.getElementById('department-salaries-chart-wrapper').innerHTML = noData;
+        } else {
+          Charts.renderChart('pie', 'department-spend-chart', result['totalCosts'], true);
+          Charts.renderChart('bar', 'department-salaries-chart', result['averageSalaries'], false);
+        }
+      }).catch(error => {
+        const errorDiv = document.createElement("div");
+        errorDiv.innerHTML = "API loading failed. " +
+          "If you are the site administrator and setting up your site for the first time, " +
+          "see the documentation to resolve this: ";
+        const docsLink = document.createElement("a");
+        docsLink.setAttribute("href", "https://docs.saaspegasus.com/apis/#api-client-requests-are-failing");
+        docsLink.innerText = "Troubleshooting API errors.";
+        errorDiv.appendChild(docsLink);
+        errorDiv.classList.add("pg-text-danger");
+        document.getElementById('page-overview').appendChild(errorDiv);
+      });
+    });
+  </script>
+{% endblock %}
