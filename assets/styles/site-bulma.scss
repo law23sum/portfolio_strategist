@@ -1,18 +1,23 @@
 @charset "utf-8";
-// any customizations you want to make to bulma should go here
+// any customizations to Bulma go here
 // see https://bulma.io/documentation/customize/ for more information
 
-$link: hsl(217, 71%, 53%); // copied from bulma
-$bg-grey: hsl(0, 0%, 98%);
-$navbar-item-active-color: $link;
-$menu-item-active-background-color: $link;
+// Your default info color
+$info: hsl(171, 100%, 41%); // Original Bulma info color
 
+// Secondary colors
+$bg-grey: hsl(0, 0%, 100%);
+$navbar-item-active-color: $info;
+$menu-item-active-background-color: $info;
+
+// Now tell Bulma to use $info as both link & primary
 @use "~bulma/sass" with (
-  $link: $link,
-  $primary: $link,  // make link-blue the primary color
-  $body-background-color: $bg-grey,
+  $link: $info,
+  $primary: $info,  // Make info the primary color
+  $body-background-color: $bg-grey
 );
 
+// Set up root vars for easy reference
 :root {
   --primary: var(--bulma-primary);
   --danger: var(--bulma-danger);
@@ -21,5 +26,6 @@ $menu-item-active-background-color: $link;
   --default-shadow: 0 2px 4px rgba(55, 63, 67, 0.3);
 }
 
+// Import your Bulma foundation plus any custom Sass
 @import "app/bulma/_all";
 @import "pegasus/bulma";

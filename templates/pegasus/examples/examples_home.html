@@ -1,4 +1,4 @@
-{% extends "pegasus/examples/examples_base.html" %}
+{% extends "web/app/app_base.html" %}
 {% load static %}
 {% block app %}
 <section class="app-card">
@@ -125,14 +125,6 @@
               Communicate your application's value with a simple, flexible
               pricing page.
             </p>
-          </div>
-          <div class="buttons">
-            <a href="{% url 'pegasus_examples:pricing_page' %}" class="pg-button-secondary">
-              <span>View Pricing Page</span>
-              <span class="pg-icon">
-                <i class="fa fa-angle-double-right"></i>
-              </span>
-            </a>
           </div>
         </div>
       </div>

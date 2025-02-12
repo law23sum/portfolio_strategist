@@ -1000,7 +1000,7 @@ msgstr ""
 msgid "Examples Gallery"
 msgstr ""
 
-msgid "Impersonate a User"
+msgid "Impersonate User"
 msgstr ""
 
 #, python-format

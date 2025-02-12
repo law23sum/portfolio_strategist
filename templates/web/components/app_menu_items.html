@@ -1,17 +1,23 @@
 {% load i18n %}
 <li>
-  <a href="{% url 'web:home' %}" class="navbar-item {% if active_tab == 'dashboard' %}is-active{% endif %}">
+  <a class="navbar-item {% if active_tab == 'dashboard' %}is-active{% endif %}" href="{% url 'web:home' %}">
     <span class="pg-icon"><i class="fa fa-home"></i></span><span class="is-hidden-tablet-only">{% translate "Dashboard" %}</span>
   </a>
 </li>
 <li>
-  <a href="{% url 'subscriptions:subscription_demo' %}" class="navbar-item {% if active_tab == 'subscription_demo' %}is-active{% endif %}">
+  <a class="navbar-item {% if active_tab == 'subscription_demo' %}is-active{% endif %}" href="{% url 'subscriptions:subscription_demo' %}">
     <span class="pg-icon"><i class="fa fa-desktop"></i></span><span class="is-hidden-tablet-only">Subscription Demo</span>
   </a>
 </li>
 <li>
-  <a href="{% url 'chat:chat_home' %}" class="navbar-item {% if active_tab == 'ai-chat' %}is-active{% endif %}">
+  <a class="navbar-item {% if active_tab == 'ai-chat' %}is-active{% endif %}" href="{% url 'chat:chat_home' %}">
     <span class="pg-icon"><i class="fa-solid fa-robot"></i></span>
     <span class="is-hidden-tablet-only">{% translate "AI Chat" %}</span>
+  </a>
+</li>
+<li>
+  <a class="navbar-item is-tab {% if '/pegasus/' in request.path %}is-active{% endif %}" href="{% url 'pegasus_examples:examples_home' %}">
+    <span class="pg-icon"> <i class="fa fa-th-large"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "Examples Gallery" %}</span>
   </a>
 </li>

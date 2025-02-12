@@ -1,62 +1,93 @@
 {% load i18n %}
 {% load wagtailcore_tags %}
-<nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
+
+<nav aria-label="main navigation" class="navbar has-shadow" role="navigation">
   <div class="container">
+    <!-- Brand / Logo on the left -->
     <div class="navbar-brand">
-      <a class="navbar-item is-tab {% if request.path == '/' %}is-active{% endif %}" href="{% url 'web:home' %}">
-          {{project_meta.NAME}}
+      <a
+              class="navbar-item is-tab {% if request.path == '/' %}is-active{% endif %}"
+              href="{% url 'web:home' %}"
+      >
+        {{ project_meta.NAME }}
       </a>
-      <a role="button" class="navbar-burger burger" aria-label="menu" aria-expanded="false" data-target="nav-menu">
+      <a
+              aria-expanded="false"
+              aria-label="menu"
+              class="navbar-burger burger"
+              data-target="navMenu"
+              role="button"
+      >
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
       </a>
     </div>
-    <div class="navbar-menu" id="nav-menu">
-      <div class="navbar-start">
+
+    <!-- Main navbar menu -->
+    <div class="navbar-menu" id="navMenu">
+      <!-- Centered links -->
+      <div class="navbar-start is-flex is-justify-content-center" style="flex:1;">
+         {% if not user.is_authenticated %}
+        <a
+                class="navbar-item is-tab"
+                href="{% url 'pegasus_examples:pricing_page' %}"
+        >
+          Pricing
+        </a>
         {% slugurl 'blog' as blog_url %}
-        <a class="navbar-item is-tab {% if blog_url in request.path %}is-active{% endif %}" href="{{ blog_url }}">
+        <a
+                class="navbar-item is-tab {% if blog_url in request.path %}is-active{% endif %}"
+                href="{{ blog_url }}"
+        >
           {% translate "Blog" %}
         </a>
-        <!--add additional links here if you want-->
+          {% endif %}
       </div>
+
+      <!-- Right side (user account / sign-up / sign-in) -->
       <div class="navbar-end">
         {% if user.is_authenticated %}
-          <a class="navbar-item is-tab {% if '/pegasus/' in request.path %}is-active{% endif %}" href="{% url 'pegasus_examples:examples_home' %}">
-              {% translate "Examples Gallery" %}
+        <!-- Account dropdown -->
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link">
+            <img
+                    class="navbar-avatar is-hidden-touch"
+                    src="{{ user.avatar_url }}"
+            >
+            <span class="is-hidden-desktop">{% translate "My Account" %}</span>
           </a>
-          <div class="navbar-item has-dropdown is-hoverable">
-            <div class="is-hidden-tablet">
-              <a class="navbar-link">{% translate "Application" %}</a>
-              <div class="navbar-dropdown is-right">
-                {% block app_menu_items %}
-                  {% include "web/components/app_menu_items.html" %}
-                {% endblock app_menu_items %}
-              </div>
-            </div>
-            <a class="navbar-link">
-              <img class="navbar-avatar is-hidden-touch" src="{{ user.avatar_url}}">
-              <span class="is-hidden-desktop">{% translate "My Account" %}</span>
-            </a>
-            <div class="navbar-dropdown is-right">
-              {% include "web/components/account_menu_items.html" %}
-            </div>
-            {% if user.is_superuser %}
-              <div class="is-hidden-tablet">
-                <a class="navbar-link">{% translate "Admin" %}</a>
-                <div class="navbar-dropdown is-right">
-                  {% include "web/components/admin_menu_items.html" %}
-                </div>
-              </div>
-            {% endif %}
+          <div class="navbar-dropdown is-right">
+            {% include "web/components/account_menu_items.html" %}
           </div>
+        </div>
+        {% if user.is_superuser %}
+        <!-- Admin dropdown for superusers -->
+        <div class="navbar-item has-dropdown is-hoverable is-hidden-tablet">
+          <a class="navbar-link">{% translate "Admin" %}</a>
+          <div class="navbar-dropdown is-right">
+            {% include "web/components/admin_menu_items.html" %}
+          </div>
+        </div>
+        {% endif %}
         {% else %}
-          <div class="navbar-item">
-            <div class="buttons">
-              <a class="button is-primary is-outlined" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
-              <a class="button is-text" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
-            </div>
+        <!-- Sign Up / Sign In -->
+        <div class="navbar-item">
+          <div class="buttons">
+            <a
+                    class="button is-primary is-outlined"
+                    href="{% url 'account_signup' %}"
+            >
+              {% translate "Sign Up" %}
+            </a>
+            <a
+                    class="button is-text"
+                    href="{% url 'account_login' %}"
+            >
+              {% translate "Sign In" %}
+            </a>
           </div>
+        </div>
         {% endif %}
       </div>
     </div>

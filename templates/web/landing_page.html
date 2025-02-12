@@ -1,142 +1,190 @@
 {% extends "web/base.html" %}
 {% load i18n %}
 {% load static %}
+
 {% block body %}
+
+<!-- INTRODUCTORY DETAILS -->
 <section class="section container">
-    <div class="columns is-vcentered columns-reversed">
+  <div class="columns is-vcentered">
+    <div class="column is-half content">
+      <h2 class="title is-size-4">The Portfolio Strategist</h2>
+      <p class="subtitle is-size-6">
+        Our dazzling financial software—designed for effortless budgeting, forecasting,
+        and portfolio management. Enjoy a smooth, interactive, and reliable approach to
+        managing your assets.
+      </p>
+      <p class="is-size-6">
+        With Financia’s proprietary analytics, you’ll stay one step ahead of market
+        changes and never miss a beat. If only everything in life was this easy (and
+        downright attractive).
+      </p>
+    </div>
+    <div class="column is-half">
+      <figure class="image">
+        <img alt="Let's Explore Your Finances" src="{% static 'images/web/finance-illustration.jpeg' %}">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- HERO/INTRO SECTION (General Info) -->
+<section class="hero is-small is-info is-bold">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <h2 class="subtitle is-size-6 has-text-white">
+        {{ project_meta.DESCRIPTION }}
+      </h2>
+      <div class="buttons is-justify-content-center">
+        <a class="button is-white" href="{% url 'account_signup' %}">
+          {% translate "Get Started" %}
+        </a>
+        <a class="button is-outlined is-white" href="{% url 'account_login' %}">
+          {% translate "Sign In" %}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE SECTION 1 (Moderately Detailed) -->
+<section class="section container">
+  <div class="columns is-vcentered">
+    <div class="column is-half">
+      <figure class="image">
+        <img alt="Financia's Features" src="{% static 'images/undraw/undraw_features_overview.svg' %}">
+      </figure>
+    </div>
+    <div class="column is-half content">
+      <h3 class="title is-size-5">Powerful Built-In Features</h3>
+      <p class="subtitle is-size-6">
+        Ready to be swept off your feet? Our features are here to romance your financial life.
+      </p>
+      <div class="columns">
         <div class="column">
-            <img src="{% static 'images/undraw/undraw_outer_space.svg' %}" alt="Fly Away!">
+          <strong>Intuitive Budgets</strong>
+          <p class="is-size-7">
+            Let us keep a watchful eye on your monthly spending so you can focus on
+            that dreamy vacation you’ve been eyeing.
+          </p>
         </div>
         <div class="column">
-            <h1 class="title is-size-2">{{ project_meta.NAME }}</h1>
-            <h2 class="subtitle is-size-4">{{ project_meta.DESCRIPTION }}</h2>
-            <p class="buttons">
-                <a class="button is-primary is-large" href="{% url 'account_signup' %}">
-                    {% translate "Get Started" %}
-                </a>
-                <a class="button is-primary is-large is-outlined" href="{% url 'account_login' %}">
-                    {% translate "Sign in" %}
-                </a>
-            </p>
+          <strong>Portfolio Insights</strong>
+          <p class="is-size-7">
+            Up-to-the-minute portfolio tracking and dynamic graphs that keep you
+            informed with minimal fuss.
+          </p>
         </div>
+        <div class="column">
+          <strong>Market Predictions</strong>
+          <p class="is-size-7">
+            Our machine-learning models help guide your investment decisions. We can’t
+            read minds, but we sure can analyze markets.
+          </p>
+        </div>
+      </div>
     </div>
+  </div>
 </section>
-<section class="section container is-size-5">
-    <div class="columns">
-        <div class="column is-one-quarter">
-            <img src="{% static 'images/undraw/undraw_features_overview.svg' %}" alt="Powerful Built-In Features">
+
+<!-- FEATURE SECTION 2 (More Complex Details) -->
+<section class="section container">
+  <div class="columns is-vcentered">
+    <div class="column is-half content">
+      <h3 class="title is-size-5">Stay Updated in Real Time</h3>
+      <p class="subtitle is-size-6">
+        Track your investments and net worth across multiple accounts—no more guesswork.
+      </p>
+      <div class="columns">
+        <div class="column">
+          <strong>Automation</strong>
+          <p class="is-size-7">
+            Automatic data sync with your banks and investment platforms. Manual data
+            entry is soooo last season.
+          </p>
         </div>
-        <div class="is-three-quarters">
-            <div class="title">Powerful Built-In Features</div>
-            <div class="subtitle">This is where you talk about the great features that your app has.</div>
-            <div class="columns">
-                <div class="column">
-                    <span class="subfeature-title">Feature Number 1</span>
-                    &mdash; A really great feature that everyone will love!
-                </div>
-                <div class="column">
-                    <span class="subfeature-title">Feature Number 2</span>
-                    &mdash; This feature is even better than Feature #1! A real crowd pleaser!
-                </div>
-                <div class="column">
-                    <span class="subfeature-title">Feature 3</span>
-                    &mdash; Possibly the best feature of all. This is some groundbreaking stuff that this app can do.
-                </div>
-            </div>
+        <div class="column">
+          <strong>Alerts &amp; Insights</strong>
+          <p class="is-size-7">
+            Receive timely alerts on market shifts—like a gentle nudge when opportunity
+            comes knocking.
+          </p>
         </div>
+      </div>
     </div>
+    <div class="column is-half">
+      <figure class="image">
+        <img alt="Portfolio Update" src="{% static 'images/undraw/undraw_portfolio_update.svg' %}">
+      </figure>
+    </div>
+  </div>
 </section>
-<section class="section container is-size-5">
-    <div class="columns columns-reversed">
-        <div class="column is-one-quarter">
-            <img src="{% static 'images/undraw/undraw_portfolio_update.svg' %}" alt="Examples">
-        </div>
-        <div class="is-three-quarters">
-            <div class="title">Another Section of Functionality</div>
-            <div class="subtitle">Here you can add more things that you want to talk about.</div>
-            <div class="columns">
-                <div class="column">
-                    <span class="subfeature-title">Extra Thing 1</span>
-                    &mdash;This thing is important so it will be listed first.
-                </div>
-                <div class="column">
-                    <span class="subfeature-title">Extra Thing 2</span>
-                    &mdash;This thing is not as important as the first thing, so we've listed it second.
-                </div>
-                <div class="column">
-                    <span class="subfeature-title">Extra Thing 2</span>
-                    &mdash;This is the least important thing in this section.
-                </div>
-            </div>
-        </div>
-    </div>
+
+<!-- PRICING SECTION -->
+<section class="section container">
+  <div class="box has-text-centered" style="background-color: #fafafa;">
+    <h3 class="title is-size-5">Special Introductory Offer</h3>
+    <p class="subtitle is-size-6">
+      From <del>$200</del> <strong>$99</strong> per month
+    </p>
+    <a class="button is-info" href="{% url 'account_signup' %}">
+      {% translate "Get Started" %}
+    </a>
+  </div>
 </section>
-<section class="section container is-size-5">
-    <div class="columns">
-        <div class="column is-one-quarter">
-            <img src="{% static 'images/undraw/undraw_coding.svg' %}" alt="Build With Django">
-        </div>
-        <div class="is-three-quarters">
-            <div class="title">A Third Section</div>
-            <div class="subtitle">You are probably getting the picture now, but you can put as many of these sections as you want.</div>
-            <div class="columns">
-                <div class="column">
-                    <span class="subfeature-title">Third Section Item 1</span>
-                    &mdash;You don't have to have three items in each section. This one only has two.
-                    The text here is a bit longer because we want to fill the space.
-                </div>
-                <div class="column">
-                    <span class="subfeature-title">Third Section Item 2</span>
-                    &mdash;This is the last one in this section. Phew, that was repetetive!
-                    Now we can move onto a different layout / section of the page.
-                </div>
-            </div>
-        </div>
+
+<!-- FAQ SECTION -->
+<section class="section container">
+  <h3 class="title is-size-5">Frequently Asked Questions</h3>
+
+  <div class="columns question">
+    <div class="column is-one-third has-text-weight-bold is-size-6">
+      What does Financia do?
     </div>
+    <div class="column is-two-thirds content is-size-7">
+      <p>
+        Financia provides user-friendly tools to create, monitor, and optimize budgets
+        and investments. If your money could talk, it'd say "Thank you."
+      </p>
+    </div>
+  </div>
+
+  <div class="columns question">
+    <div class="column is-one-third has-text-weight-bold is-size-6">
+      Why should I trust The Portfolio Strategist?
+    </div>
+    <div class="column is-two-thirds content is-size-7">
+      <p>
+        We use cutting-edge analytics, real-time data synchronization, and a hefty dash of
+        financial wizardry to give you accurate insights. We’re in this relationship for
+        the long haul.
+      </p>
+    </div>
+  </div>
+
+  <div class="columns question">
+    <div class="column is-one-third has-text-weight-bold is-size-6">
+      How much does it cost after the promotion?
+    </div>
+    <div class="column is-two-thirds content is-size-7">
+      <p>
+        Our standard rate is $200/month, but you’ll find many opportunities to snag
+        additional deals. We like to spoil our customers.
+      </p>
+    </div>
+  </div>
+
+  <div class="columns question">
+    <div class="column is-one-third has-text-weight-bold is-size-6">
+      Where do I start?
+    </div>
+    <div class="column is-two-thirds content is-size-7">
+      <p>
+        Simply sign up, connect your financial accounts, and let our saucy algorithms
+        handle the complexity while you enjoy a breezy overview of your finances.
+      </p>
+    </div>
+  </div>
 </section>
-<section class="hero is-primary" >
-    <div class="hero-body">
-        <div class="container has-text-centered ">
-            <h2 class="subtitle is-size-4 has-text-white">
-                Just <del>$200</del> <strong>$99</strong> per month for new users! What a deal!
-            </h2>
-            <a class="button is-primary is-inverted is-medium" href="{% url 'account_signup' %}">
-                {% translate "Get Started" %}
-            </a>
-        </div>
-    </div>
-</section>
-<section class="section container is-size-5" id="faq">
-    <div class="title">Frequently Asked Questions</div>
-    <div class="columns question">
-        <div class="column is-one-third has-text-weight-bold">
-            What's this section all about?
-        </div>
-        <div class="column is-two-thirds">
-            It's a simple two-column format that works great for a back and forth dialog
-            like an FAQ.
-        </div>
-    </div>
-    <div class="columns question">
-        <div class="column is-one-third has-text-weight-bold">
-            What does your app do?
-        </div>
-        <div class="column is-two-thirds content">
-            <p>What <em>doesn't</em> the app do?</p>
-            <p>It will solve all of your problems and a few problems you didn't even know you had!</p>
-        </div>
-    </div>
-    <div class="columns question">
-        <div class="column is-one-third has-text-weight-bold">
-            What else can you tell me?
-        </div>
-        <div class="column is-two-thirds content">
-            <p>
-                Not too much. Each application is a unique snowflake and you'll have to come up with
-                the right message for your application.
-                This is just a layout to get you started!
-            </p>
-        </div>
-    </div>
-</section>
+
 {% endblock %}

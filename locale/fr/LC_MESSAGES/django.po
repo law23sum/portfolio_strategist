@@ -1032,7 +1032,7 @@ msgstr "Blog"
 msgid "Examples Gallery"
 msgstr "Galerie d'exemples"
 
-msgid "Impersonate a User"
+msgid "Impersonate User"
 msgstr "Usurper l'identité d'un utilisateur"
 
 #, fuzzy, python-format

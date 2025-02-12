@@ -1,0 +1,4 @@
+theportfoliostrategist.net:8000 {
+    tls /Users/chrisdixon/Projects/portfolio_strategist/theportfoliostrategist.net.pem /Users/chrisdixon/Projects/portfolio_strategist/theportfoliostrategist.net-key.pem
+    reverse_proxy localhost:8000
+}

@@ -33,7 +33,10 @@ DEBUG = env.bool("DEBUG", default=True)
 ENABLE_DEBUG_TOOLBAR = env.bool("ENABLE_DEBUG_TOOLBAR", default=False) and "test" not in sys.argv
 
 # Note: It is not recommended to set ALLOWED_HOSTS to "*" in production
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS",
+    default=["localhost", "127.0.0.1", "theportfoliostrategist.net", "*"]
+)
 
 
 # Application definition
