@@ -1,16 +1,16 @@
 {% load i18n %}
 <li>
-  <a class="navbar-item {% if active_tab == 'dashboard' %}is-active{% endif %}" href="{% url 'web:home' %}">
+  <a class="navbar-item is-tab  {% if active_tab == 'dashboard' %}is-active{% endif %}" href="{% url 'web:home' %}">
     <span class="pg-icon"><i class="fa fa-home"></i></span><span class="is-hidden-tablet-only">{% translate "Dashboard" %}</span>
   </a>
 </li>
 <li>
-  <a class="navbar-item {% if active_tab == 'subscription_demo' %}is-active{% endif %}" href="{% url 'subscriptions:subscription_demo' %}">
+  <a class="navbar-item is-tab  {% if active_tab == 'subscription_demo' %}is-active{% endif %}" href="{% url 'subscriptions:subscription_demo' %}">
     <span class="pg-icon"><i class="fa fa-desktop"></i></span><span class="is-hidden-tablet-only">Subscription Demo</span>
   </a>
 </li>
 <li>
-  <a class="navbar-item {% if active_tab == 'ai-chat' %}is-active{% endif %}" href="{% url 'chat:chat_home' %}">
+  <a class="navbar-item  is-tab {% if active_tab == 'ai-chat' %}is-active{% endif %}" href="{% url 'chat:chat_home' %}">
     <span class="pg-icon"><i class="fa-solid fa-robot"></i></span>
     <span class="is-hidden-tablet-only">{% translate "AI Chat" %}</span>
   </a>

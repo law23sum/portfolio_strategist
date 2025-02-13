@@ -39,28 +39,42 @@
           Subscription
         </a>
         {% slugurl 'blog' as blog_url %}
-        <a class="navbar-item is-tab {% if blog_url in request.path %}is-active{% endif %}" href="{{ blog_url }}" >
+        <a class="navbar-item is-tab {% if blog_url in request.path %}is-active{% endif %}" href="{{ blog_url }}">
           {% translate "Blog" %}
         </a>
           {% endif %}
+    {% if user.is_authenticated %}
+    <div class="navbar-end">
+        <!-- Sidebar navigation dropdown -->
+        <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link">
+                <span>{% translate "Menu" %}</span>
+            </a>
+            <div class="navbar-dropdown is-right">
+                {% block sidebar-nav %}
+                    {% include "web/components/app_nav.html" %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+{% endif %}
       </div>
-
       <!-- Right side (user account / sign-up / sign-in) -->
       <div class="navbar-end">
         {% if user.is_authenticated %}
         <!-- Account dropdown -->
+        {% if not user.is_anonymous %}
         <div class="navbar-item has-dropdown is-hoverable">
-          <a class="navbar-link">
-            <img
-                    class="navbar-avatar is-hidden-touch"
-                    src="{{ user.avatar_url }}"
-            >
-            <span class="is-hidden-desktop">{% translate "My Account" %}</span>
-          </a>
+            <a class="navbar-link">
+                <span>{% translate "Account" %}</span>
+            </a>
           <div class="navbar-dropdown is-right">
+            {% with True as hide_on_tablet %}
             {% include "web/components/account_menu_items.html" %}
+            {% endwith %}
           </div>
         </div>
+        {% endif %}
         {% if user.is_superuser %}
         <!-- Admin dropdown for superusers -->
         <div class="navbar-item has-dropdown is-hoverable is-hidden-tablet">
