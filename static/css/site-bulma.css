@@ -21730,7 +21730,6 @@ has-background-danger.is-hoverable:active {
 }
 
 .pg-title {
-  color: var(--info);
   transition: color 0.3s ease;
 }
 .pg-title:hover {
@@ -21743,6 +21742,13 @@ has-background-danger.is-hoverable:active {
 }
 .pg-link:hover {
   text-decoration: underline;
+  color: var(--info-light);
+}
+
+.button, .pg-button-light, .pg-button-danger, .pg-button-secondary, .pg-button-primary {
+  transition: color 0.3s ease;
+}
+.button:hover, .pg-button-light:hover, .pg-button-danger:hover, .pg-button-secondary:hover, .pg-button-primary:hover {
   color: var(--info-light);
 }
 

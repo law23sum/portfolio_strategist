@@ -30,7 +30,7 @@ $menu-item-active-background-color: $info;
 
 // Set up root vars for easy reference
 :root {
-  --primary: #{$primary}; // Use interpolation to reference SCSS variables in CSS
+  --primary: #{$info}; // Use interpolation to reference SCSS variables in CSS
   --info: #{$info};
   --info-light: #{$info-light};
   --info-lighter: #{$info-lighter};
@@ -43,7 +43,7 @@ $menu-item-active-background-color: $info;
 
 // Using the CSS variable defined in :root
 .pg-title {
-  color: var(--info);
+//   color: var(--info);
   transition: color 0.3s ease; // Smooth transition for hover effect
 
   &:hover {
@@ -60,6 +60,17 @@ $menu-item-active-background-color: $info;
     color: var(--info-light); // Use lighter color on hover
   }
 }
+
+
+.button {
+//   color: var(--info);
+  transition: color 0.3s ease; // Smooth transition for hover effect
+
+  &:hover {
+    color: var(--info-light); // Use lighter color on hover
+  }
+}
+
 
 // Custom notification colors
 .notification {

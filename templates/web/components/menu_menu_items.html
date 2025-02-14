@@ -1,4 +1,9 @@
 {% load i18n %}
+<aside class="menu is-hidden-mobile">
+  <p class="menu-label is-hidden-tablet-only">
+    {% translate "Application" %}
+  </p>
+  <ul class="menu-list">
 <li>
   <a class="navbar-item is-tab  {% if active_tab == 'dashboard' %}is-active{% endif %}" href="{% url 'web:home' %}">
     <span class="pg-icon"><i class="fa fa-home"></i></span><span class="is-hidden-tablet-only">{% translate "Dashboard" %}</span>
@@ -21,3 +26,5 @@
     <span class="is-hidden-tablet-only">{% translate "Examples Gallery" %}</span>
   </a>
 </li>
+  </ul>
+</aside>

@@ -1,6 +1,7 @@
 {% load i18n %}
+<aside class="menu is-hidden-mobile">
 <li>
-  <a href="{% url 'dashboard:dashboard' %}" class="navbar-item {% if active_tab == 'project-dashboard' %}is-active{% endif %}">
+  <a href="{% url 'dashboard:dashboard' %}" class="navbar-item is-tab {% if active_tab == 'project-dashboard' %}is-active{% endif %}">
     <span class="pg-icon">
       <i class="fa fa-bar-chart-o"></i>
     </span>
@@ -8,8 +9,9 @@
   </a>
 </li>
 <li>
-  <a href="{% url 'support:hijack_user' %}" class="navbar-item {% if active_tab == 'support' %}is-active{% endif %}">
+  <a href="{% url 'support:hijack_user' %}" class="navbar-item is-tab {% if active_tab == 'support' %}is-active{% endif %}">
     <span class="pg-icon"><i class="fa fa-user-secret"></i></span>
     <span class="is-hidden-tablet-only">{% translate "Impersonate User" %}</span>
   </a>
 </li>
+</aside>

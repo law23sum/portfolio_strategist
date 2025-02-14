@@ -148,7 +148,7 @@ class ObjectLifecycleView(TemplateView):
 
 
 class VueObjectLifecycleView(ObjectLifecycleView):
-    template_name = "pegasus/employees/vue_object_lifecycle.html"
+    template_name = "pegasus/employees/budgeting.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
