@@ -64,7 +64,7 @@
         {% if user.is_authenticated %}
         <!-- Account dropdown -->
         {% if not user.is_anonymous %}
-               <div class="navbar-item has-dropdown is-hoverable">
+          <div class="navbar-item has-dropdown is-hoverable">
             <a class="navbar-link">
                 <span>{% translate "Solutions" %}</span>
             </a>
@@ -74,13 +74,23 @@
             {% endwith %}
           </div>
         </div>
+               <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link">
+                <span>{% translate "Reports" %}</span>
+            </a>
+          <div class="navbar-dropdown is-right">
+            {% with True as hide_on_tablet %}
+            {% include "web/components/reports_menu_items.html" %}
+            {% endwith %}
+          </div>
+        </div>
         <div class="navbar-item has-dropdown is-hoverable">
             <a class="navbar-link">
                 <span>{% translate "Categories" %}</span>
             </a>
           <div class="navbar-dropdown is-right">
             {% with True as hide_on_tablet %}
-            {% include "web/components/account_menu_items.html" %}
+            {% include "web/components/categories_menu_items.html" %}
             {% endwith %}
           </div>
         </div>
@@ -90,7 +100,7 @@
             </a>
           <div class="navbar-dropdown is-right">
             {% with True as hide_on_tablet %}
-            {% include "web/components/account_menu_items.html" %}
+            {% include "web/components/records_menu_items.html" %}
             {% endwith %}
           </div>
         </div>

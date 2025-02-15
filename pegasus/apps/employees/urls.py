@@ -28,7 +28,6 @@ urlpatterns = [
     path("objects/htmx/edit/<int:employee_id>/", views.edit_employee_row_htmx, name="htmx_edit_employee"),
     path("objects/htmx/get/<int:employee_id>/", views.get_employee_row_htmx, name="htmx_get_employee"),
     path("objects/htmx/delete/<int:employee_id>/", views.delete_employee_htmx, name="htmx_delete_employee"),
-    path("objects/vue/", views.VueObjectLifecycleView.as_view(), name="vue_object_lifecycle"),
     path("charts/", views.ChartsView.as_view(), name="charts"),
     path("api/employee-data/", views.EmployeeDataAPIView.as_view(), name="employee_data"),
 ]

@@ -147,22 +147,6 @@ class ObjectLifecycleView(TemplateView):
         }
 
 
-class VueObjectLifecycleView(ObjectLifecycleView):
-    template_name = "pegasus/employees/budgeting.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(
-            {
-                "framework_url": "https://vuejs.org/",
-                "framework_name": "Vue.js",
-                "framework_icon": static("images/pegasus/vue-icon.png"),
-                "url_base": reverse("pegasus_employees:vue_object_lifecycle"),
-            }
-        )
-        return context
-
-
 @method_decorator(login_required, name="dispatch")
 class ChartsView(TemplateView):
     template_name = "pegasus/employees/charts.html"

@@ -73,7 +73,9 @@ urlpatterns = [
     path("content/", include(wagtail_urls)),
     path("chat/", include("apps.chat.urls")),
     path('solutions/', include('apps.solutions.urls', namespace = 'solutions')),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('records/', include('apps.records.urls', namespace = 'records')),
+    path('categories/', include('apps.categories.urls', namespace = 'categories')),
+    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.ENABLE_DEBUG_TOOLBAR:
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))
