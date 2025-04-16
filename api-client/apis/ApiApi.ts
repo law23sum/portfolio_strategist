@@ -24,6 +24,7 @@ import type {
   PatchedCustomUser,
   Register,
   RestAuthDetail,
+  TokenObtainPair,
   TokenRefresh,
   TokenVerify,
 } from '../models/index';
@@ -46,11 +47,21 @@ import {
     RegisterToJSON,
     RestAuthDetailFromJSON,
     RestAuthDetailToJSON,
+    TokenObtainPairFromJSON,
+    TokenObtainPairToJSON,
     TokenRefreshFromJSON,
     TokenRefreshToJSON,
     TokenVerifyFromJSON,
     TokenVerifyToJSON,
 } from '../models/index';
+
+export interface ApiAuthApiTokenCreateRequest {
+    tokenObtainPair: Omit<TokenObtainPair, 'access'|'refresh'>;
+}
+
+export interface ApiAuthApiTokenRefreshCreateRequest {
+    tokenRefresh: Omit<TokenRefresh, 'access'>;
+}
 
 export interface ApiAuthLoginCreateRequest {
     login: Login;
@@ -90,6 +101,86 @@ export interface ApiAuthVerifyOtpCreateRequest {
 export class ApiApi extends runtime.BaseAPI {
 
     /**
+     * Takes a set of user credentials and returns an access and refresh JSON web token pair to prove the authentication of those credentials.
+     */
+    async apiAuthApiTokenCreateRaw(requestParameters: ApiAuthApiTokenCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenObtainPair>> {
+        if (requestParameters['tokenObtainPair'] == null) {
+            throw new runtime.RequiredError(
+                'tokenObtainPair',
+                'Required parameter "tokenObtainPair" was null or undefined when calling apiAuthApiTokenCreate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/auth/api/token/`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: TokenObtainPairToJSON(requestParameters['tokenObtainPair']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TokenObtainPairFromJSON(jsonValue));
+    }
+
+    /**
+     * Takes a set of user credentials and returns an access and refresh JSON web token pair to prove the authentication of those credentials.
+     */
+    async apiAuthApiTokenCreate(requestParameters: ApiAuthApiTokenCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenObtainPair> {
+        const response = await this.apiAuthApiTokenCreateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Takes a refresh type JSON web token and returns an access type JSON web token if the refresh token is valid.
+     */
+    async apiAuthApiTokenRefreshCreateRaw(requestParameters: ApiAuthApiTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenRefresh>> {
+        if (requestParameters['tokenRefresh'] == null) {
+            throw new runtime.RequiredError(
+                'tokenRefresh',
+                'Required parameter "tokenRefresh" was null or undefined when calling apiAuthApiTokenRefreshCreate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/auth/api/token/refresh/`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: TokenRefreshToJSON(requestParameters['tokenRefresh']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TokenRefreshFromJSON(jsonValue));
+    }
+
+    /**
+     * Takes a refresh type JSON web token and returns an access type JSON web token if the refresh token is valid.
+     */
+    async apiAuthApiTokenRefreshCreate(requestParameters: ApiAuthApiTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenRefresh> {
+        const response = await this.apiAuthApiTokenRefreshCreateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Custom login view that checks if 2FA is enabled for the user.
      */
     async apiAuthLoginCreateRaw(requestParameters: ApiAuthLoginCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LoginResponse>> {
@@ -109,6 +200,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -151,6 +246,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -192,6 +291,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -242,6 +345,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -276,7 +383,7 @@ export class ApiApi extends runtime.BaseAPI {
     /**
      * Registers a new user.  Accepts the following POST parameters: username, email, password1, password2.
      */
-    async apiAuthRegisterCreateRaw(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JWT>> {
+    async apiAuthRegisterCreateRaw(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RestAuthDetail>> {
         if (requestParameters['register'] == null) {
             throw new runtime.RequiredError(
                 'register',
@@ -293,6 +400,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -313,13 +424,13 @@ export class ApiApi extends runtime.BaseAPI {
             body: RegisterToJSON(requestParameters['register']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => JWTFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => RestAuthDetailFromJSON(jsonValue));
     }
 
     /**
      * Registers a new user.  Accepts the following POST parameters: username, email, password1, password2.
      */
-    async apiAuthRegisterCreate(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JWT> {
+    async apiAuthRegisterCreate(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RestAuthDetail> {
         const response = await this.apiAuthRegisterCreateRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -417,6 +528,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -459,6 +574,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -502,6 +621,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);
@@ -552,6 +675,10 @@ export class ApiApi extends runtime.BaseAPI {
         if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
             headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
         }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
             const tokenString = await token("jwtAuth", []);

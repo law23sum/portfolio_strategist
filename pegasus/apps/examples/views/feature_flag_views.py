@@ -6,7 +6,7 @@ from django.views.generic import TemplateView
 
 @method_decorator(login_required, name="dispatch")
 class FeatureFlagExampleView(TemplateView):
-    template_name = "pegasus/examples/example_feature_flag.html"
+    template_name = "pegasus/examples/government.html"
 
     def get_context_data(self, **kwargs):
         _create_flag_if_necessary()

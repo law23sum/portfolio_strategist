@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-03-03 12:12+0000\n"
+"POT-Creation-Date: 2025-03-18 00:47+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -12,398 +12,525 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid ""
-"Sorry, that page requires an active subscription. You've been redirected."
+#: apps/chat/models.py:11
+msgid "Human"
 msgstr ""
 
-msgid ""
-"Sorry, that page requires a higher subscription tier. Upgrade your plan to "
-"continue."
+#: apps/chat/models.py:12
+msgid "AI"
 msgstr ""
 
+#: apps/chat/models.py:13
+msgid "System"
+msgstr ""
+
+#: apps/chat/views.py:81
+msgid "Invalid Chat ID."
+msgstr ""
+
+#: apps/subscriptions/decorators.py:43
+#, python-brace-format
+msgid "Sorry, but you don't have access to that. {details}"
+msgstr ""
+
+#: apps/subscriptions/feature_gating.py:19
+msgid "Couldn't find a model to check for a valid subscription."
+msgstr ""
+
+#: apps/subscriptions/feature_gating.py:22
+msgid "No active subscription was found."
+msgstr ""
+
+#: apps/subscriptions/feature_gating.py:30
+msgid "Your current plan does not support that."
+msgstr ""
+
+#: apps/subscriptions/forms.py:13
+#: templates/subscriptions/components/subscription_details.html:58
 msgid "Product"
 msgstr ""
 
+#: apps/subscriptions/helpers.py:112
 msgid "Whoops, we couldn't find a subscription associated with your account!"
 msgstr ""
 
-#, python-brace-format
+#: apps/subscriptions/metadata.py:85
 msgid ""
-"Unable to select a \"{interval}\" plan for {self.product}. Have you setup "
-"your Stripe objects and run ./manage.py bootstrap_subscriptions? You can "
-"also hide this plan interval by removing it from ACTIVE_PLAN_INTERVALS in "
-"apps/subscriptions/metadata.py"
+"Have you setup your Stripe objects and run ./manage.py "
+"bootstrap_subscriptions? You can also hide this plan interval by removing it "
+"from ACTIVE_PLAN_INTERVALS in apps/subscriptions/metadata.py"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:148
 msgid "Annual"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:149
 msgid "Monthly"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:150
 msgid "Weekly"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:151
 msgid "Daily"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:152
 msgid "Custom"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:157
 msgid "You're getting two months free by choosing an Annual plan!"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:158
 msgid "Upgrade to annual pricing to get two free months."
 msgstr ""
 
+#: apps/subscriptions/metadata.py:159
 msgid "Good choice!"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:188
 msgid "Starter"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:189
 msgid "For hobbyists and side-projects"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:191
 msgid "Up to 100 Widgets"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:192 apps/subscriptions/metadata.py:203
 msgid "Unlimited Widget Editing"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:198
 msgid "Standard"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:199 apps/subscriptions/metadata.py:211
 msgid "For small businesses and teams"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:202
 msgid "Up to 500 Widgets"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:204
 msgid "Advanced Widget Editing Features"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:210
 msgid "Premium"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:213
 msgid "Unlimited Widgets"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:214
 msgid "All Features"
 msgstr ""
 
+#: apps/subscriptions/metadata.py:215
 msgid "Priority Support and Training"
 msgstr ""
 
-#, python-brace-format
-msgid "No Product with ID \"{product_meta.stripe_id}\" found! "
+#: apps/subscriptions/metadata.py:237
+msgid ""
+"in metadata.py. Please make sure that all products in ACTIVE_PRODUCTS have a "
+"valid stripe_id and that you have synced your Product database with Stripe."
 msgstr ""
 
+#: apps/subscriptions/metadata.py:254
 msgid ""
 "It looks like you do not have any Products in your database. In order to use "
 "subscriptions you first have to setup Stripe billing and sync it with your "
 "local data."
 msgstr ""
 
+#: apps/subscriptions/models.py:28
 msgid "The associated Stripe Subscription object, if it exists"
 msgstr ""
 
+#: apps/subscriptions/models.py:32
 msgid "Updated every time an event that might trigger billing happens."
 msgstr ""
 
+#: apps/subscriptions/models.py:35
 msgid "Used for determining when to next sync with Stripe."
 msgstr ""
 
-#, python-brace-format
-msgid "Subscription | {team}"
+#: apps/subscriptions/views/views.py:94
+msgid "Subscription"
 msgstr ""
 
-#, python-brace-format
-msgid "Subscription Demo | {team}"
+#: apps/subscriptions/views/views.py:127
+msgid "Subscription Demo"
 msgstr ""
 
+#: apps/subscriptions/views/views.py:146
 msgid "Successfully recorded {} units for metered billing."
 msgstr ""
 
+#: apps/subscriptions/views/views.py:155
 msgid ""
 "It looks like you don't have any metered subscriptions set up. Sign up for a "
 "subscription with metered usage to use this UI."
 msgstr ""
 
+#: apps/subscriptions/wrappers.py:55
 msgid "Multiple Products"
 msgstr ""
 
+#: apps/subscriptions/wrappers.py:65
 #, python-brace-format
 msgid "Every {interval}"
 msgstr ""
 
+#: apps/subscriptions/wrappers.py:67
 #, python-brace-format
 msgid "Every {count} {interval}s"
 msgstr ""
 
-msgid "Team Name (Optional)"
-msgstr ""
-
-msgid ""
-"That invitation could not be found. Please double check your invitation link "
-"or sign in to continue."
-msgstr ""
-
-msgid ""
-"It looks like that invitation link has expired. Please request a new "
-"invitation or sign in to continue."
-msgstr ""
-
-msgid ""
-"You must sign up with the email address that the invitation was sent to."
-msgstr ""
-
-msgid "Team Name"
-msgstr ""
-
-msgid "Team ID"
-msgstr ""
-
-msgid "Your team name."
-msgstr ""
-
-msgid "A unique ID for your team. No spaces are allowed!"
-msgstr ""
-
-msgid ""
-"There is already a pending invitation for {}. You can resend it by clicking "
-"\"Resend Invitation\"."
-msgstr ""
-
-msgid "My Team"
-msgstr ""
-
-msgid "You're invited to {}!"
-msgstr ""
-
-msgid "Team"
-msgstr ""
-
-msgid "Activate this flag for these teams."
-msgstr ""
-
-msgid "Updating team membership must be done through the team object!"
-msgstr ""
-
-msgid "Manage Teams"
-msgstr ""
-
-msgid "Team details saved!"
-msgstr ""
-
-#, python-brace-format
-msgid "My Team | {team}"
-msgstr ""
-
-msgid "Create Team"
-msgstr ""
-
-#, python-brace-format
-msgid "The \"{team}\" team was successfully deleted"
-msgstr ""
-
-#, python-brace-format
-msgid ""
-"It looks like you're already a member of {team}. You've been redirected."
-msgstr ""
-
-msgid "Please log in again to accept your invitation."
-msgstr ""
-
-msgid "Sorry, it looks like that invitation link has expired."
-msgstr ""
-
-msgid "You successfully joined {}"
-msgstr ""
-
-msgid "Sorry, you don't have permission to access that page."
-msgstr ""
-
-msgid "You don't have permission to edit team members in that team."
-msgstr ""
-
-msgid "You aren't allowed to change your own role."
-msgstr ""
-
-#, python-brace-format
-msgid "Role for {member} updated."
-msgstr ""
-
-msgid "You don't have permission to remove others from that team."
-msgstr ""
-
-msgid ""
-"You cannot remove the only administrator from a team. Make another team "
-"member an administrator and try again."
-msgstr ""
-
-#, python-brace-format
-msgid "{member} was removed from {team}."
-msgstr ""
-
-#, python-brace-format
-msgid "Example App | {team}"
-msgstr ""
-
+#: apps/users/forms.py:48
 msgid "Email"
 msgstr ""
 
+#: apps/users/forms.py:49
 msgid "Language"
 msgstr ""
 
+#: apps/users/forms.py:50
+msgid "Time Zone"
+msgstr ""
+
+#: apps/users/forms.py:82
+msgid "Terms and Conditions"
+msgstr ""
+
+#: apps/users/forms.py:84
+#, python-brace-format
+msgid "I agree to the {terms_link}"
+msgstr ""
+
+#: apps/users/helpers.py:35
+#, python-brace-format
+msgid "Please upload a valid image file! Supported types are {types}"
+msgstr ""
+
+#: apps/users/helpers.py:43
+#, python-brace-format
+msgid "Maximum file size allowed is 5 MB. Provided file is {size} MB."
+msgstr ""
+
+#: apps/users/views.py:50
 msgid "Profile successfully saved."
 msgstr ""
 
+#: apps/users/views.py:59 templates/web/components/account_menu_items.html:10
+#: templates/web/components/account_menu_items.html:13
 msgid "Profile"
 msgstr ""
 
+#: apps/users/views.py:77
 msgid "Success!"
 msgstr ""
 
+#: apps/users/views.py:90
 #, python-brace-format
 msgid ""
 "API Key created. Your key is: {key}. Save this somewhere safe - you will "
 "only see it once!"
 msgstr ""
 
+#: apps/users/views.py:106
 #, python-brace-format
 msgid ""
 "API Key {key} has been revoked. It can no longer be used to access the site."
 msgstr ""
 
+#: apps/utils/timezones.py:42
+msgid "Not Set"
+msgstr ""
+
+#: apps/web/views.py:15 templates/web/components/menu_menu_items.html:6
+#: templates/web/components/reports_menu_items.html:6
+msgid "Dashboard"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:48
+msgid "Yes"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:49
+msgid "No"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:50
+msgid "Other"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:53
+msgid "Normal"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:54
+msgid "Success"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:55
+msgid "Danger"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:58
+msgid "Do you like Django?"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:59
+msgid "Try choosing 'other' to see unhiding a form field based on a value."
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:63
+msgid "Please specify more details about your answer."
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:65
+msgid "Styled Options"
+msgstr ""
+
+#: pegasus/apps/examples/forms.py:66
 msgid ""
-"Teams are enabled but you have no teams. Create a team below to access the "
-"rest of the dashboard."
+"Try picking an option to see how you can style a component based on its "
+"value."
 msgstr ""
 
-#, python-brace-format
-msgid "{team} Dashboard"
+#: portfolio_strategist/settings.py:308
+msgid "English"
 msgstr ""
 
+#: portfolio_strategist/settings.py:309
+msgid "French"
+msgstr ""
+
+#: portfolio_strategist/settings.py:488
+msgid "The Portfolio Strategist"
+msgstr ""
+
+#: portfolio_strategist/settings.py:491
+msgid ""
+"Financia is a financial software (fintech) company that services online "
+"users with intuitive, user-friendly financial tools to create, monitor, and "
+"advise on budgets, portfolios, and investments, all to promote a simplified, "
+"interactive, and reliable approach to easily manage your assets."
+msgstr ""
+
+#: templates/400.html:4
 msgid "Shucks. That was a bad request."
 msgstr ""
 
+#: templates/400.html:6 templates/500.html:6
 msgid ""
 "Please try again, and if you continue to get this message, contact support."
 msgstr ""
 
+#: templates/403.html:4
 msgid "Oops. You don't have permission to do that."
 msgstr ""
 
+#: templates/403.html:6
 msgid "If you think this is a mistake, contact support."
 msgstr ""
 
+#: templates/404.html:4
 msgid "Shucks. We couldn't find that."
 msgstr ""
 
+#: templates/404.html:6
 msgid ""
 "If you think this page should exist, double-check that you are signed in as "
 "the right person."
 msgstr ""
 
+#: templates/500.html:4
 msgid "Shucks. That's an error."
 msgstr ""
 
+#: templates/account/account_inactive.html:4
+#: templates/account/account_inactive.html:7
+msgid "Account Inactive"
+msgstr ""
+
+#: templates/account/account_inactive.html:8
+msgid "This account is inactive."
+msgstr ""
+
+#: templates/account/components/2fa.html:3
 msgid "Two-Factor Auth"
 msgstr ""
 
+#: templates/account/components/2fa.html:5
 msgid "You already have two-factor authentication enabled."
 msgstr ""
 
+#: templates/account/components/2fa.html:6
 msgid "Configure"
 msgstr ""
 
+#: templates/account/components/2fa.html:9
 msgid "You do not have two-factor authentication enabled."
 msgstr ""
 
+#: templates/account/components/2fa.html:10
 msgid "Enable"
 msgstr ""
 
+#: templates/account/components/2fa.html:12
+msgid ""
+"To set up two-factor authentication you must first verify your email address."
+msgstr ""
+
+#: templates/account/components/2fa.html:13
+msgid "Verify"
+msgstr ""
+
+#: templates/account/components/api_keys.html:3
 msgid "API Keys"
 msgstr ""
 
+#: templates/account/components/api_keys.html:10
 msgid "Prefix"
 msgstr ""
 
+#: templates/account/components/api_keys.html:11
 msgid "Created"
 msgstr ""
 
+#: templates/account/components/api_keys.html:25
 msgid "Revoke"
 msgstr ""
 
+#: templates/account/components/api_keys.html:36
 msgid "You haven't created any API keys yet. Create one below."
 msgstr ""
 
+#: templates/account/components/api_keys.html:41
 msgid "New API Key"
 msgstr ""
 
+#: templates/account/components/profile_form.html:10
 msgid "Change Picture"
 msgstr ""
 
+#: templates/account/components/profile_form.html:18
 msgid "My Details"
 msgstr ""
 
+#: templates/account/components/profile_form.html:23
+msgid "Manage email addresses"
+msgstr ""
+
+#: templates/account/components/profile_form.html:33
+#, python-format
+msgid ""
+"\n"
+"            Your current timezone is %(user_tz)s, where it is %(now)s.\n"
+"          "
+msgstr ""
+
+#: templates/account/components/profile_form.html:37
+#, python-format
+msgid ""
+"\n"
+"            You have not set a timezone, and are using the system timezone "
+"of %(current_tz)s where it is %(now)s.\n"
+"          "
+msgstr ""
+
+#: templates/account/components/profile_form.html:43
 msgid "Save"
 msgstr ""
 
-msgid "Continue with Google"
+#: templates/account/components/social/login_with_social_button.html:7
+msgid "Logo"
 msgstr ""
 
-msgid "Continue with Twitter"
+#: templates/account/components/social/login_with_social_button.html:8
+msgid "Continue with"
 msgstr ""
 
+#: templates/account/components/social/social_accounts.html:3
 msgid "Connected Accounts"
 msgstr ""
 
+#: templates/account/components/social/social_accounts.html:29
 msgid "You haven't linked any social accounts yet. Create one below."
 msgstr ""
 
+#: templates/account/components/social/social_buttons.html:5
+msgid "or"
+msgstr ""
+
+#: templates/account/email.html:4 templates/account/email.html:6
 msgid "E-mail Addresses"
 msgstr ""
 
+#: templates/account/email.html:8
 msgid "The following e-mail addresses are associated with your account:"
 msgstr ""
 
+#: templates/account/email.html:22
 msgid "Verified"
 msgstr ""
 
+#: templates/account/email.html:24
 msgid "Unverified"
 msgstr ""
 
+#: templates/account/email.html:26
 msgid "Primary"
 msgstr ""
 
+#: templates/account/email.html:32
 msgid "Make Primary"
 msgstr ""
 
+#: templates/account/email.html:33
 msgid "Re-send Verification"
 msgstr ""
 
+#: templates/account/email.html:34 templates/socialaccount/connections.html:32
 msgid "Remove"
 msgstr ""
 
+#: templates/account/email.html:40
 msgid "Warning:"
 msgstr ""
 
+#: templates/account/email.html:40
 msgid ""
 "You currently do not have any e-mail address set up. You should really add "
 "an e-mail address so you can receive notifications, reset your password, etc."
 msgstr ""
 
+#: templates/account/email.html:45
 msgid "Add E-mail Address"
 msgstr ""
 
+#: templates/account/email.html:50
 msgid "Add E-mail"
 msgstr ""
 
+#: templates/account/email.html:58
 msgid "Do you really want to remove the selected e-mail address?"
 msgstr ""
 
+#: templates/account/email/email_confirmation_message.html:3
 #, python-format
 msgid ""
 "\n"
@@ -411,9 +538,12 @@ msgid ""
 "account.\n"
 msgstr ""
 
+#: templates/account/email/email_confirmation_message.html:7
+#: templates/account/email/email_confirmation_signup_message.html:8
 msgid "Confirm Email Address"
 msgstr ""
 
+#: templates/account/email/email_confirmation_signup_message.html:3
 #, python-format
 msgid ""
 "\n"
@@ -421,6 +551,23 @@ msgid ""
 "  Click the confirmation link below to activate your account.\n"
 msgstr ""
 
+#: templates/account/email/login_code_message.html:5
+#, python-format
+msgid ""
+"\n"
+"      Your sign-in code for %(site_name)s is listed below. Please enter it "
+"in your open browser window.\n"
+"    "
+msgstr ""
+
+#: templates/account/email/login_code_message.html:11
+msgid ""
+"\n"
+"      This mail can be safely ignored if you did not initiate this action.\n"
+"    "
+msgstr ""
+
+#: templates/account/email/password_reset_key_message.html:3
 #, python-format
 msgid ""
 "\n"
@@ -428,9 +575,12 @@ msgid ""
 "  If you didn't request this, you can safely ignore this email.\n"
 msgstr ""
 
+#: templates/account/email/password_reset_key_message.html:8
+#: templates/account/email/password_reset_key_subject.txt:3
 msgid "Reset Password"
 msgstr ""
 
+#: templates/account/email/password_reset_key_message.txt:1
 #, python-format
 msgid ""
 "Hello,\n"
@@ -442,6 +592,7 @@ msgid ""
 "If you did not try to reset your password you can safely ignore this email.\n"
 msgstr ""
 
+#: templates/account/email/password_reset_key_message.txt:9
 #, python-format
 msgid ""
 "Thanks!\n"
@@ -449,9 +600,11 @@ msgid ""
 "The %(site_name)s team\n"
 msgstr ""
 
+#: templates/account/email_confirm.html:5
 msgid "Confirm E-mail Address"
 msgstr ""
 
+#: templates/account/email_confirm.html:9
 #, python-format
 msgid ""
 "\n"
@@ -460,9 +613,11 @@ msgid ""
 "    "
 msgstr ""
 
+#: templates/account/email_confirm.html:17
 msgid "Confirm"
 msgstr ""
 
+#: templates/account/email_confirm.html:23
 #, python-format
 msgid ""
 "\n"
@@ -472,44 +627,60 @@ msgid ""
 "    "
 msgstr ""
 
+#: templates/account/login.html:8 templates/account/login.html:14
+#: templates/web/components/top_nav.html:147
 msgid "Sign In"
 msgstr ""
 
-msgid "or"
+#: templates/account/login.html:20
+msgid "Mail me a sign-in code"
 msgstr ""
 
-msgid "Forgot password?"
-msgstr ""
-
+#: templates/account/logout.html:7
 msgid "Are you sure you want to sign out?"
 msgstr ""
 
+#: templates/account/logout.html:15
 msgid "Sign Out"
 msgstr ""
 
+#: templates/account/logout.html:20
 msgid "Home"
 msgstr ""
 
+#: templates/account/password_change.html:8
+#: templates/account/password_change.html:16
+#: templates/account/password_reset_from_key.html:5
+#: templates/account/password_reset_from_key.html:28
+#: templates/account/password_reset_from_key_done.html:4
+#: templates/web/components/account_menu_items.html:20
+#: templates/web/components/account_menu_items.html:23
 msgid "Change Password"
 msgstr ""
 
+#: templates/account/password_reset.html:7
+#: templates/account/password_reset_done.html:5
 msgid "Password Reset"
 msgstr ""
 
+#: templates/account/password_reset.html:11
 msgid ""
 "Forgot your password? Enter your e-mail address below, and we'll send you an "
 "e-mail allowing you to reset it."
 msgstr ""
 
+#: templates/account/password_reset.html:17
 msgid "Send Password Reset"
 msgstr ""
 
+#: templates/account/password_reset.html:20
 msgid ""
 "\n"
 "        Please contact us if you have any trouble resetting your password.\n"
 "      "
 msgstr ""
 
+#: templates/account/password_reset_done.html:10
 msgid ""
 "\n"
 "        We've sent you an e-mail. Please get in touch if you do not receive "
@@ -517,9 +688,11 @@ msgid ""
 "        "
 msgstr ""
 
+#: templates/account/password_reset_from_key.html:5
 msgid "Bad Token"
 msgstr ""
 
+#: templates/account/password_reset_from_key.html:10
 msgid ""
 "\n"
 "        The password reset link was invalid, possibly because it has already "
@@ -527,6 +700,7 @@ msgid ""
 "      "
 msgstr ""
 
+#: templates/account/password_reset_from_key.html:15
 #, python-format
 msgid ""
 "\n"
@@ -535,15 +709,18 @@ msgid ""
 "      "
 msgstr ""
 
+#: templates/account/password_reset_from_key.html:32
 msgid "Your password is now changed."
 msgstr ""
 
+#: templates/account/password_reset_from_key_done.html:7
 msgid ""
 "\n"
 "            Your password has been changed.\n"
 "            "
 msgstr ""
 
+#: templates/account/password_reset_from_key_done.html:13
 #, python-format
 msgid ""
 "\n"
@@ -552,26 +729,32 @@ msgid ""
 "            "
 msgstr ""
 
+#: templates/account/password_set.html:8 templates/account/password_set.html:14
 msgid "Set Password"
 msgstr ""
 
-#, python-format
-msgid ""
-"\n"
-"                    You're signing up to join \"%(team_name)s\" as "
-"\"%(email)s\".\n"
-"                    "
-msgstr ""
-
+#: templates/account/signup.html:32
 msgid "Already have account?"
 msgstr ""
 
+#: templates/account/signup.html:34
 msgid "Go to sign in."
 msgstr ""
 
+#: templates/account/signup_closed.html:4
+#: templates/account/signup_closed.html:7
+msgid "Sign Up Closed"
+msgstr ""
+
+#: templates/account/signup_closed.html:8
+msgid "We are sorry, but the sign up is currently closed."
+msgstr ""
+
+#: templates/account/verification_sent.html:4
 msgid "Verify Your E-mail Address"
 msgstr ""
 
+#: templates/account/verification_sent.html:6
 msgid ""
 "\n"
 "        We have sent an e-mail to you for verification.\n"
@@ -579,153 +762,204 @@ msgid ""
 "        "
 msgstr ""
 
+#: templates/account/verification_sent.html:12
 msgid ""
 "\n"
 "        Please contact us if you do not receive it within a few minutes.\n"
 "        "
 msgstr ""
 
-msgid "Two-Factor Authentication"
+#: templates/chat/chat_home.html:11
+#: templates/web/components/menu_menu_items.html:17
+#: templates/web/components/reports_menu_items.html:17
+msgid "AI Chat"
 msgstr ""
 
-msgid "Verify"
+#: templates/chat/chat_home.html:21
+msgid "My Chats"
 msgstr ""
 
-msgid "Two-Factor Authentication Backup Tokens"
+#: templates/chat/chat_home.html:22
+msgid "Manage your chats here."
 msgstr ""
 
-msgid ""
-"Backup tokens have been generated, but are not revealed here for security "
-"reasons. Press the button below to generate new ones."
+#: templates/chat/chat_home.html:27
+msgid "New Chat"
 msgstr ""
 
-msgid ""
-"No backup tokens have been created. Press the button below to generate some."
+#: templates/chat/chat_home.html:36
+msgid "Chat"
 msgstr ""
 
-msgid "Generate backup tokens"
+#: templates/chat/chat_home.html:37
+msgid "Started On"
 msgstr ""
 
-msgid "Disable Two-Factor Authentication"
-msgstr ""
-
-msgid ""
-"Please enter a valid authentication token to disable two-factor "
-"authentication:"
-msgstr ""
-
-msgid "Disable Two-Factor"
-msgstr ""
-
-msgid "Setup Two-Factor Authentication"
-msgstr ""
-
-msgid "Step 1"
-msgstr ""
-
-msgid ""
-"Scan the QR code below with a token generator of your choice (e.g. <a href="
-"\"https://support.google.com/accounts/answer/1066447\" target=\"_blank"
-"\">Google Authenticator</a>)."
-msgstr ""
-
-msgid "Step 2"
-msgstr ""
-
-msgid "Input a token generated by the app:"
-msgstr ""
-
+#: templates/content/blog_page.html:30
 msgid "Image Gallery"
 msgstr ""
 
+#: templates/dashboard/user_dashboard.html:8
+#: templates/web/components/admin_menu_items.html:8
+msgid "Project Dashboard"
+msgstr ""
+
+#: templates/dashboard/user_dashboard.html:23
+msgid "User Signups (Daily)"
+msgstr ""
+
+#: templates/dashboard/user_dashboard.html:27
+msgid "Registered Users (Total)"
+msgstr ""
+
+#: templates/pegasus/employees/htmx/new_employee_button.html:5
+#: templates/pegasus/employees/list_employees.html:44
 msgid "Add Employee"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:11
 msgid "Name"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:12
 msgid "Department"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:13
 msgid "Salary"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:27
 msgid "Edit"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:33
 msgid "Delete"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:52
 msgid "No Employees Yet!"
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:53
 msgid "Create your first employee below to get started."
 msgstr ""
 
+#: templates/pegasus/employees/list_employees.html:57
 msgid "Create Employee"
 msgstr ""
 
+#: templates/records/upload_records.html:101
+msgid "No Documents Yet!"
+msgstr ""
+
+#: templates/records/upload_records.html:102
+msgid "Upload your first document to get started."
+msgstr ""
+
+#: templates/records/upload_records.html:107
+msgid "Upload Document"
+msgstr ""
+
+#: templates/socialaccount/authentication_error.html:3
+msgid "Authentication Error"
+msgstr ""
+
+#: templates/socialaccount/authentication_error.html:11
+msgid "Social Network Login Failure"
+msgstr ""
+
+#: templates/socialaccount/authentication_error.html:12
+msgid ""
+"An error occurred while attempting to login via your social network account."
+msgstr ""
+
+#: templates/socialaccount/connections.html:3
+#: templates/socialaccount/connections.html:12
 msgid "Account Connections"
 msgstr ""
 
+#: templates/socialaccount/connections.html:11
 msgid "← Return to Profile"
 msgstr ""
 
+#: templates/socialaccount/connections.html:14
 msgid ""
 "You can sign in to your account using any of the following third party "
 "accounts:"
 msgstr ""
 
+#: templates/socialaccount/connections.html:37
 msgid ""
 "You currently have no social network accounts connected to this account."
 msgstr ""
 
+#: templates/socialaccount/connections.html:39
 msgid "Add a 3rd Party Account"
 msgstr ""
 
+#: templates/socialaccount/login.html:6
 #, python-format
 msgid "Connect %(provider)s"
 msgstr ""
 
+#: templates/socialaccount/login.html:8
 #, python-format
 msgid "You are about to connect a new third party account from %(provider)s."
 msgstr ""
 
+#: templates/socialaccount/login.html:10
 #, python-format
 msgid "Sign In Via %(provider)s"
 msgstr ""
 
+#: templates/socialaccount/login.html:12
 #, python-format
 msgid "You are about to sign in using a third party account from %(provider)s."
 msgstr ""
 
+#: templates/socialaccount/login.html:17
 msgid "Continue"
 msgstr ""
 
+#: templates/socialaccount/signup.html:6 templates/socialaccount/signup.html:9
+#: templates/socialaccount/signup.html:21
+#: templates/web/components/top_nav.html:141
 msgid "Sign Up"
 msgstr ""
 
+#: templates/socialaccount/signup.html:11
 #, python-format
 msgid ""
 "You are about to use your %(provider_name)s account to login to\n"
 "%(site_name)s. As a final step, please complete the following form:"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:16
+msgid "Trial Ends"
+msgstr ""
+
+#: templates/subscriptions/components/subscription_details.html:26
 msgid "Next Invoice"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:31
 msgid "On"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:33
 msgid "No further invoices"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:39
 msgid "Renews"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:45
 msgid "Off"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:46
 #, python-format
 msgid ""
 "\n"
@@ -733,21 +967,27 @@ msgid ""
 "          "
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:54
 msgid "Pricing"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:59
 msgid "Price"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:60
 msgid "Quantity"
 msgstr ""
 
+#: templates/subscriptions/components/subscription_details.html:68
 msgid "Varies with usage"
 msgstr ""
 
+#: templates/subscriptions/demo.html:44
 msgid "Metered Billing"
 msgstr ""
 
+#: templates/subscriptions/demo.html:48
 #, python-format
 msgid ""
 "\n"
@@ -757,6 +997,7 @@ msgid ""
 "      "
 msgstr ""
 
+#: templates/subscriptions/demo.html:54
 msgid ""
 "\n"
 "        You aren't currently subscribed to a plan that supports metered "
@@ -770,9 +1011,11 @@ msgid ""
 "      "
 msgstr ""
 
+#: templates/subscriptions/metered_billing_demo.html:7
 msgid "Metered Billing Demo"
 msgstr ""
 
+#: templates/subscriptions/metered_billing_demo.html:10
 msgid ""
 "\n"
 "        Use the form below to add usage data for your metered subscription.\n"
@@ -781,288 +1024,90 @@ msgid ""
 "      "
 msgstr ""
 
+#: templates/subscriptions/metered_billing_demo.html:19
 msgid "Add Usage"
 msgstr ""
 
-msgid "Welcome!"
-msgstr ""
-
-msgid "Accept Invitation?"
-msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"            You've been invited to join %(team_name)s by %(by)s.\n"
-"            "
-msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"                  This invitation was sent to %(invite_email)s but you're "
-"logged in as %(user_email)s.\n"
-"                  What would you like to do?\n"
-"                  "
-msgstr ""
-
-msgid "Sign out"
-msgstr ""
-
-msgid "Create Account to Accept"
-msgstr ""
-
-msgid ""
-"Sorry, it looks like that invitation has already been accepted or expired."
-msgstr ""
-
-msgid ""
-"If you think this is a mistake, ask your team administrator to invite you "
-"again!"
-msgstr ""
-
-msgid "Resend Invitation"
-msgstr ""
-
-msgid "Cancel Invitation"
-msgstr ""
-
-msgid "Invite Team Members"
-msgstr ""
-
-msgid "Send Invitation"
-msgstr ""
-
-msgid "Pending Invitations"
-msgstr ""
-
-msgid "Invited"
-msgstr ""
-
-msgid "Role"
-msgstr ""
-
-msgid "Any pending invitations will show up here until accepted."
-msgstr ""
-
-msgid "My Teams"
-msgstr ""
-
-msgid "View Dashboard"
-msgstr ""
-
-msgid "View Details"
-msgstr ""
-
-msgid "Add Team"
-msgstr ""
-
-msgid "Nothing Here"
-msgstr ""
-
-msgid "No Teams Yet!"
-msgstr ""
-
-msgid "Create your first team below to get started."
-msgstr ""
-
-msgid "Team Details"
-msgstr ""
-
-msgid "Save Details"
-msgstr ""
-
-msgid "Team Members"
-msgstr ""
-
-msgid "Member"
-msgstr ""
-
-msgid "Danger Zone"
-msgstr ""
-
-msgid "Delete Team"
-msgstr ""
-
-msgid "Date Joined"
-msgstr ""
-
-msgid "Update Role"
-msgstr ""
-
-msgid "You are not allowed to modify your own role."
-msgstr ""
-
-msgid "Leave Team"
-msgstr ""
-
-msgid "Remove from Team"
-msgstr ""
-
+#: templates/web/app_home.html:8
 msgid "Fly Away!"
 msgstr ""
 
+#: templates/web/app_home.html:11
 msgid "You're Signed In!"
 msgstr ""
 
+#: templates/web/app_home.html:13
 msgid "This is your application's logged in home page."
 msgstr ""
 
-#, python-format
-msgid "You're logged into the \"%(team_name)s\" Team."
+#: templates/web/components/account_menu_items.html:30
+#: templates/web/components/account_menu_items.html:32
+msgid "Sign out"
 msgstr ""
 
-msgid "Copyright"
-msgstr ""
-
-msgid "Create account"
-msgstr ""
-
-msgid "Really delete team?"
-msgstr ""
-
-msgid "Close"
-msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"        This will permanently delete the <em><strong>%(team_name)s</strong></"
-"em> team and all associated data.\n"
-"        "
-msgstr ""
-
-msgid "This action cannot be undone."
-msgstr ""
-
-msgid "I understand, permanently delete this team"
-msgstr ""
-
-msgid "Cancel"
-msgstr ""
-
-msgid "Leave team?"
-msgstr ""
-
-msgid "Remove team member?"
-msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"          You will be removed from the team: <em><strong>%(team_name)s</"
-"strong></em>.\n"
-"          After this, you will no longer be able to access any team pages, "
-"and will have to be invited again to regain access.\n"
-"          "
-msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"          This will remove <em><strong>%(member_name)s</strong></em> from "
-"your team: <em>%(team_name)s</em>.\n"
-"          They will no longer be able to access any team pages, and will "
-"have to be invited again to regain access.\n"
-"          "
-msgstr ""
-
-msgid "I understand, leave team"
-msgstr ""
-
-msgid "I understand, remove team member"
-msgstr ""
-
-msgid "Application"
-msgstr ""
-
-msgid "Dashboard"
-msgstr ""
-
-msgid "My Account"
-msgstr ""
-
-msgid "Teams"
-msgstr ""
-
-msgid "Example App"
-msgstr ""
-
-msgid "Subscription Demo"
-msgstr ""
-
-msgid "Subscription"
-msgstr ""
-
-msgid "Blog"
-msgstr ""
-
-msgid "Examples Gallery"
-msgstr ""
-
+#: templates/web/components/admin_menu_items.html:14
 msgid "Impersonate User"
 msgstr ""
 
-#, python-format
+#: templates/web/components/categories_menu_items.html:6
+msgid "Government"
+msgstr ""
+
+#: templates/web/components/footer.html:5
+msgid "Copyright"
+msgstr ""
+
+#: templates/web/components/footer.html:10
 msgid ""
-"\n"
-"      This will permanently delete the <em><strong>%(team_name)s</strong></"
-"em> team and all associated data.\n"
-"      "
+"🦄 Built with <a href=\"https://www.saaspegasus.com/\" "
+"target=\"_blank\">SaaS Pegasus</a>"
 msgstr ""
 
-#, python-format
-msgid ""
-"\n"
-"          You will be removed from the team: <em><strong>%(team_name)s</"
-"strong></em>.\n"
-"          After this, you will no longer be able to access any team pages, "
-"and will have to be invited again to regain access.\n"
-"        "
+#: templates/web/components/menu_menu_items.html:23
+#: templates/web/components/reports_menu_items.html:23
+msgid "Examples Gallery"
 msgstr ""
 
-#, python-format
-msgid ""
-"\n"
-"          This will remove <em><strong>%(member_name)s</strong></em> from "
-"your team: <em>%(team_name)s</em>.\n"
-"          They will no longer be able to access any team pages, and will "
-"have to be invited again to regain access.\n"
-"        "
+#: templates/web/components/records_menu_items.html:6
+msgid "Upload Records"
 msgstr ""
 
-msgid "Don't have an account?"
+#: templates/web/components/solutions_menu_items.html:6
+msgid "Budgeting"
 msgstr ""
 
-msgid "Enter your email and password to register"
+#: templates/web/components/top_nav.html:43
+msgid "Blog"
 msgstr ""
 
-msgid "Terms and Conditions"
+#: templates/web/components/top_nav.html:51
+msgid "Menu"
 msgstr ""
 
-msgid "Already have an account?"
+#: templates/web/components/top_nav.html:69
+msgid "Solutions"
 msgstr ""
 
-msgid "Account pages"
+#: templates/web/components/top_nav.html:79
+msgid "Reports"
 msgstr ""
 
+#: templates/web/components/top_nav.html:89
+msgid "Categories"
+msgstr ""
+
+#: templates/web/components/top_nav.html:99
+msgid "Records"
+msgstr ""
+
+#: templates/web/components/top_nav.html:109
+msgid "Account"
+msgstr ""
+
+#: templates/web/components/top_nav.html:127
 msgid "Admin"
 msgstr ""
 
-msgid "Pegasus Examples"
-msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"      This will permanently delete the <em><strong>%(team_name)s</strong></"
-"em> team and all associated data.\n"
-"      <strong>This action cannot be undone.</strong>\n"
-"      "
-msgstr ""
-
-msgid "English"
-msgstr ""
-
-msgid "French"
+#: templates/web/landing_page.html:41
+msgid "Get Started"
 msgstr ""

@@ -14,6 +14,7 @@ export * from './PatchedCustomUser';
 export * from './PatchedEmployee';
 export * from './Register';
 export * from './RestAuthDetail';
+export * from './TokenObtainPair';
 export * from './TokenRefresh';
 export * from './TokenVerify';
 export * from './UserSignupStats';

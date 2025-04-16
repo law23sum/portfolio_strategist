@@ -147,16 +147,6 @@ class ObjectLifecycleView(TemplateView):
         }
 
 
-@method_decorator(login_required, name="dispatch")
-class ChartsView(TemplateView):
-    template_name = "pegasus/employees/charts.html"
-
-    def get_context_data(self, **kwargs):
-        return {
-            "active_tab": "charts",
-        }
-
-
 class EmployeeDataAPIView(APIView):
     permission_classes = (IsAuthenticatedOrHasUserAPIKey,)
 

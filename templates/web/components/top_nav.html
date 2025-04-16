@@ -74,17 +74,7 @@
             {% endwith %}
           </div>
         </div>
-               <div class="navbar-item has-dropdown is-hoverable">
-            <a class="navbar-link">
-                <span>{% translate "Reports" %}</span>
-            </a>
-          <div class="navbar-dropdown is-right">
-            {% with True as hide_on_tablet %}
-            {% include "web/components/reports_menu_items.html" %}
-            {% endwith %}
-          </div>
-        </div>
-        <div class="navbar-item has-dropdown is-hoverable">
+          <div class="navbar-item has-dropdown is-hoverable">
             <a class="navbar-link">
                 <span>{% translate "Categories" %}</span>
             </a>
@@ -121,15 +111,15 @@
         </div>
         {% endif %}
 
-        <!--        {% if user.is_superuser %}-->
-        <!--        &lt;!&ndash; Admin dropdown for superusers &ndash;&gt;-->
-        <!--        <div class="navbar-item has-dropdown is-hoverable is-hidden-tablet">-->
-        <!--          <a class="navbar-link">{% translate "Admin" %}</a>-->
-        <!--          <div class="navbar-dropdown is-right">-->
-        <!--            {% include "web/components/admin_menu_items.html" %}-->
-        <!--          </div>-->
-        <!--        </div>-->
-        <!--        {% endif %}-->
+                {% if user.is_superuser %}
+                <!-- Admin dropdown for superusers -->
+                <div class="navbar-item has-dropdown is-hoverable is-hidden-tablet">
+                  <a class="navbar-link">{% translate "Admin" %}</a>
+                  <div class="navbar-dropdown is-right">
+                    {% include "web/components/admin_menu_items.html" %}
+                  </div>
+                </div>
+                {% endif %}
         {% else %}
         <!-- Sign Up / Sign In -->
         <div class="navbar-item">

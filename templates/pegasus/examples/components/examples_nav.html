@@ -19,11 +19,6 @@
       </a>
     </li>
     <li>
-      <a href="{% url 'pegasus_employees:charts' %}" {% if active_tab == 'charts' %}class="is-active"{% endif %}>
-        <span class="pg-icon"><i class="fa fa-bar-chart-o"></i></span><span class="is-hidden-tablet-only">Charts</span>
-      </a>
-    </li>
-    <li>
       <a href="{% url 'pegasus_examples:flags' %}" {% if active_tab == 'flags' %}class="is-active"{% endif %}>
         <span class="pg-icon"><i class="fa fa-flag"></i></span><span class="is-hidden-tablet-only">Feature Flags</span>
       </a>

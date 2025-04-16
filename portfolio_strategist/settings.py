@@ -249,7 +249,7 @@ ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False  # don't send "forgot password" emails to
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
@@ -265,7 +265,7 @@ SOCIALACCOUNT_FORMS = {
 
 # User signup configuration: change to "mandatory" to require users to confirm email before signing in.
 # or "optional" to send confirmation emails but not require them
-ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none")
+ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")
 
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
@@ -374,16 +374,20 @@ FORMS_URLFIELD_ASSUME_HTTPS = True
 # default email used by your server
 SERVER_EMAIL = env("SERVER_EMAIL", default="noreply@localhost:8000")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="financiasoftwarecompany@gmail.com")
-
 # The default value will print emails to the console, but you can change that here
 # and in your environment.
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+BREVO_API_URL = "https://api.brevo.com/v3/"
+EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+# EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+# EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
 
 # Most production backends will require further customization. The below example uses Mailgun.
-# ANYMAIL = {
+ANYMAIL = {
+      "BREVO_API_KEY": "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",
+      # "BREVO_SEND_DEFAULTS"
 #     "MAILGUN_API_KEY": env("MAILGUN_API_KEY", default=None),
 #     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN", default=None),
-# }
+}
 
 # use in production
 # see https://github.com/anymail/django-anymail for more details/examples
@@ -406,6 +410,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
+        'rest_framework.authentication.TokenAuthentication',
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ("apps.api.permissions.IsAuthenticatedOrHasUserAPIKey",),
@@ -416,7 +421,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": True,
@@ -430,7 +435,9 @@ REST_AUTH = {
     "USER_DETAILS_SERIALIZER": "apps.users.serializers.CustomUserSerializer",
 }
 
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
+CORS_ALLOWED_ORIGINS = "http://localhost:19006",  # Your React Native dev server
+"http://10.37.129.2:19006",  # Your mobile IP
+env.list("CORS_ALLOWED_ORIGINS", default = ["http://localhost:5173"])
 
 
 SPECTACULAR_SETTINGS = {
@@ -564,11 +571,30 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["console"],
-            "level": env("DJANGO_LOG_LEVEL", default="INFO"),
+            "level": env("DJANGO_LOG_LEVEL", default="DEBUG"),
         },
         "portfolio_strategist": {
             "handlers": ["console"],
-            "level": env("PORTFOLIO_STRATEGIST_LOG_LEVEL", default="INFO"),
+            "level": env("PORTFOLIO_STRATEGIST_LOG_LEVEL", default="DEBUG"),
         },
     },
 }
+
+# Allow all origins (for development only, be careful in production)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# OR if you want to allow only specific origins:
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://10.0.2.2:8000",  # Android emulator
+]
+
+# Allow credentials (if using authentication cookies)
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow all HTTP methods
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+
+# Allow all headers
+CORS_ALLOW_HEADERS = ["*"]

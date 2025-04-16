@@ -162,3 +162,5 @@ cython_debug/
 .idea
  node_modules
 /static_root/
+/node_modules
+/node_modules

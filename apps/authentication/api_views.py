@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from allauth.mfa.models import Authenticator
@@ -11,11 +12,18 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, Token
 
 from apps.users.models import CustomUser
 
 from .serializers import LoginResponseSerializer, OtpRequestSerializer
+
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
+from django.http import JsonResponse
+from django.contrib.auth import authenticate
+import json
 
 
 class LoginViewWith2fa(LoginView):

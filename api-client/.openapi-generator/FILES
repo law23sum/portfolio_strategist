@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/ApiApi.ts
 apis/DashboardApi.ts
 apis/PegasusApi.ts
@@ -18,6 +17,7 @@ models/PatchedCustomUser.ts
 models/PatchedEmployee.ts
 models/Register.ts
 models/RestAuthDetail.ts
+models/TokenObtainPair.ts
 models/TokenRefresh.ts
 models/TokenVerify.ts
 models/UserSignupStats.ts
