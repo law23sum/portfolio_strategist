@@ -9,6 +9,7 @@ def process_financial_document(document_id):
     """
     try:
         document = FinancialDocument.objects.get(id=document_id)
+
         # Simulate a long-running task
         time.sleep(10)  # e.g., 10-second delay
         document.processed = True

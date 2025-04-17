@@ -155,9 +155,9 @@ class FinancialDocument(models.Model):
     record_type = models.CharField(max_length = 50, choices = RECORD_TYPE_CHOICES)
     sub_record_type = models.CharField(max_length = 50, choices = SUBCATEGORY_OPTIONS)
     year = models.IntegerField(choices = YEARS)
-    document = models.FileField(upload_to = 'financial_documents/')
+    document = models.FileField(upload_to='financial_documents/')
+    processed = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(auto_now_add = True)
-    processed = models.BooleanField(default = False)
 
     def save(self, *args, **kwargs):
         """
@@ -174,3 +174,12 @@ class FinancialDocument(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ExtractedField(models.Model):
+    document = models.ForeignKey(FinancialDocument, on_delete=models.CASCADE, related_name='fields')
+    field_name = models.CharField(max_length=255)
+    field_value = models.TextField()
+
+    def __str__(self):
+        return f"{self.field_name}: {self.field_value}"

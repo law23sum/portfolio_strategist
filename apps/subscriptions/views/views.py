@@ -124,7 +124,7 @@ def subscription_demo(request):
             "active_tab": "subscription_demo",
             "subscription": wrapped_subscription,
             "subscription_urls": get_subscription_urls(subscription_holder),
-            "page_title": _("Subscription Demo"),
+            "page_title": _("Debt Consolidation"),
         },
     )
 

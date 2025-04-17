@@ -171,7 +171,7 @@ msgid "Subscription"
 msgstr ""
 
 #: apps/subscriptions/views/views.py:127
-msgid "Subscription Demo"
+msgid "Debt Consolidation"
 msgstr ""
 
 #: apps/subscriptions/views/views.py:146
@@ -772,7 +772,7 @@ msgstr ""
 #: templates/chat/chat_home.html:11
 #: templates/web/components/menu_menu_items.html:17
 #: templates/web/components/reports_menu_items.html:17
-msgid "AI Chat"
+msgid "Investment & Retirement"
 msgstr ""
 
 #: templates/chat/chat_home.html:21

@@ -28,7 +28,7 @@ class Chat(BaseModel):
 
     def get_openai_messages(self) -> List[Dict]:
         """
-        Return a list of messages ready to pass to the OpenAI ChatCompletion API.
+        Return a list of messages ready to pass to the OpenInvestment & RetirementCompletion API.
         """
         return [m.to_openai_dict() for m in self.messages.all()]
 

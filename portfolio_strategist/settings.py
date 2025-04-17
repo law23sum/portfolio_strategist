@@ -538,7 +538,7 @@ if "test" in sys.argv:
     SILENCED_SYSTEM_CHECKS.append("djstripe.I002")
 
 
-# AI Chat Setup
+# Investment & Retirement Setup
 AI_CHAT_OPENAI_API_KEY = env("AI_CHAT_OPENAI_API_KEY", default="")
 AI_CHAT_OPENAI_MODEL = env("AI_CHAT_OPENAI_MODEL", default="gpt-4o")
 
@@ -571,11 +571,11 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["console"],
-            "level": env("DJANGO_LOG_LEVEL", default="DEBUG"),
+            "level": env("DJANGO_LOG_LEVEL", default="INFO"),
         },
         "portfolio_strategist": {
             "handlers": ["console"],
-            "level": env("PORTFOLIO_STRATEGIST_LOG_LEVEL", default="DEBUG"),
+            "level": env("PORTFOLIO_STRATEGIST_LOG_LEVEL", default="INFO"),
         },
     },
 }
