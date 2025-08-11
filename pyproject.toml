@@ -42,13 +42,13 @@ dependencies = [
     "dj-rest-auth",
     "dj-stripe<2.9",
     "django-allauth[socialaccount,mfa]",
-    "django-anymail[mailgun]",  # email services
+    "django-anymail[mailgun]", # email services
     "django-celery-beat",
     "django-cors-headers",
     "django-environ",
     "django-health-check",
     "django-hijack",
-    "django-otp",  # this is required for the allauth two-factor migration, but can be removed after that
+    "django-otp", # this is required for the allauth two-factor migration, but can be removed after that
     "django-storages",
     "django-waffle",
     "djangorestframework",
@@ -60,6 +60,7 @@ dependencies = [
     "markdown",
     "openai",
     "psycopg2-binary",
+    "pypdf2>=3.0.1",
     "requests",
     "sentry-sdk",
     "stripe",

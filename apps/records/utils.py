@@ -1,20 +1,33 @@
-import pytesseract
-from pdf2image import convert_from_path
-from PIL import Image
-import tempfile
 import re
+from pathlib import Path
+from typing import List, Tuple
 
-def extract_fields_from_document(file_path):
+from PyPDF2 import PdfReader
+
+try:
+    import pytesseract
+    from PIL import Image
+except Exception:  # pragma: no cover
+    Image = None  # type: ignore[assignment]
+    pytesseract = None  # type: ignore[assignment]
+
+
+def extract_fields_from_document(file_path: str) -> List[Tuple[str, str]]:
+    """Extract key/value pairs from a document.
+
+    For PDF files we use :mod:`PyPDF2` to pull the text directly. For other
+    image formats we fall back to ``pytesseract`` if available.
+    """
+    path = Path(file_path)
     text = ""
 
-    if file_path.endswith('.pdf'):
-        images = convert_from_path(file_path)
-        for image in images:
-            text += pytesseract.image_to_string(image)
-    else:
-        image = Image.open(file_path)
+    if path.suffix.lower() == ".pdf":
+        reader = PdfReader(str(path))
+        for page in reader.pages:
+            text += page.extract_text() or ""
+    elif Image and pytesseract:
+        image = Image.open(path)
         text = pytesseract.image_to_string(image)
 
-    # Very simple field-value regex (you can improve it)
-    fields = re.findall(r'([A-Z][A-Za-z\s]*):\s*(.*)', text)
-    return fields
+    # Simple ``Field: Value`` matcher; tweak as needed for your documents.
+    return re.findall(r"([A-Za-z][A-Za-z\s]*):\s*(.*)", text)
