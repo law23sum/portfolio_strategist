@@ -1,0 +1,19 @@
+heroku run bash -a codenest
+
+
+heroku container:login
+heroku git:remote -a codenest
+heroku stack:set container
+heroku config:set DEBUG=False
+heroku run python manage.py migrate -a codenest
+heroku addons:create heroku-postgresql
+heroku addons:create heroku-redis
+heroku run python manage.py collectstatic --noinput -a codenest
+
+heroku run python manage.py migrate codenest
+heroku run python manage.py djstripe_sync_customers
+heroku logs --tail -a codenest
+heroku run python manage.py bootstrap_subscriptions
+
+heroku run python manage.py dbshell
+heroku config:set DB_HOST=ec2-54-89-93-167.compute-1.amazonaws.com DB_USER=nbchcihdwijvjc DB_PASS=03f01ce98127366718d2a494b6f7c93df423da03293ad70a1fd35d97e20770ea DB_NAME=dbip8724f326qd --app codenest

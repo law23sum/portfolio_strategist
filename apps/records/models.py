@@ -1,5 +1,7 @@
 from django.db import models
 
+from apps.users.models import CustomUser
+
 
 class Receipt(models.Model):
     # ImageField to store the uploaded photo of the receipt
@@ -15,6 +17,13 @@ class Receipt(models.Model):
 
 
 class FinancialDocument(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='financial_documents',
+        null=True,  # Temporary to allow existing records
+        blank=True
+    )
     # Main record type choices (unchanged)
     RECORD_TYPE_CHOICES = [
         ('earnings', "Earnings"

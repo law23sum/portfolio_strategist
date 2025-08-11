@@ -1,0 +1,17 @@
+
+python3 -m venv env
+source env/bin/activate
+/opt/homebrew/bin/python3.11 -m pip install virtualenv
+virtualenv codenest -p python3.11
+pyenv install 3.12.0
+
+rm -rf ~/.cache/pre-commit/
+pre-commit clean
+pre-commit install --install-hooks
+black --extend-exclude migrations --line-length 120 .
+isort -l 120 --profile black .
+pip uninstall pre-commit
+pip install pre-commit
+pre-commit run
+pre-commit run --all-files
+pre-commit run isort

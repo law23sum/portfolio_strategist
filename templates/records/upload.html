@@ -60,88 +60,6 @@
       background-color: #f8fafc;
     }
 
-    /* Document display styles */
-    .document-section {
-      margin-top: 2rem;
-    }
-
-    .category-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
-      margin-bottom: 1.5rem;
-      overflow: hidden;
-    }
-
-    .category-header {
-      background-color: #f7fafc;
-      padding: 1rem;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .subcategory-group {
-      margin-left: 1rem;
-      border-left: 2px solid #e2e8f0;
-    }
-
-    .subcategory-header {
-      padding: 0.75rem 1rem;
-      background-color: #f8fafc;
-      font-weight: 500;
-    }
-
-    .document-list {
-      padding: 0;
-      margin: 0;
-      list-style: none;
-    }
-
-    .document-item {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #edf2f7;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .document-item:last-child {
-      border-bottom: none;
-    }
-
-    .document-info {
-      flex-grow: 1;
-    }
-
-    .document-name {
-      font-weight: 500;
-    }
-
-    .document-meta {
-      font-size: 0.875rem;
-      color: #718096;
-    }
-
-    .document-actions a {
-      margin-left: 0.75rem;
-      color: #4a5568;
-    }
-
-    .empty-state {
-      padding: 2rem;
-      text-align: center;
-      color: #718096;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      background-color: #e2e8f0;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-    }
-
     @media (max-width: 768px) {
       .upload-form-grid {
         grid-template-columns: 1fr;
@@ -154,123 +72,77 @@
 {% endblock %}
 
 {% block app %}
+
   <div class="app-card upload-container">
-    <!-- Upload Form -->
-    <form method="post" enctype="multipart/form-data" id="upload-form" class="mb-8">
-      {% csrf_token %}
-      <div class="upload-form-grid">
-        <div class="form-group">
-          <label for="id_original_name">Document Name</label>
-          <input type="text" name="original_name" id="id_original_name" class="form-control" required>
-        </div>
+   <form method="post" enctype="multipart/form-data" id="upload-form" class="mb-8">
+  {% csrf_token %}
 
-        <div class="form-group">
-          <label for="id_record_type">Record Type</label>
-          <select name="record_type" id="id_record_type" class="form-control" required>
-            <option value="">Select a type...</option>
-            {% for value, label in record_type_choices %}
-              <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
+  <div class="upload-form-grid">
+    <!-- Keep all your existing form fields exactly as they are -->
+    <div class="form-group">
+      <label for="id_original_name">Document Name</label>
+      <input type="text" name="original_name" id="id_original_name" class="form-control" required>
+    </div>
 
-        <div class="form-group">
-          <label for="id_sub_record_type">Subcategory</label>
-          <select name="sub_record_type" id="id_sub_record_type" class="form-control" required>
-            <option value="">Select a subcategory...</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="id_year">Year</label>
-          <select name="year" id="id_year" class="form-control" required>
-            {% for year in year_choices %}
-              <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="form-group file-upload">
-          <label for="id_document">Document File</label>
-          <div class="file-upload-input">
-            <input type="file" name="document" id="id_document" required
-                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-            <div class="py-4">
-              <i class="fas fa-cloud-upload-alt fa-2x text-blue-500 mb-2"></i>
-              <p class="text-sm text-gray-600">Drag and drop your file here or click to browse</p>
-              <p class="text-xs text-gray-500 mt-1">Supports: PDF, JPG, PNG (Max 10MB)</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-end">
-        <button type="submit" class="pg-button-primary">
-          <span class="pg-icon"><i class="fas fa-upload"></i></span>
-          <span>Upload Document</span>
-        </button>
-      </div>
-    </form>
-
-    <!-- Documents Display Section -->
-    <div class="document-section">
-      <h3 class="pg-subtitle mb-4">Your Documents</h3>
-
-      {% if organized_docs %}
-        {% for record_type, category_data in organized_docs.items %}
-          <div class="category-card">
-            <div class="category-header">
-              <span>{{ category_data.label }}</span>
-              <span class="badge">{{ category_data.subcategories|length }} subcategories</span>
-            </div>
-
-            {% for sub_record_type, subcategory_data in category_data.subcategories.items %}
-              <div class="subcategory-group">
-                <div class="subcategory-header">
-                  {{ subcategory_data.label }}
-                </div>
-
-                <ul class="document-list">
-                  {% for document in subcategory_data.documents %}
-                    <li class="document-item">
-                      <div class="document-info">
-                        <div class="document-name">{{ document.original_name }}</div>
-                        <div class="document-meta">
-                          Uploaded on {{ document.uploaded_at|date:"M d, Y" }} • {{ document.year }}
-                        </div>
-                      </div>
-                      <div class="document-actions">
-                        <a href="{{ document.document.url }}" target="_blank" title="View">
-                          <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="{% url 'records:delete_document' document.id %}"
-                           onclick="return confirm('Are you sure you want to delete this document?');"
-                           title="Delete">
-                          <i class="fas fa-trash"></i>
-                        </a>
-                      </div>
-                    </li>
-                  {% endfor %}
-                </ul>
-              </div>
-            {% endfor %}
-          </div>
+    <div class="form-group">
+      <label for="id_record_type">Record Type</label>
+      <select name="record_type" id="id_record_type" class="form-control" required>
+        <option value="">Select a type...</option>
+        {% for value, label in record_type_choices %}
+          <option value="{{ value }}">{{ label }}</option>
         {% endfor %}
-      {% else %}
-        <div class="empty-state">
-          <i class="fas fa-folder-open fa-3x mb-4 text-gray-300"></i>
-          <p class="text-lg">No documents uploaded yet</p>
-          <p class="text-sm">Upload your first document using the form above</p>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="id_sub_record_type">Subcategory</label>
+      <select name="sub_record_type" id="id_sub_record_type" class="form-control" required>
+        <option value="">Select a subcategory...</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="id_year">Year</label>
+      <select name="year" id="id_year" class="form-control" required>
+        {% for year in year_choices %}
+          <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group file-upload">
+      <label for="id_document">Document File</label>
+      <div class="file-upload-input">
+        <input type="file" name="document" id="id_document" required
+               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+        <div class="py-4">
+          <i class="fas fa-cloud-upload-alt fa-2x text-blue-500 mb-2"></i>
+          <p class="text-sm text-gray-600">Drag and drop your file here or click to browse</p>
+          <p class="text-xs text-gray-500 mt-1">Supports: PDF, JPG, PNG (Max 10MB)</p>
         </div>
-      {% endif %}
+      </div>
     </div>
   </div>
+
+  <div class="flex justify-end">
+    <button type="submit" class="pg-button-primary">
+      <span class="pg-icon"><i class="fas fa-upload"></i></span>
+      <span>Upload Document</span>
+    </button>
+  </div>
+</form>
+  </div>
+<form>
+<div id="document-list">
+    {% include 'records/partials/document_list.html' %}
+</div>
+</form>
 {% endblock %}
 
 {% block page_js %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Subcategory dropdown functionality
+    // 1. Set up the subcategory dropdown
     const subcategoryData = JSON.parse('{{ subcategory_options_json|escapejs }}');
     const recordTypeSelect = document.getElementById('id_record_type');
     const subRecordTypeSelect = document.getElementById('id_sub_record_type');
@@ -292,8 +164,9 @@
     recordTypeSelect.addEventListener('change', updateSubcategories);
     if (recordTypeSelect.value) updateSubcategories();
 
-    // Form validation
+    // 2. Basic form validation
     document.getElementById('upload-form').addEventListener('submit', function(e) {
+      // Simple validation - check all required fields are filled
       const requiredFields = [
         'original_name',
         'record_type',
@@ -313,7 +186,7 @@
       });
 
       if (!isValid) {
-        e.preventDefault();
+        e.preventDefault(); // Stop form submission
       }
     });
   });

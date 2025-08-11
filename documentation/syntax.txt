@@ -1,0 +1,1 @@
+ template tags {{ }} for variables and {% %} for logic like loops and if-conditions

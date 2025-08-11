@@ -1,0 +1,25 @@
+
+SERVER LOCAL
+python -m venv env
+source env/bin/activate
+python manage.py runserver                                  run development server
+python manage.py runserver 8080
+python manage.py runserver 0.0.0.0:8000
+
+CLIENT LOCAL
+npm run dev-watch
+npm start                                                   run development server
+npm run build                                               bundles the app into static files for production
+npm test                                                    starts test runner
+npm run eject                                               copies build dependencies, configuration files and scripts into the app directory. If you do this, you can’t go back!
+
+
+SERVER DOCKER
+make start
+docker compose run --service-ports web
+docker compose run web python manage.py makemigrations
+docker compose run web python manage.py migrate
+
+CLIENT DOCKER
+make npm-watch
+docker compose exec web npm run dev-watch

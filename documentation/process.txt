@@ -1,0 +1,4 @@
+User requests a URL → Django matches URL in urls.py.
+URL points to a view function in views.py.
+View processes data (if any), decides which template to use, and renders it.
+Rendered HTML is sent back as a response to the user's browser.

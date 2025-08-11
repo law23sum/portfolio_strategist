@@ -1,0 +1,4 @@
+Django to serve web pages and use JavaScript for client-side interactivity, as is common in many web applications.
+a standalone front-end codebase that is compiled and served inside Django templates
+Models defines the data structure of an object using Python class's attributes and behaviors, which is driven by the data itself.
+Views are Python functions or classes that receive a web request and return a web response. Views access the data through models, process it, and pass it to a template. Django’s views are more akin to controllers.

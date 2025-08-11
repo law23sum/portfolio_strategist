@@ -1,0 +1,13 @@
+rm -f db.sqlite3                                            database deletion
+rm -r [app_name]/migrations
+
+python manage.py makemigrations [app_name]                  apply those changes to the db. stores changes to your models (and thus your database schema)
+python manage.py migrate                                    create migrations for changes & create tables in db prior to usage
+python manage.py sqlmigrate [app_name] 0001                 table names automatically generate combining app_name & model's lowercase name
+
+UPDATE socialaccount_socialapp
+SET
+    client_id = '421985905615-hpacm2bod192iich55navbghf0v6psr7.apps.googleusercontent.com',
+    secret = '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',
+    settings = '{"project_id": "codenest-407821", "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token", "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs", "redirect_uris": ["http://permitfinderfl.com/accounts/google/login/callback/"]}'
+WHERE id = 1;

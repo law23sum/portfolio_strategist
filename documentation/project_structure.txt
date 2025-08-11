@@ -1,0 +1,56 @@
+{{project_name}}/
+├── {{project_name}} module
+│   └── settings, root urlconf and wsgi.py
+│
+├── apps
+│   ├── applications modules
+│   ├── subscriptions
+│   ├── teams
+│   ├── users
+│   ├── utils
+│   └── web
+│
+├── pegasus module
+│   └── apps
+│      └── application
+│
+│
+├── assets
+│   ├── javascript
+│   │   └── applications
+│   └── styles
+├── requirements
+├── static
+│   ├─ css
+│   ├─ images
+│   └─ javascript
+├── templates
+    ├── HTML files
+    └─── applications
+│
+│
+    pre-commit
+
+
+
+
+    ├── manage.py
+├── mysite
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── myapp      <----- a normal Django app
+│   ├── __init__.py
+│   ├── models.py
+│   ├── urls.py
+│   └── views.py
+├── assets     <----- our front-end project source
+│   ├── javascript
+│   └── styles
+├── static     <----- our front-end project outputs (and other Django static files)
+│   ├── css
+│   ├── images
+│   └── js
+└── templates  <----- our Django template files
+    └── myapp
