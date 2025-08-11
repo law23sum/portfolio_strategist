@@ -1,0 +1,38 @@
+{% extends "pegasus/examples/examples_base.html" %}
+
+{% block app %}
+<div class="app-card">
+  <h2 class="pg-title">Personal Sensitive Information</h2>
+  {% if documents %}
+    {% for document in documents %}
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold">{{ document.original_name }}</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 mt-2">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Field</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for field in document.fields.all %}
+              <tr>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ field.field_name }}</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ field.field_value }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="px-4 py-2 text-sm text-gray-500">No details extracted.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No personal sensitive documents uploaded.</p>
+  {% endif %}
+</div>
+{% endblock %}
