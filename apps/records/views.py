@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import FinancialDocumentForm
@@ -19,12 +19,17 @@ def upload_view(request):
     }
     subcategory_options_json = json.dumps(subcategory_options)
 
-    documents = FinancialDocument.objects.all().order_by("record_type", "sub_record_type", "year")
+    documents = (
+        FinancialDocument.objects.filter(user=request.user)
+        .order_by("record_type", "sub_record_type", "year")
+    )
 
     if request.method == "POST":
         form = FinancialDocumentForm(request.POST, request.FILES)
         if form.is_valid():
-            document = form.save()
+            document = form.save(commit=False)
+            document.user = request.user
+            document.save()
 
             # OCR field extraction (if needed)
             from .utils import extract_fields_from_document
@@ -75,13 +80,13 @@ def upload_view(request):
     )
 
 def document_list_partial(request):
-    documents = FinancialDocument.objects.all()
+    documents = FinancialDocument.objects.filter(user=request.user)
     return render(request, "records/partials/document_list.html", {"documents": documents})
 
 @require_POST
 def delete_document(request, pk):
     try:
-        document = FinancialDocument.objects.get(pk=pk)
+        document = FinancialDocument.objects.get(pk=pk, user=request.user)
         document.delete()
         return redirect("records:upload")
     except FinancialDocument.DoesNotExist:
@@ -89,7 +94,7 @@ def delete_document(request, pk):
 
 
 def personal_details(request, pk):
-    document = FinancialDocument.objects.get(pk=pk)
+    document = get_object_or_404(FinancialDocument, pk=pk, user=request.user)
     fields = document.fields.all()
     return render(
         request,
