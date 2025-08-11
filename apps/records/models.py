@@ -26,25 +26,16 @@ class FinancialDocument(models.Model):
     )
     # Main record type choices (unchanged)
     RECORD_TYPE_CHOICES = [
-        ('earnings', "Earnings"
-         ),
-        ('government', "Government"
-         ),
-        ('retirement', "Retirement"
-         ),
-        ('insurance', "Insurance"
-         ),
-        ('debt', "Debt"
-         ),
-        ('investments', "Investments"
-         ),
-        ('budgeting', "Budgeting"
-         ),
-        ('assets', "Assets"
-         ),
-        ('credit_score', "Credit Score"
-         ),
-        ]
+        ('earnings', "Earnings"),
+        ('government', "Personal Sensitive Information"),
+        ('retirement', "Retirement"),
+        ('insurance', "Insurance"),
+        ('debt', "Debt"),
+        ('investments', "Investments"),
+        ('budgeting', "Budgeting"),
+        ('assets', "Assets"),
+        ('credit_score', "Credit Score"),
+    ]
 
     # Here is the brand-new, fully loaded SUBCATEGORY_OPTIONS!
     SUBCATEGORY_OPTIONS = {

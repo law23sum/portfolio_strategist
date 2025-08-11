@@ -21,25 +21,6 @@ def upload_view(request):
 
     documents = FinancialDocument.objects.all().order_by("record_type", "sub_record_type", "year")
 
-    organized_docs = {}
-    for doc in documents:
-        if doc.record_type not in organized_docs:
-            organized_docs[doc.record_type] = {
-                "label": dict(FinancialDocument.RECORD_TYPE_CHOICES).get(doc.record_type, doc.record_type),
-                "subcategories": {},
-            }
-
-        if doc.sub_record_type not in organized_docs[doc.record_type]["subcategories"]:
-            subcategory_label = subcategory_options.get(doc.record_type, {}).get(
-                doc.sub_record_type, doc.sub_record_type
-            )
-            organized_docs[doc.record_type]["subcategories"][doc.sub_record_type] = {
-                "label": subcategory_label,
-                "documents": [],
-            }
-
-        organized_docs[doc.record_type]["subcategories"][doc.sub_record_type]["documents"].append(doc)
-
     if request.method == "POST":
         form = FinancialDocumentForm(request.POST, request.FILES)
         if form.is_valid():
@@ -50,8 +31,14 @@ def upload_view(request):
 
             extracted_fields = extract_fields_from_document(document.document.path)
             for name, value in extracted_fields:
-                ExtractedField.objects.create(document=document, field_name=name.strip(), field_value=value.strip())
-            return redirect("records:personal_details", pk=document.pk)
+                ExtractedField.objects.create(
+                    document=document, field_name=name.strip(), field_value=value.strip()
+                )
+
+            document.processed = True
+            document.save(update_fields=["processed"])
+
+            return redirect("records:upload")
 
     else:
         form = FinancialDocumentForm()
@@ -80,6 +67,7 @@ def upload_view(request):
         {
             "form": form,
             "organized_docs": organized_docs,
+            "documents": documents,
             "year_choices": year_choices,
             "subcategory_options_json": subcategory_options_json,
             "record_type_choices": FinancialDocument.RECORD_TYPE_CHOICES,

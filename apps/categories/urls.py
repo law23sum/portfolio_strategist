@@ -4,5 +4,5 @@ from . import views
 app_name = 'categories'
 
 urlpatterns = [
-    path('government/', views.government_view, name='government'),
+    path('personal-sensitive/', views.personal_sensitive_view, name='personal_sensitive'),
 ]

@@ -14,7 +14,7 @@
                 {% for document in documents %}
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ document.original_name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ document.record_type }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ document.get_record_type_display }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ document.year }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         {% if document.processed %}
@@ -25,10 +25,13 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <a href="{{ document.document.url }}" target="_blank" class="text-blue-600 hover:text-blue-900">View</a>
-                        {% if document.processed %}
-                            <span class="mx-2">|</span>
-                            <a href="#" class="text-blue-600 hover:text-blue-900">Download</a>
-                        {% endif %}
+                        <span class="mx-2">|</span>
+                        <a href="{{ document.document.url }}" download class="text-blue-600 hover:text-blue-900">Download</a>
+                        <span class="mx-2">|</span>
+                        <form method="post" action="{% url 'records:delete_document' document.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}
