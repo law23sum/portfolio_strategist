@@ -1,0 +1,9 @@
+python3 -m venv env
+source env/bin/activate
+virtualenv codenest -p python3.11
+pip-compile requirements/requirements.in
+pip install -r requirements/requirements.txt
+
+npm install
+npm i -g vercel
+npm install webpack-bundle-tracker --save-dev

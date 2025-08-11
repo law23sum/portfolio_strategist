@@ -18,8 +18,42 @@ def upload_view(request):
     }
     subcategory_options_json = json.dumps(subcategory_options)
 
+    # Get all documents ordered appropriately
     documents = FinancialDocument.objects.all().order_by('record_type', 'sub_record_type', 'year')
 
+    if request.method == 'POST':
+        form = FinancialDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save()
+
+            # OCR field extraction (if needed)
+            from .utils import extract_fields_from_document
+            extracted_fields = extract_fields_from_document(document.document.path)
+            for name, value in extracted_fields:
+                ExtractedField.objects.create(
+                    document=document,
+                    field_name=name.strip(),
+                    field_value=value.strip()
+                )
+
+            # Return JSON response for AJAX or redirect for normal form submission
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'document': {
+                        'id': document.id,
+                        'original_name': document.original_name,
+                        'record_type': document.record_type,
+                        'year': document.year,
+                        'processed': document.processed,
+                        'url': document.document.url
+                    }
+                })
+            return redirect('records:upload')
+    else:
+        form = FinancialDocumentForm()
+
+    # Organize documents for display
     organized_docs = {}
     for doc in documents:
         if doc.record_type not in organized_docs:
@@ -37,28 +71,10 @@ def upload_view(request):
 
         organized_docs[doc.record_type]['subcategories'][doc.sub_record_type]['documents'].append(doc)
 
-    if request.method == 'POST':
-        form = FinancialDocumentForm(request.POST, request.FILES)
-        if form.is_valid():
-            document = form.save()
-
-            # OCR field extraction
-            from .utils import extract_fields_from_document
-            extracted_fields = extract_fields_from_document(document.document.path)
-            for name, value in extracted_fields:
-                ExtractedField.objects.create(
-                    document=document,
-                    field_name=name.strip(),
-                    field_value=value.strip()
-                )
-
-            return redirect('records:upload')
-    else:
-        form = FinancialDocumentForm()
-
     return render(
         request, 'records/upload.html', {
             'form': form,
+            'documents': documents,  # Add this line to pass documents to template
             'organized_docs': organized_docs,
             'year_choices': year_choices,
             'subcategory_options_json': subcategory_options_json,
@@ -66,18 +82,29 @@ def upload_view(request):
         })
 
 
-
 def document_list_partial(request):
-    documents = FinancialDocument.objects.all()
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status = 401)
+
+    try:
+        documents = FinancialDocument.objects.filter(user = request.user).order_by('-uploaded_at')
+    except Exception as e:
+        if 'user_id' in str(e):
+            documents = FinancialDocument.objects.all().order_by('-uploaded_at')
+        else:
+            raise
+
     return render(
-        request, 'records/partials/document_list.html',
-        {'documents': documents})
+            request, 'records/partials/document_list.html',
+            {'documents': documents})
 
 @require_POST
 def delete_document(request, pk):
     try:
         document = FinancialDocument.objects.get(pk=pk)
         document.delete()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success'})
         return redirect('records:upload')
     except FinancialDocument.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Document not found'}, status=404)

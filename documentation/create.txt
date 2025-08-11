@@ -1,0 +1,10 @@
+django-admin startapp [app_name]
+npm init -y
+
+sudo npm install -g create-next-app
+npx create-next-app@latest [project_name]
+cd [project_name]
+npm start                                                   run development server
+npm run build                                               bundles the app into static files for production
+npm test                                                    starts test runner
+npm run eject                                               copies build dependencies, configuration files and scripts into the app directory. If you do this, you can’t go back!

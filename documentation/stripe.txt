@@ -1,0 +1,19 @@
+python -m http.server 4242
+stripe listen --forward-to 127.0.0.1:4242/webhook
+python -m http.server 5432
+
+python manage.py runserver 127.0.0.1:8000
+
+docker compose exec web python manage.py bootstrap_subscriptions
+docker compose exec web python manage.py djstripe_sync_models price
+docker compose exec web python manage.py djstripe_sync_models price --api-keys sk_test_***
+
+docker compose exec web python manage.py  djstripe_sync_customers
+
+ docker compose exec web python manage.py help
+
+stripe trigger   checkout.session.completed
+stripe trigger  customer.subscription.updated --stripe-account
+
+
+ docker compose exec web python manage.py bootstrap_subscriptions

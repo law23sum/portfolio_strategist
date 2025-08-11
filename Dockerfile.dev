@@ -16,6 +16,11 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     # required on M2 / ARM architecture
     libpq-dev
 
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    libtesseract-dev \
+    poppler-utils  # For PDF to image conversion
+
 # create code directory
 RUN mkdir /code
 WORKDIR /code
