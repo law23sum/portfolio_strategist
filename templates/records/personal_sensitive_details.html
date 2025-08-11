@@ -1,0 +1,19 @@
+{% extends "pegasus/examples/examples_base.html" %}
+
+{% block app %}
+<div class="app-card">
+  <h2>Personal Sensitive Details</h2>
+  {% if fields %}
+  <form>
+    {% for field in fields %}
+    <div class="form-group" style="margin-bottom: 1rem;">
+      <label for="field_{{ forloop.counter }}">{{ field.field_name }}</label>
+      <input type="text" id="field_{{ forloop.counter }}" name="field_{{ forloop.counter }}" value="{{ field.field_value }}" class="form-control" />
+    </div>
+    {% endfor %}
+  </form>
+  {% else %}
+  <p>No details were extracted from this document.</p>
+  {% endif %}
+</div>
+{% endblock %}
