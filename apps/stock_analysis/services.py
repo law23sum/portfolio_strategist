@@ -3,25 +3,44 @@ from pathlib import Path
 from django.conf import settings
 import pandas as pd
 
-# Import adapted financia modules
-from .lib.stock_app import StockApp
-from .lib.stock_fetcher import StockFetcher
-from .lib.stock_ratio import StockRatio
-from .lib.stock_statistics import (
-    calculate_statistics, forecast_stock_prices, shift_forecast_to_actual_dates
-)
-from .lib.investment_utils import (
-    get_current_price, calculate_purchase_plan, summarize_forecast
-)
-from .lib.ai_analyzer import analyze_stock_with_news
-from .lib.pdf_generator import PDFGenerator
-from .lib.stock_definitions import RATIO_DEFINITIONS
+# Import adapted financia modules - handle missing lib directory gracefully
+try:
+    from .lib.stock_app import StockApp
+    from .lib.stock_fetcher import StockFetcher
+    from .lib.stock_ratio import StockRatio
+    from .lib.stock_statistics import (
+        calculate_statistics, forecast_stock_prices, shift_forecast_to_actual_dates
+    )
+    from .lib.investment_utils import (
+        get_current_price, calculate_purchase_plan, summarize_forecast
+    )
+    from .lib.ai_analyzer import analyze_stock_with_news
+    from .lib.pdf_generator import PDFGenerator
+    from .lib.stock_definitions import RATIO_DEFINITIONS
+    LIB_AVAILABLE = True
+except ImportError:
+    # lib directory not available - stock analysis features will be disabled
+    StockApp = None
+    StockFetcher = None
+    StockRatio = None
+    calculate_statistics = None
+    forecast_stock_prices = None
+    shift_forecast_to_actual_dates = None
+    get_current_price = None
+    calculate_purchase_plan = None
+    summarize_forecast = None
+    analyze_stock_with_news = None
+    PDFGenerator = None
+    RATIO_DEFINITIONS = {}
+    LIB_AVAILABLE = False
 
 
 class StockAnalysisService:
     """Service class to handle stock analysis operations"""
     
     def __init__(self):
+        if not LIB_AVAILABLE:
+            raise ImportError("Stock analysis library not available. The lib directory is missing.")
         self.stock_app = StockApp()
         # Update offline data path for Django
         self.offline_data_path = Path(__file__).parent / 'resources' / 'offline_data'

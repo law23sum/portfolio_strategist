@@ -1,5 +1,11 @@
 {% extends "web/app/app_base.html" %}
 {% block body_wrapper %}
+{% block top_nav %}
+  {% include 'web/components/top_nav.html' %}
+{% endblock %}
+{% block messages %}
+  {% include 'web/components/messages.html' %}
+{% endblock messages %}
 <div class="container app-two-column">
   <div id="app-nav" class="py-4 is-hidden-touch">
     {% block sidebar-nav %}
@@ -9,4 +15,7 @@
   {% block chat_ui %}{% endblock %}
   </div>
 </div>
+{% block footer %}
+  {% include 'web/components/footer.html' %}
+{% endblock footer %}
 {% endblock %}

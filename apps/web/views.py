@@ -38,20 +38,76 @@ def simulate_error(request):
 
 
 @login_required
-def investment_retirement(request):
-    """Investment and Retirement planning page"""
+def investment_savings(request):
+    """Investment & Savings main summary page"""
+    from apps.records.models import StocksAssessment, SavingsAssessment, CDAssessment, BondAssessment, LinkedAccount
+    
     # Get investment data from aggregated accounts
     investment_data = InvestmentAggregationService.get_user_investment_data(
         user=request.user
     )
     
+    # Get all saved assessments
+    stocks_assessments = StocksAssessment.objects.filter(user=request.user)
+    savings_assessments = SavingsAssessment.objects.filter(user=request.user)
+    cd_assessments = CDAssessment.objects.filter(user=request.user)
+    bond_assessments = BondAssessment.objects.filter(user=request.user)
+    
+    # Get linked accounts for Plaid integration
+    linked_accounts = LinkedAccount.objects.filter(
+        user=request.user,
+        status='active'
+    ).select_related('provider')
+    
+    # Calculate summary totals
+    summary = {
+        'stocks': {
+            'count': stocks_assessments.count(),
+            'total_value': sum(float(a.forecast_data.get('current', {}).get('value', 0) or 0) for a in stocks_assessments),
+            'total_monthly': sum(float(a.forecast_data.get('monthly', {}).get('value', 0) or 0) for a in stocks_assessments),
+            'total_yearly': sum(float(a.forecast_data.get('yearly', {}).get('value', 0) or 0) for a in stocks_assessments),
+            'total_decade': sum(float(a.forecast_data.get('decade', {}).get('value', 0) or 0) for a in stocks_assessments),
+            'avg_interest': 0,  # Will calculate from stock performance
+        },
+        'savings': {
+            'count': savings_assessments.count(),
+            'total_value': sum(float(a.forecast_data.get('current', {}).get('value', 0) or 0) for a in savings_assessments),
+            'total_monthly': sum(float(a.forecast_data.get('monthly', {}).get('value', 0) or 0) for a in savings_assessments),
+            'total_yearly': sum(float(a.forecast_data.get('yearly', {}).get('value', 0) or 0) for a in savings_assessments),
+            'total_decade': sum(float(a.forecast_data.get('decade', {}).get('value', 0) or 0) for a in savings_assessments),
+            'avg_interest': float(sum(a.annual_interest_rate for a in savings_assessments) / savings_assessments.count()) if savings_assessments.count() > 0 else 0,
+        },
+        'cds': {
+            'count': cd_assessments.count(),
+            'total_value': sum(float(a.forecast_data.get('current', {}).get('value', 0) or 0) for a in cd_assessments),
+            'total_monthly': sum(float(a.forecast_data.get('monthly', {}).get('value', 0) or 0) for a in cd_assessments),
+            'total_yearly': sum(float(a.forecast_data.get('yearly', {}).get('value', 0) or 0) for a in cd_assessments),
+            'total_decade': sum(float(a.forecast_data.get('decade', {}).get('value', 0) or 0) for a in cd_assessments),
+            'avg_interest': float(sum(a.annual_interest_rate for a in cd_assessments) / cd_assessments.count()) if cd_assessments.count() > 0 else 0,
+        },
+        'bonds': {
+            'count': bond_assessments.count(),
+            'total_value': sum(float(a.forecast_data.get('current', {}).get('value', 0) or 0) for a in bond_assessments),
+            'total_monthly': sum(float(a.forecast_data.get('monthly', {}).get('value', 0) or 0) for a in bond_assessments),
+            'total_yearly': sum(float(a.forecast_data.get('yearly', {}).get('value', 0) or 0) for a in bond_assessments),
+            'total_decade': sum(float(a.forecast_data.get('decade', {}).get('value', 0) or 0) for a in bond_assessments),
+            'avg_interest': float(sum(a.coupon_rate for a in bond_assessments) / bond_assessments.count()) if bond_assessments.count() > 0 else 0,
+        },
+    }
+    
     return render(
         request,
-        "web/investment_retirement.html",
+        "web/investment_savings.html",
         context={
-            "active_tab": "investment_retirement",
-            "page_title": _("Investment & Retirement Planner"),
+            "active_tab": "investment_savings",
+            "page_title": _("Investment & Savings"),
             "investment_data": investment_data,
+            "stocks_assessments": stocks_assessments,
+            "savings_assessments": savings_assessments,
+            "cd_assessments": cd_assessments,
+            "bond_assessments": bond_assessments,
+            "linked_accounts": linked_accounts,
+            "summary": summary,
         },
     )
 
@@ -82,19 +138,124 @@ def budget_planner(request):
 
 @login_required
 def ai_financial_services(request):
-    """AI Financial Services page with chat functionality"""
+    """AI Financial Services page with single chat interface"""
     from apps.chat.models import Chat
+    from apps.chat.serializers import ChatSerializer
+    from apps.chat.api_url_helpers import get_chat_api_url_templates, get_menu_urls
     
-    # Get user's chats
-    chats = Chat.objects.filter(user=request.user).order_by('-created_at')
+    # Get or create a single chat for the user
+    chat = Chat.objects.filter(user=request.user).order_by('-updated_at').first()
+    if not chat:
+        chat = Chat.objects.create(user=request.user, name="Main Chat")
+    
+    serialized_chat = ChatSerializer(chat, context={'request': request}).data
     
     return render(
         request,
-        "web/ai_financial_services.html",
+        "chat/single_chat_react.html",
         context={
             "active_tab": "ai_financial_services",
             "page_title": _("AI Financial Services"),
-            "chats": chats,
+            "chat": chat,
+            "serialized_chat": serialized_chat,
+            "api_urls": get_chat_api_url_templates(),
+            "menu_urls": get_menu_urls(),
+        },
+    )
+
+
+@login_required
+def stocks_assessment(request):
+    """Stocks Assessment page"""
+    from apps.records.models import StocksAssessment, LinkedAccount
+    
+    assessments = StocksAssessment.objects.filter(user=request.user).order_by('-updated_at')
+    linked_accounts = LinkedAccount.objects.filter(
+        user=request.user,
+        status='active',
+        account_type__in=['investment', 'brokerage', 'retirement']
+    )
+    
+    return render(
+        request,
+        "web/stocks_assessment.html",
+        context={
+            "active_tab": "investment_savings",
+            "page_title": _("Stocks Assessment"),
+            "assessments": assessments,
+            "linked_accounts": linked_accounts,
+        },
+    )
+
+
+@login_required
+def savings_assessment(request):
+    """Savings Assessment page"""
+    from apps.records.models import SavingsAssessment, LinkedAccount
+    
+    assessments = SavingsAssessment.objects.filter(user=request.user).order_by('-updated_at')
+    linked_accounts = LinkedAccount.objects.filter(
+        user=request.user,
+        status='active',
+        account_type='depository'
+    )
+    
+    return render(
+        request,
+        "web/savings_assessment.html",
+        context={
+            "active_tab": "investment_savings",
+            "page_title": _("Savings Assessment"),
+            "assessments": assessments,
+            "linked_accounts": linked_accounts,
+        },
+    )
+
+
+@login_required
+def cd_assessment(request):
+    """CD Assessment page"""
+    from apps.records.models import CDAssessment, LinkedAccount
+    
+    assessments = CDAssessment.objects.filter(user=request.user).order_by('-updated_at')
+    linked_accounts = LinkedAccount.objects.filter(
+        user=request.user,
+        status='active',
+        account_type='depository'
+    )
+    
+    return render(
+        request,
+        "web/cd_assessment.html",
+        context={
+            "active_tab": "investment_savings",
+            "page_title": _("CD Assessment"),
+            "assessments": assessments,
+            "linked_accounts": linked_accounts,
+        },
+    )
+
+
+@login_required
+def bond_assessment(request):
+    """Bond Assessment page"""
+    from apps.records.models import BondAssessment, LinkedAccount
+    
+    assessments = BondAssessment.objects.filter(user=request.user).order_by('-updated_at')
+    linked_accounts = LinkedAccount.objects.filter(
+        user=request.user,
+        status='active',
+        account_type__in=['investment', 'brokerage']
+    )
+    
+    return render(
+        request,
+        "web/bond_assessment.html",
+        context={
+            "active_tab": "investment_savings",
+            "page_title": _("Bond Assessment"),
+            "assessments": assessments,
+            "linked_accounts": linked_accounts,
         },
     )
 

@@ -13,6 +13,7 @@ urlpatterns = [
     path("documents/partial/", views.document_list_partial, name="document_list_partial"),
     path("delete/<int:pk>/", views.delete_document, name="delete_document"),
     path("details/<int:pk>/", views.personal_details, name="personal_details"),
+    path("personal-sensitive/", views.personal_sensitive_view, name="personal_sensitive"),
     # Financial data aggregation routes
     path("link-account/", aggregation_views.link_account_view, name="link_account"),
     path("linked-accounts/", aggregation_views.linked_accounts_view, name="linked_accounts"),

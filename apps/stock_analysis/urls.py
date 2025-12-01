@@ -13,5 +13,7 @@ urlpatterns = [
     path('loan/results/<int:pk>/', views.loan_results, name='loan_results'),
     # API endpoint for investment prediction
     path('api/investment-forecast/', views.investment_forecast_api, name='investment_forecast_api'),
+    # API endpoint for stock details (reports, charts, graphs)
+    path('api/stock-details/', views.stock_details_api, name='stock_details_api'),
 ]
 

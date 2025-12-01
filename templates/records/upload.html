@@ -78,12 +78,6 @@
   {% csrf_token %}
 
   <div class="upload-form-grid">
-    <!-- Keep all your existing form fields exactly as they are -->
-    <div class="form-group">
-      <label for="id_original_name">Document Name</label>
-      <input type="text" name="original_name" id="id_original_name" class="form-control" required>
-    </div>
-
     <div class="form-group">
       <label for="id_record_type">Record Type</label>
       <select name="record_type" id="id_record_type" class="form-control" required>
@@ -168,7 +162,6 @@
     document.getElementById('upload-form').addEventListener('submit', function(e) {
       // Simple validation - check all required fields are filled
       const requiredFields = [
-        'original_name',
         'record_type',
         'sub_record_type',
         'year',

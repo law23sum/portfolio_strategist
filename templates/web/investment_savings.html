@@ -1,0 +1,209 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .investment-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    .summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .summary-card h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #3273dc;
+    }
+    .summary-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin: 5px 0;
+    }
+    .navigation-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+    .nav-card {
+        background: white;
+        padding: 25px;
+        border-radius: 4px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+    .nav-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        text-decoration: none;
+        color: inherit;
+    }
+    .nav-card-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        color: #3273dc;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="investment-container">
+    <h1 class="title is-2">Investment & Savings</h1>
+    <p class="subtitle">Manage and track your investments across stocks, savings, CDs, and bonds</p>
+    
+    <!-- Summary Section -->
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Portfolio Summary</h2>
+        
+        <div class="summary-grid">
+            <!-- Stocks Summary -->
+            <div class="summary-card">
+                <h3>Stocks</h3>
+                <div class="summary-value">${{ summary.stocks.total_value|floatformat:2 }}</div>
+                <p><strong>{{ summary.stocks.count }}</strong> assessment(s)</p>
+                <p>Monthly: ${{ summary.stocks.total_monthly|floatformat:2 }}</p>
+                <p>Yearly: ${{ summary.stocks.total_yearly|floatformat:2 }}</p>
+                <p>Decade: ${{ summary.stocks.total_decade|floatformat:2 }}</p>
+            </div>
+            
+            <!-- Savings Summary -->
+            <div class="summary-card">
+                <h3>Savings</h3>
+                <div class="summary-value">${{ summary.savings.total_value|floatformat:2 }}</div>
+                <p><strong>{{ summary.savings.count }}</strong> account(s)</p>
+                <p>Avg Interest: {{ summary.savings.avg_interest|floatformat:2 }}%</p>
+                <p>Monthly: ${{ summary.savings.total_monthly|floatformat:2 }}</p>
+                <p>Yearly: ${{ summary.savings.total_yearly|floatformat:2 }}</p>
+                <p>Decade: ${{ summary.savings.total_decade|floatformat:2 }}</p>
+            </div>
+            
+            <!-- CDs Summary -->
+            <div class="summary-card">
+                <h3>CDs</h3>
+                <div class="summary-value">${{ summary.cds.total_value|floatformat:2 }}</div>
+                <p><strong>{{ summary.cds.count }}</strong> CD(s)</p>
+                <p>Avg Interest: {{ summary.cds.avg_interest|floatformat:2 }}%</p>
+                <p>Monthly: ${{ summary.cds.total_monthly|floatformat:2 }}</p>
+                <p>Yearly: ${{ summary.cds.total_yearly|floatformat:2 }}</p>
+                <p>Decade: ${{ summary.cds.total_decade|floatformat:2 }}</p>
+            </div>
+            
+            <!-- Bonds Summary -->
+            <div class="summary-card">
+                <h3>Bonds</h3>
+                <div class="summary-value">${{ summary.bonds.total_value|floatformat:2 }}</div>
+                <p><strong>{{ summary.bonds.count }}</strong> bond(s)</p>
+                <p>Avg Interest: {{ summary.bonds.avg_interest|floatformat:2 }}%</p>
+                <p>Monthly: ${{ summary.bonds.total_monthly|floatformat:2 }}</p>
+                <p>Yearly: ${{ summary.bonds.total_yearly|floatformat:2 }}</p>
+                <p>Decade: ${{ summary.bonds.total_decade|floatformat:2 }}</p>
+            </div>
+        </div>
+        
+        <!-- Total Portfolio -->
+        <div class="box" style="margin-top: 20px; background: #f8f9fa;">
+            <h3 class="title is-5">Total Portfolio</h3>
+            <div class="columns">
+                <div class="column">
+                    <strong>Current Value:</strong> 
+                    <span class="summary-value">
+                        ${{ summary.stocks.total_value|add:summary.savings.total_value|add:summary.cds.total_value|add:summary.bonds.total_value|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="column">
+                    <strong>10-Year Projection:</strong> 
+                    <span class="summary-value">
+                        ${{ summary.stocks.total_decade|add:summary.savings.total_decade|add:summary.cds.total_decade|add:summary.bonds.total_decade|floatformat:2 }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Linked Investment Accounts (from Plaid) -->
+    {% if investment_data.account_summaries %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Linked Investment Accounts</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Account Name</th>
+                        <th>Institution</th>
+                        <th>Account Type</th>
+                        <th>Portfolio Value</th>
+                        <th>Holdings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for summary in investment_data.account_summaries %}
+                    <tr>
+                        <td>{{ summary.account.account_name }}</td>
+                        <td>{{ summary.account.institution_name }}</td>
+                        <td>{{ summary.account.get_account_type_display }}</td>
+                        <td>${{ summary.value|floatformat:2 }}</td>
+                        <td>{{ summary.holdings_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Navigation to Assessment Pages -->
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Investment Assessments</h2>
+        <p class="subtitle">Click on an assessment type to add or manage your investments</p>
+        
+        <div class="navigation-cards">
+            <a href="{% url 'web:stocks_assessment' %}" class="nav-card">
+                <div class="nav-card-icon"><i class="fa fa-line-chart"></i></div>
+                <h3 class="title is-5">Stocks Assessment</h3>
+                <p>Analyze and forecast stock investments</p>
+                <p class="has-text-grey">{{ stocks_assessments.count }} saved</p>
+            </a>
+            
+            <a href="{% url 'web:savings_assessment' %}" class="nav-card">
+                <div class="nav-card-icon"><i class="fa fa-piggy-bank"></i></div>
+                <h3 class="title is-5">Savings Assessment</h3>
+                <p>Track and forecast savings accounts</p>
+                <p class="has-text-grey">{{ savings_assessments.count }} saved</p>
+            </a>
+            
+            <a href="{% url 'web:cd_assessment' %}" class="nav-card">
+                <div class="nav-card-icon"><i class="fa fa-certificate"></i></div>
+                <h3 class="title is-5">CD Assessment</h3>
+                <p>Manage certificate of deposits</p>
+                <p class="has-text-grey">{{ cd_assessments.count }} saved</p>
+            </a>
+            
+            <a href="{% url 'web:bond_assessment' %}" class="nav-card">
+                <div class="nav-card-icon"><i class="fa fa-file-text"></i></div>
+                <h3 class="title is-5">Bond Assessment</h3>
+                <p>Forecast bond investments</p>
+                <p class="has-text-grey">{{ bond_assessments.count }} saved</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

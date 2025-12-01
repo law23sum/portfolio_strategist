@@ -41,6 +41,8 @@ class ChatMessage(BaseModel):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
     message_type = models.CharField(max_length=10, choices=MessageTypes.choices)
     content = models.TextField()
+    attachment = models.FileField(upload_to='chat_attachments/', blank=True, null=True)
+    attachment_type = models.CharField(max_length=50, blank=True, help_text="Type of attachment: image, csv, pdf, etc.")
 
     class Meta:
         ordering = ["created_at"]

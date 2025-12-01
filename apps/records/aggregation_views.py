@@ -31,12 +31,53 @@ logger = logging.getLogger(__name__)
 @login_required
 def link_account_view(request):
     """View for initiating account linking flow - Online Financial Accounts"""
-    providers = AggregationProvider.objects.filter(is_active=True)
+    # Ensure Plaid always exists in the database (even if not configured)
+    plaid_provider, _ = AggregationProvider.objects.get_or_create(
+        name='plaid',
+        defaults={
+            'display_name': 'Plaid',
+            'is_active': True,
+            'environment': 'sandbox'
+        }
+    )
+    # Ensure it's active even if it was created before
+    if not plaid_provider.is_active:
+        plaid_provider.is_active = True
+        plaid_provider.save()
+    
+    providers = list(AggregationProvider.objects.filter(is_active=True))
     linked_accounts = LinkedAccount.objects.filter(user=request.user).select_related('provider')
+    
+    # Check if Plaid provider has credentials
+    if not plaid_provider.api_key or not plaid_provider.api_secret:
+        # Provider exists but missing credentials
+        from django.contrib import messages
+        messages.warning(
+            request,
+            'Plaid provider is configured but missing credentials. '
+            'Please run: python manage.py bootstrap_plaid'
+        )
+    
+    # Get aggregate financial data
+    from .financial_aggregation import (
+        DashboardAggregationService,
+        BudgetAggregationService,
+        InvestmentAggregationService,
+        DebtAggregationService,
+    )
+    
+    financial_summary = DashboardAggregationService.get_user_financial_summary(request.user)
+    budget_data = BudgetAggregationService.get_user_budget_data(request.user, days=30)
+    investment_data = InvestmentAggregationService.get_user_investment_data(request.user)
+    debt_data = DebtAggregationService.get_user_debt_data(request.user)
     
     return render(request, 'records/link_account.html', {
         'providers': providers,
         'linked_accounts': linked_accounts,
+        'financial_summary': financial_summary,
+        'budget_data': budget_data,
+        'investment_data': investment_data,
+        'debt_data': debt_data,
         'active_tab': 'records_link_account',
         'page_title': 'Online Financial Accounts',
     })
@@ -48,10 +89,26 @@ def create_link_token(request):
     """Create a Plaid Link token for OAuth flow"""
     try:
         provider_id = request.POST.get('provider_id')
-        provider = get_object_or_404(AggregationProvider, id=provider_id, is_active=True)
+        if not provider_id:
+            return JsonResponse({
+                'error': 'No provider specified. Please run: python manage.py bootstrap_plaid'
+            }, status=400)
+        
+        try:
+            provider = AggregationProvider.objects.get(id=provider_id, is_active=True)
+        except AggregationProvider.DoesNotExist:
+            return JsonResponse({
+                'error': 'Plaid provider not configured. Please run: python manage.py bootstrap_plaid'
+            }, status=404)
         
         if provider.name != 'plaid':
             return JsonResponse({'error': 'Only Plaid is currently supported'}, status=400)
+        
+        # Check if provider has credentials
+        if not provider.api_key or not provider.api_secret:
+            return JsonResponse({
+                'error': 'Plaid credentials not configured. Please run: python manage.py bootstrap_plaid'
+            }, status=400)
         
         service = PlaidAggregationService(provider)
         link_token_data = service.create_link_token(
@@ -60,8 +117,19 @@ def create_link_token(request):
         )
         
         return JsonResponse(link_token_data)
-    except Exception as e:
+    except ValueError as e:
+        # Handle "No active Plaid provider found" error
         logger.error(f"Error creating link token: {e}")
+        return JsonResponse({
+            'error': f'Plaid not configured: {str(e)}. Please run: python manage.py bootstrap_plaid'
+        }, status=500)
+    except ImportError as e:
+        logger.error(f"Error creating link token: {e}")
+        return JsonResponse({
+            'error': 'Plaid Python SDK not installed. Install with: pip install plaid-python'
+        }, status=500)
+    except Exception as e:
+        logger.error(f"Error creating link token: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 

@@ -201,9 +201,12 @@ def investment_forecast_api(request):
     """
     try:
         import json
-        from .lib.investment_utils import (
-            get_current_price, calculate_purchase_plan, summarize_forecast, HORIZON_WINDOWS
-        )
+        try:
+            from .lib.investment_utils import (
+                get_current_price, calculate_purchase_plan, summarize_forecast, HORIZON_WINDOWS
+            )
+        except ImportError:
+            return JsonResponse({'error': 'Stock analysis library not available. The lib directory is missing.'}, status=503)
         
         data = json.loads(request.body)
         symbol = data.get('symbol', '').upper().strip()
@@ -331,6 +334,103 @@ def investment_forecast_api(request):
             'forecast_data': forecast_data,
             'summary': formatted_summary,
             'equation_type': equation_type,
+        })
+        
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def stock_details_api(request):
+    """
+    API endpoint to fetch comprehensive stock details from yfinance including:
+    - Stock info (fundamentals)
+    - Historical price data (for charts)
+    - Financial ratios
+    - News
+    - Volume data
+    """
+    try:
+        import json
+        if request.method == 'POST':
+            data = json.loads(request.body)
+        else:
+            data = request.GET
+        
+        symbol = data.get('symbol', '').upper().strip()
+        if not symbol:
+            return JsonResponse({'error': 'Stock symbol is required'}, status=400)
+        
+        service = StockAnalysisService()
+        
+        # Fetch stock data (fundamentals)
+        stock_data = service.stock_app.fetch_stock_data(symbol)
+        if not stock_data:
+            return JsonResponse({'error': f'Unable to fetch stock data for {symbol}'}, status=400)
+        
+        # Fetch historical data for charts
+        history_df = service.stock_app.fetch_stock_history(symbol, period="1y", interval="1d")
+        if history_df.empty:
+            # Try longer period
+            history_df = service.stock_app.fetch_stock_history(symbol, period="2y", interval="1d")
+        
+        # Fetch news
+        news_html = service.stock_app.fetch_stock_news(symbol)
+        
+        # Analyze ratios
+        ratios_table = service.stock_app.analyze_stock(stock_data)
+        
+        # Prepare historical data for charts
+        historical_data = []
+        if not history_df.empty:
+            for _, row in history_df.iterrows():
+                historical_data.append({
+                    'date': str(row.get('Date', '')),
+                    'open': float(row.get('Open', 0)) if pd.notna(row.get('Open')) else None,
+                    'high': float(row.get('High', 0)) if pd.notna(row.get('High')) else None,
+                    'low': float(row.get('Low', 0)) if pd.notna(row.get('Low')) else None,
+                    'close': float(row.get('Close', 0)) if pd.notna(row.get('Close')) else None,
+                    'volume': int(row.get('Volume', 0)) if pd.notna(row.get('Volume')) else None,
+                })
+        
+        # Prepare ratios data
+        ratios_data = []
+        if not ratios_table.empty:
+            ratios_data = ratios_table.to_dict('records')
+        
+        # Extract key metrics from stock_data
+        key_metrics = {
+            'sector': stock_data.get('sector', 'N/A'),
+            'industry': stock_data.get('industry', 'N/A'),
+            'marketCap': stock_data.get('marketCap', None),
+            'enterpriseValue': stock_data.get('enterpriseValue', None),
+            'trailingPE': stock_data.get('trailingPE', None),
+            'forwardPE': stock_data.get('forwardPE', None),
+            'beta': stock_data.get('beta', None),
+            'dividendYield': stock_data.get('dividendYield', None),
+            '52WeekHigh': stock_data.get('fiftyTwoWeekHigh', None),
+            '52WeekLow': stock_data.get('fiftyTwoWeekLow', None),
+            'currentPrice': stock_data.get('currentPrice', None),
+            'targetHighPrice': stock_data.get('targetHighPrice', None),
+            'targetLowPrice': stock_data.get('targetLowPrice', None),
+            'targetMeanPrice': stock_data.get('targetMeanPrice', None),
+            'recommendationMean': stock_data.get('recommendationMean', None),
+            'recommendationKey': stock_data.get('recommendationKey', None),
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'symbol': symbol,
+            'stock_data': stock_data,
+            'key_metrics': key_metrics,
+            'historical_data': historical_data,
+            'ratios': ratios_data,
+            'news_html': news_html,
         })
         
     except Exception as e:

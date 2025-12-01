@@ -12,9 +12,27 @@
   </a>
 </li>
     <li>
-  <a class="navbar-item  is-tab {% if active_tab == 'investment_retirement' %}is-active{% endif %}" href="{% url 'web:investment_retirement' %}">
+  <a class="navbar-item  is-tab {% if active_tab == 'investment_savings' %}is-active{% endif %}" href="{% url 'web:investment_savings' %}">
     <span class="pg-icon"><i class="fa fa-chart-line"></i></span>
-    <span class="is-hidden-tablet-only">{% translate "Investment & Retirement" %}</span>
+    <span class="is-hidden-tablet-only">{% translate "Investment & Savings" %}</span>
+  </a>
+</li>
+    <li>
+  <a class="navbar-item is-tab {% if active_tab == 'tax_optimization' %}is-active{% endif %}" href="{% url 'solutions:tax_optimization' %}">
+    <span class="pg-icon"><i class="fa fa-calculator"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "Tax Optimization" %}</span>
+  </a>
+</li>
+    <li>
+  <a class="navbar-item is-tab {% if active_tab == 'credit_improvement' %}is-active{% endif %}" href="{% url 'solutions:credit_improvement' %}">
+    <span class="pg-icon"><i class="fa fa-credit-card"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "Credit Improvement" %}</span>
+  </a>
+</li>
+    <li>
+  <a class="navbar-item is-tab {% if active_tab == 'ai_financial_services' %}is-active{% endif %}" href="{% url 'web:ai_financial_services' %}">
+    <span class="pg-icon"><i class="fa-solid fa-robot"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "AI Financial Services" %}</span>
   </a>
 </li>
   </ul>

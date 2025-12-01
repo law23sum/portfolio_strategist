@@ -41,3 +41,29 @@ class ChartsView(TemplateView):
         return {
             "active_tab": "charts",
         }
+
+
+@login_required
+def tax_optimization_view(request):
+    """Tax Optimization page with resources for minimizing tax liabilities"""
+    return render(
+        request,
+        'solutions/tax_optimization.html',
+        context={
+            'active_tab': 'tax_optimization',
+            'page_title': 'Tax Optimization',
+        },
+    )
+
+
+@login_required
+def credit_improvement_view(request):
+    """Credit Improvement page with tips and tools for boosting credit scores"""
+    return render(
+        request,
+        'solutions/credit_improvement.html',
+        context={
+            'active_tab': 'credit_improvement',
+            'page_title': 'Credit Improvement',
+        },
+    )

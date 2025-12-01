@@ -541,3 +541,107 @@ class DataSyncLog(models.Model):
     
     def __str__(self):
         return f"{self.account.account_name}: {self.status} at {self.started_at}"
+
+
+# Investment & Savings Assessment Models
+
+class StocksAssessment(models.Model):
+    """User's stock investment assessment"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='stocks_assessments')
+    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
+    
+    symbol = models.CharField(max_length=10, db_index=True)
+    investment_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    share_quantity = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True)
+    current_price = models.DecimalField(max_digits=15, decimal_places=2)
+    
+    # Forecast data for different time periods
+    forecast_data = models.JSONField(default=dict, blank=True)  # Stores forecasts for current, monthly, biyearly, yearly, decade
+    
+    # Metadata
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+        unique_together = [['user', 'symbol']]
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.symbol}"
+
+
+class SavingsAssessment(models.Model):
+    """User's savings account assessment"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='savings_assessments')
+    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
+    
+    account_name = models.CharField(max_length=255, default="Savings Account")
+    initial_deposit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    monthly_contribution = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    compounding_frequency = models.IntegerField(default=12, choices=[(1, 'Annually'), (2, 'Semi-Annually'), (4, 'Quarterly'), (12, 'Monthly'), (365, 'Daily')])
+    
+    # Forecast data for different time periods
+    forecast_data = models.JSONField(default=dict, blank=True)
+    
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.account_name}"
+
+
+class CDAssessment(models.Model):
+    """User's Certificate of Deposit assessment"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='cd_assessments')
+    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
+    
+    account_name = models.CharField(max_length=255, default="CD Account")
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    term_months = models.IntegerField()
+    compounding_frequency = models.IntegerField(default=12, choices=[(1, 'Annually'), (2, 'Semi-Annually'), (4, 'Quarterly'), (12, 'Monthly'), (365, 'Daily')])
+    
+    # Forecast data
+    forecast_data = models.JSONField(default=dict, blank=True)
+    
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.account_name}"
+
+
+class BondAssessment(models.Model):
+    """User's bond investment assessment"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bond_assessments')
+    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
+    
+    account_name = models.CharField(max_length=255, default="Bond Investment")
+    face_value = models.DecimalField(max_digits=15, decimal_places=2)
+    coupon_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    purchase_price = models.DecimalField(max_digits=15, decimal_places=2)
+    years_to_maturity = models.DecimalField(max_digits=5, decimal_places=2)
+    payment_frequency = models.IntegerField(default=2, choices=[(1, 'Annually'), (2, 'Semi-Annually'), (4, 'Quarterly'), (12, 'Monthly')])
+    
+    # Forecast data
+    forecast_data = models.JSONField(default=dict, blank=True)
+    
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.account_name}"

@@ -1,10 +1,243 @@
 {% extends "web/app/app_base.html" %}
 {% load static %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+    .financial-card {
+        transition: transform 0.2s;
+    }
+    .financial-card:hover {
+        transform: translateY(-2px);
+    }
+    .summary-section {
+        margin-bottom: 30px;
+    }
+</style>
+{% endblock %}
 
 {% block app %}
 <div class="container">
     <h1 class="title">{% if page_title %}{{ page_title }}{% else %}Online Financial Accounts{% endif %}</h1>
     <p class="subtitle">Connect your bank, credit card, investment, and other financial accounts to automatically import transactions and balances.</p>
+
+    {% if financial_summary and linked_accounts %}
+    <!-- Financial Summary Cards -->
+    <div class="box" style="margin-bottom: 30px;">
+        <h2 class="title is-4">Financial Overview</h2>
+        
+        <div class="columns is-multiline">
+            <!-- Net Worth Card -->
+            <div class="column is-one-third">
+                <div class="card financial-card">
+                    <div class="card-content">
+                        <p class="heading">Net Worth</p>
+                        <p class="title is-3 {% if financial_summary.net_worth >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                            ${{ financial_summary.net_worth|floatformat:2|intcomma }}
+                        </p>
+                        <p class="subtitle is-7">Your total financial position</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Assets Card -->
+            <div class="column is-one-third">
+                <div class="card financial-card">
+                    <div class="card-content">
+                        <p class="heading">Total Assets</p>
+                        <p class="title is-3 has-text-success">
+                            ${{ financial_summary.total_assets|floatformat:2|intcomma }}
+                        </p>
+                        <p class="subtitle is-7">
+                            Cash: ${{ financial_summary.total_cash|floatformat:2|intcomma }} | 
+                            Investments: ${{ financial_summary.total_investments|floatformat:2|intcomma }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Liabilities Card -->
+            <div class="column is-one-third">
+                <div class="card financial-card">
+                    <div class="card-content">
+                        <p class="heading">Total Liabilities</p>
+                        <p class="title is-3 has-text-danger">
+                            ${{ financial_summary.total_liabilities|floatformat:2|intcomma }}
+                        </p>
+                        <p class="subtitle is-7">Debts and credit balances</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Summary -->
+        {% if budget_data %}
+        <div class="summary-section">
+            <h3 class="title is-5" style="margin-bottom: 15px;">Budget Summary (Last 30 Days)</h3>
+            <div class="columns is-multiline">
+                <div class="column is-one-quarter">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Total Balance</p>
+                            <p class="title is-4 {% if budget_data.total_balance >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                                ${{ budget_data.total_balance|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column is-one-quarter">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Income</p>
+                            <p class="title is-4 has-text-success">
+                                ${{ budget_data.income|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column is-one-quarter">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Expenses</p>
+                            <p class="title is-4 has-text-danger">
+                                ${{ budget_data.expenses|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column is-one-quarter">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Net Flow</p>
+                            <p class="title is-4 {% if budget_data.net_flow >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                                ${{ budget_data.net_flow|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Investment Summary -->
+        {% if investment_data and investment_data.total_portfolio_value > 0 %}
+        <div class="summary-section">
+            <h3 class="title is-5" style="margin-bottom: 15px;">Investment Portfolio</h3>
+            <div class="columns is-multiline">
+                <div class="column is-one-third">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Portfolio Value</p>
+                            <p class="title is-4 has-text-success">
+                                ${{ investment_data.total_portfolio_value|floatformat:2|intcomma }}
+                            </p>
+                            {% if investment_data.accounts_count %}
+                            <p class="subtitle is-7">{{ investment_data.accounts_count }} account(s)</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                {% if investment_data.total_cost_basis %}
+                <div class="column is-one-third">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Cost Basis</p>
+                            <p class="title is-4">
+                                ${{ investment_data.total_cost_basis|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if investment_data.total_gain_loss is not None %}
+                <div class="column is-one-third">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Gain/Loss</p>
+                            <p class="title is-4 {% if investment_data.total_gain_loss >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                                ${{ investment_data.total_gain_loss|floatformat:2|intcomma }}
+                            </p>
+                            {% if investment_data.total_cost_basis > 0 %}
+                            {% widthratio investment_data.total_gain_loss investment_data.total_cost_basis 100 as gain_loss_pct %}
+                            <p class="subtitle is-7">{{ gain_loss_pct|floatformat:2 }}% return</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Debt Summary -->
+        {% if debt_data and debt_data.total_debt > 0 %}
+        <div class="summary-section">
+            <h3 class="title is-5" style="margin-bottom: 15px;">Debt Overview</h3>
+            <div class="columns is-multiline">
+                <div class="column is-one-third">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Total Debt</p>
+                            <p class="title is-4 has-text-danger">
+                                ${{ debt_data.total_debt|floatformat:2|intcomma }}
+                            </p>
+                            {% if debt_data.accounts_count %}
+                            <p class="subtitle is-7">{{ debt_data.accounts_count }} account(s)</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                {% if debt_data.total_credit_limit > 0 %}
+                <div class="column is-one-third">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Credit Limit</p>
+                            <p class="title is-4">
+                                ${{ debt_data.total_credit_limit|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if debt_data.credit_utilization is not None %}
+                <div class="column is-one-third">
+                    <div class="card financial-card">
+                        <div class="card-content">
+                            <p class="heading">Credit Utilization</p>
+                            <p class="title is-4 {% if debt_data.credit_utilization < 30 %}has-text-success{% elif debt_data.credit_utilization < 70 %}has-text-warning{% else %}has-text-danger{% endif %}">
+                                {{ debt_data.credit_utilization|floatformat:1 }}%
+                            </p>
+                            <p class="subtitle is-7">
+                                {% if debt_data.credit_utilization < 30 %}Excellent{% elif debt_data.credit_utilization < 70 %}Good{% else %}High{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Account Counts -->
+        {% if financial_summary.account_counts %}
+        <div style="margin-top: 20px;">
+            <p class="heading">Linked Accounts: {{ financial_summary.linked_accounts_count }} total</p>
+            <div class="tags">
+                {% for account_type, count in financial_summary.account_counts.items %}
+                <span class="tag is-info">{{ account_type|title }}: {{ count }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <div class="box">
         <h2 class="title is-4">Available Providers</h2>
@@ -17,6 +250,18 @@
                         <div class="card-content">
                             <h3 class="title is-5">{{ provider.display_name }}</h3>
                             <p class="subtitle is-6">{{ provider.get_environment_display }} Environment</p>
+                            {% if provider.name == 'plaid' and not provider.api_key %}
+                            <div class="notification is-warning is-light" style="margin-top: 10px;">
+                                <p><strong>Configuration Required:</strong> Plaid credentials need to be set up. Please run: <code>python manage.py bootstrap_plaid</code></p>
+                            </div>
+                            <button 
+                                class="button is-primary" 
+                                disabled
+                                title="Plaid is not configured"
+                            >
+                                Link Account (Not Configured)
+                            </button>
+                            {% else %}
                             <button 
                                 class="button is-primary" 
                                 onclick="initiateLink('{{ provider.id }}', '{{ provider.name }}')"
@@ -24,6 +269,7 @@
                             >
                                 Link Account
                             </button>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -155,17 +401,21 @@ async function exchangeToken(publicToken, providerId, metadata) {
         if (data.error) {
             alert('Error: ' + data.error);
         } else {
-            let message = `Successfully linked ${data.accounts_created} account(s)!\n\n`;
+            let message = `✅ Successfully linked ${data.accounts_created} account(s)!\n\n`;
             if (data.categorized) {
-                message += 'Categorized as:\n';
-                if (data.categorized.budget > 0) message += `- ${data.categorized.budget} Budget account(s)\n`;
-                if (data.categorized.debt > 0) message += `- ${data.categorized.debt} Debt account(s)\n`;
-                if (data.categorized.investment > 0) message += `- ${data.categorized.investment} Investment account(s)\n`;
-                if (data.categorized.retirement > 0) message += `- ${data.categorized.retirement} Retirement account(s)\n`;
-                if (data.categorized.other > 0) message += `- ${data.categorized.other} Other account(s)\n`;
+                message += 'Accounts categorized as:\n';
+                if (data.categorized.budget > 0) message += `• ${data.categorized.budget} Budget account(s)\n`;
+                if (data.categorized.debt > 0) message += `• ${data.categorized.debt} Debt account(s)\n`;
+                if (data.categorized.investment > 0) message += `• ${data.categorized.investment} Investment account(s)\n`;
+                if (data.categorized.retirement > 0) message += `• ${data.categorized.retirement} Retirement account(s)\n`;
+                if (data.categorized.other > 0) message += `• ${data.categorized.other} Other account(s)\n`;
             }
+            message += '\nSyncing account data... This may take a few moments.';
             alert(message);
-            window.location.reload();
+            // Reload page to show updated aggregate data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         }
     } catch (error) {
         console.error('Error exchanging token:', error);

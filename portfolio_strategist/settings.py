@@ -207,11 +207,18 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 def is_docker():
     """Check if we're running inside a Docker container."""
     try:
+        # Check for .dockerenv file (most reliable)
         if os.path.exists("/.dockerenv"):
             return True
+        # Check cgroup (works in most Docker setups)
         if os.path.exists("/proc/self/cgroup"):
             with open("/proc/self/cgroup", "r") as f:
-                return any("docker" in line for line in f)
+                content = f.read()
+                if "docker" in content or "/docker/" in content:
+                    return True
+        # Check for Docker-specific environment variables
+        if os.environ.get("DOCKER_CONTAINER") or os.environ.get("container") == "docker":
+            return True
         return False
     except (OSError, IOError):
         return False
@@ -221,12 +228,21 @@ if "DATABASE_URL" in env:
 else:
     # Auto-detect database host: use "db" in Docker, "localhost" otherwise
     # If explicitly set to "db" but not in Docker, fall back to "localhost"
+    in_docker = is_docker()
     db_host = env("DJANGO_DATABASE_HOST", default=None)
-    if db_host is None:
-        db_host = "db" if is_docker() else "localhost"
-    elif db_host == "db" and not is_docker():
-        # User has "db" in .env but running locally - use localhost instead
+    
+    # If in Docker and no explicit host set, use "db" (the service name)
+    if in_docker and db_host is None:
+        db_host = "db"
+    # If not in Docker and no explicit host set, use "localhost"
+    elif not in_docker and db_host is None:
         db_host = "localhost"
+    # If user explicitly set "db" but not in Docker, fall back to localhost
+    elif db_host == "db" and not in_docker:
+        db_host = "localhost"
+    # If user explicitly set "localhost" but we're in Docker, use "db" instead
+    elif db_host == "localhost" and in_docker:
+        db_host = "db"
     
     DATABASES = {
         "default": {
@@ -641,7 +657,8 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
     "http://127.0.0.1:8000",
     "http://10.0.2.2:8000",  # Android emulator
     "http://localhost:19006",  # React Native dev server
-    "http://10.37.129.2:19006",  # Mobile device IP
+    "http://10.23.49.129:8000",  # Current local IP for mobile app
+    "http://10.23.49.129:19006",  # Mobile device IP
 ])
 
 # Allow credentials (if using authentication cookies)

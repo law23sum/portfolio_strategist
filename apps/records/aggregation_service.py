@@ -13,7 +13,6 @@ from django.utils import timezone
 
 # Lazy import for Plaid - only import when needed
 try:
-    from plaid.api import plaid_api
     from plaid.configuration import Configuration
     from plaid.model import (
         Products,

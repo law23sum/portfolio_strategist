@@ -57,16 +57,23 @@ class LoginViewWith2fa(LoginView):
             # use a different status code to make it easier for API clients to handle this case
             return Response(api_auth_serializer.data, status=200)
         else:
-            super_response = super().post(request, *args, **kwargs)
-            if super_response.status_code == status.HTTP_200_OK:
-                # rewrap login responses to match our serializer schema
-                wrapped_jwt_data = {
-                    "status": "success",
-                    "detail": "User logged in.",
-                    "jwt": super_response.data,
+            # No 2FA required, generate JWT tokens directly
+            from dj_rest_auth.serializers import JWTSerializer
+            refresh = RefreshToken.for_user(self.user)
+            jwt_data = JWTSerializer(
+                {
+                    "user": self.user,
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
                 }
-                return Response(wrapped_jwt_data, status=200)
-            return super_response
+            ).data
+            # Wrap in our response format
+            wrapped_jwt_data = {
+                "status": "success",
+                "detail": "User logged in.",
+                "jwt": jwt_data,
+            }
+            return Response(wrapped_jwt_data, status=200)
 
 
 @extend_schema(tags=["api"])

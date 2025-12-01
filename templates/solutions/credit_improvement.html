@@ -1,0 +1,150 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block page_head %}
+<style>
+    .credit-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    .resource-card {
+        background: white;
+        padding: 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .resource-card h3 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #3273dc;
+    }
+    .resource-card p {
+        color: #666;
+        line-height: 1.6;
+    }
+    .tip-list {
+        list-style: none;
+        padding: 0;
+    }
+    .tip-list li {
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-left: 3px solid #3273dc;
+        border-radius: 4px;
+    }
+    .tip-list li strong {
+        color: #3273dc;
+    }
+    .score-range {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="credit-container">
+    <h1 class="section-title">{% translate "Credit Improvement" %}</h1>
+    <p class="subtitle has-text-centered">{% translate "Tips and tools for boosting credit scores" %}</p>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Understanding Credit Scores" %}</h2>
+        <p>{% translate "Your credit score is a numerical representation of your creditworthiness, typically ranging from 300 to 850. Higher scores indicate better credit health and can lead to better interest rates and loan terms." %}</p>
+        
+        <div class="score-range" style="margin-top: 20px;">
+            <div><strong>{% translate "300-579:" %}</strong> {% translate "Poor" %}</div>
+            <div><strong>{% translate "580-669:" %}</strong> {% translate "Fair" %}</div>
+            <div><strong>{% translate "670-739:" %}</strong> {% translate "Good" %}</div>
+            <div><strong>{% translate "740-799:" %}</strong> {% translate "Very Good" %}</div>
+            <div><strong>{% translate "800-850:" %}</strong> {% translate "Excellent" %}</div>
+        </div>
+    </div>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Credit Improvement Strategies" %}</h2>
+        
+        <div class="resource-grid">
+            <div class="resource-card">
+                <h3>{% translate "Pay Bills On Time" %}</h3>
+                <p>{% translate "Payment history is the most important factor in your credit score. Set up automatic payments or reminders to ensure you never miss a payment." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Reduce Credit Utilization" %}</h3>
+                <p>{% translate "Keep your credit card balances below 30% of your available credit limit. Lower utilization rates show responsible credit management." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Don't Close Old Accounts" %}</h3>
+                <p>{% translate "Length of credit history matters. Keep older accounts open, even if you don't use them regularly, to maintain a longer credit history." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Limit New Credit Applications" %}</h3>
+                <p>{% translate "Too many hard inquiries in a short period can lower your score. Only apply for credit when necessary." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Monitor Your Credit Report" %}</h3>
+                <p>{% translate "Review your credit reports regularly for errors or fraudulent activity. Dispute any inaccuracies immediately." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Diversify Credit Types" %}</h3>
+                <p>{% translate "Having a mix of credit types (credit cards, installment loans, mortgages) can positively impact your score over time." %}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Credit Improvement Tips" %}</h2>
+        <ul class="tip-list">
+            <li>
+                <strong>{% translate "Check Your Credit Report:" %}</strong> {% translate "You're entitled to one free credit report from each bureau annually at AnnualCreditReport.com." %}
+            </li>
+            <li>
+                <strong>{% translate "Pay Down Debt:" %}</strong> {% translate "Focus on paying off high-interest debt first, then work on reducing overall debt balances." %}
+            </li>
+            <li>
+                <strong>{% translate "Use Credit Responsibly:" %}</strong> {% translate "Make small purchases and pay them off in full each month to show active, responsible credit use." %}
+            </li>
+            <li>
+                <strong>{% translate "Become an Authorized User:" %}</strong> {% translate "Being added as an authorized user on someone's account with good credit can help boost your score." %}
+            </li>
+            <li>
+                <strong>{% translate "Be Patient:" %}</strong> {% translate "Credit improvement takes time. Focus on consistent, responsible credit behavior and your score will improve gradually." %}
+            </li>
+        </ul>
+    </div>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Credit Management Tools" %}</h2>
+        <p>{% translate "Use our financial management tools to track your debt, create payment plans, and monitor your financial health." %}</p>
+        <p style="margin-top: 15px;">
+            <a href="{% url 'solutions:budgeting' %}" class="button is-primary">{% translate "View Budget Planner" %}</a>
+            <a href="{% url 'records:insights' %}" class="button is-link">{% translate "View Financial Insights" %}</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+

@@ -266,6 +266,40 @@
         Enter stock information and investment details to start planning.
     </div>
 
+    <!-- Stock Details & Reports Section -->
+    <div class="box" id="stockDetailsBox" style="display: none; margin-bottom: 30px;">
+        <h2 class="title is-4">Stock Details & Reports</h2>
+        <div id="stockInfoSection"></div>
+        
+        <!-- Stock Charts -->
+        <div class="columns" style="margin-top: 20px;">
+            <div class="column">
+                <h3 class="title is-5">Price History</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+            <div class="column">
+                <h3 class="title is-5">Volume</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Financial Metrics -->
+        <div class="box" id="financialMetricsBox" style="margin-top: 20px; display: none;">
+            <h3 class="title is-5">Financial Metrics</h3>
+            <div id="financialMetricsContent"></div>
+        </div>
+        
+        <!-- Stock News -->
+        <div class="box" id="stockNewsBox" style="margin-top: 20px; display: none;">
+            <h3 class="title is-5">Latest News</h3>
+            <div id="stockNewsContent"></div>
+        </div>
+    </div>
+
     <!-- Investment Inputs -->
     <div class="box">
         <h2 class="title is-4">Investment Inputs</h2>
@@ -274,6 +308,11 @@
             <div class="control">
                 <input class="input" type="text" id="stockSymbol" placeholder="e.g., AAPL, NVDA, TSLA" value="">
             </div>
+            <p class="help">
+                <button class="button is-small is-info" onclick="fetchStockDetails()" id="fetchDetailsBtn">
+                    Fetch Stock Details & Charts
+                </button>
+            </p>
         </div>
         
         <div class="field">
@@ -430,8 +469,236 @@
             <div>[System] Investment Planner ready. Enter details and calculate projection.</div>
         </div>
     </div>
+
+    <!-- Navigation to Savings, CD, & Bonds Forecast -->
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Additional Tools</h2>
+        <a href="{% url 'web:savings_cd_bonds_forecast' %}" class="button is-primary is-large">
+            <span class="icon"><i class="fa fa-chart-line"></i></span>
+            <span>Savings, CD, & Bonds Forecast</span>
+        </a>
+    </div>
 </div>
 
 <script src="{% static 'js/investment_retirement.js' %}"></script>
+<script>
+// Stock Details Fetching
+let priceChart = null;
+let volumeChart = null;
+
+async function fetchStockDetails() {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        return;
+    }
+
+    const fetchBtn = document.getElementById('fetchDetailsBtn');
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = 'Fetching...';
+
+    try {
+        appendLog(`Fetching stock details for ${symbol}...`);
+        
+        const response = await fetch('/stock-analysis/api/stock-details/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ symbol: symbol }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to fetch stock details');
+        }
+
+        // Display stock info
+        displayStockInfo(data);
+        
+        // Display charts
+        if (data.historical_data && data.historical_data.length > 0) {
+            displayPriceChart(data.historical_data);
+            displayVolumeChart(data.historical_data);
+        }
+        
+        // Display financial metrics
+        if (data.ratios && data.ratios.length > 0) {
+            displayFinancialMetrics(data.ratios, data.key_metrics);
+        }
+        
+        // Display news
+        if (data.news_html) {
+            displayNews(data.news_html);
+        }
+
+        document.getElementById('stockDetailsBox').style.display = 'block';
+        appendLog(`Stock details fetched successfully for ${symbol}.`);
+        
+    } catch (error) {
+        appendLog(`Error fetching stock details: ${error.message}`);
+        alert(`Error: ${error.message}`);
+    } finally {
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = 'Fetch Stock Details & Charts';
+    }
+}
+
+function displayStockInfo(data) {
+    const infoSection = document.getElementById('stockInfoSection');
+    const metrics = data.key_metrics;
+    
+    let html = '<div class="columns">';
+    html += '<div class="column"><table class="table is-fullwidth">';
+    html += `<tr><th>Symbol</th><td>${data.symbol}</td></tr>`;
+    html += `<tr><th>Sector</th><td>${metrics.sector || 'N/A'}</td></tr>`;
+    html += `<tr><th>Industry</th><td>${metrics.industry || 'N/A'}</td></tr>`;
+    html += `<tr><th>Current Price</th><td>$${metrics.currentPrice ? metrics.currentPrice.toFixed(2) : 'N/A'}</td></tr>`;
+    html += `<tr><th>Market Cap</th><td>${metrics.marketCap ? formatLargeNumber(metrics.marketCap) : 'N/A'}</td></tr>`;
+    html += '</table></div>';
+    
+    html += '<div class="column"><table class="table is-fullwidth">';
+    html += `<tr><th>P/E Ratio (Trailing)</th><td>${metrics.trailingPE ? metrics.trailingPE.toFixed(2) : 'N/A'}</td></tr>`;
+    html += `<tr><th>P/E Ratio (Forward)</th><td>${metrics.forwardPE ? metrics.forwardPE.toFixed(2) : 'N/A'}</td></tr>`;
+    html += `<tr><th>Beta</th><td>${metrics.beta ? metrics.beta.toFixed(2) : 'N/A'}</td></tr>`;
+    html += `<tr><th>Dividend Yield</th><td>${metrics.dividendYield ? (metrics.dividendYield * 100).toFixed(2) + '%' : 'N/A'}</td></tr>`;
+    html += `<tr><th>52 Week High</th><td>$${metrics['52WeekHigh'] ? metrics['52WeekHigh'].toFixed(2) : 'N/A'}</td></tr>`;
+    html += `<tr><th>52 Week Low</th><td>$${metrics['52WeekLow'] ? metrics['52WeekLow'].toFixed(2) : 'N/A'}</td></tr>`;
+    html += '</table></div></div>';
+    
+    infoSection.innerHTML = html;
+}
+
+function displayPriceChart(historicalData) {
+    const ctx = document.getElementById('priceChart');
+    if (!ctx) return;
+
+    if (priceChart) {
+        priceChart.destroy();
+    }
+
+    const labels = historicalData.map(d => d.date).slice(-60); // Last 60 days
+    const closes = historicalData.map(d => d.close).slice(-60);
+    const highs = historicalData.map(d => d.high).slice(-60);
+    const lows = historicalData.map(d => d.low).slice(-60);
+
+    priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Close Price',
+                    data: closes,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                },
+                {
+                    label: 'High',
+                    data: highs,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.1,
+                },
+                {
+                    label: 'Low',
+                    data: lows,
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.1,
+                }
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Price ($)',
+                    },
+                },
+            },
+        },
+    });
+}
+
+function displayVolumeChart(historicalData) {
+    const ctx = document.getElementById('volumeChart');
+    if (!ctx) return;
+
+    if (volumeChart) {
+        volumeChart.destroy();
+    }
+
+    const labels = historicalData.map(d => d.date).slice(-60);
+    const volumes = historicalData.map(d => d.volume).slice(-60);
+
+    volumeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Volume',
+                data: volumes,
+                backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Volume',
+                    },
+                },
+            },
+        },
+    });
+}
+
+function displayFinancialMetrics(ratios, keyMetrics) {
+    const metricsBox = document.getElementById('financialMetricsBox');
+    const content = document.getElementById('financialMetricsContent');
+    
+    let html = '<div class="table-container"><table class="table is-fullwidth is-striped">';
+    html += '<thead><tr><th>Metric</th><th>Value</th><th>Assessment</th></tr></thead><tbody>';
+    
+    ratios.forEach(ratio => {
+        html += `<tr>
+            <td>${ratio.Metric || ratio.metric || 'N/A'}</td>
+            <td>${ratio.Value !== undefined ? ratio.Value : ratio.value || 'N/A'}</td>
+            <td><span class="tag ${(ratio.Assessment || ratio.assessment || '').toLowerCase().includes('good') ? 'is-success' : 'is-warning'}">${ratio.Assessment || ratio.assessment || 'N/A'}</span></td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    content.innerHTML = html;
+    metricsBox.style.display = 'block';
+}
+
+function displayNews(newsHtml) {
+    const newsBox = document.getElementById('stockNewsBox');
+    const newsContent = document.getElementById('stockNewsContent');
+    newsContent.innerHTML = newsHtml;
+    newsBox.style.display = 'block';
+}
+
+function formatLargeNumber(num) {
+    if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    return num.toFixed(2);
+}
+</script>
 {% endblock %}
 

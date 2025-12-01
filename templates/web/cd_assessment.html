@@ -1,0 +1,615 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .investment-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .chart-container {
+        margin: 30px 0;
+        height: 400px;
+        position: relative;
+    }
+    .forecast-table {
+        margin: 20px 0;
+    }
+    .time-period-card {
+        background: white;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .time-period-card h4 {
+        color: #3273dc;
+        margin-bottom: 10px;
+    }
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .metric-row:last-child {
+        border-bottom: none;
+    }
+    .metric-label {
+        font-weight: 600;
+        color: #666;
+    }
+    .metric-value {
+        color: #333;
+        font-size: 1.1em;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="investment-container">
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'web:investment_savings' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Investment & Savings</span>
+        </a>
+    </div>
+    
+    <h1 class="title is-2">CD Assessment</h1>
+    <p class="subtitle">Forecast your Certificate of Deposit growth across multiple time periods</p>
+    
+    <!-- Plaid Integration -->
+    <div class="box" style="margin-bottom: 30px;">
+        <h2 class="title is-4">Link Account from Plaid (Optional)</h2>
+        <div class="field">
+            <label class="label">Import from Linked Account</label>
+            <div class="control">
+                <div class="select is-fullwidth">
+                    <select id="plaidAccountSelect">
+                        <option value="">Select a linked account (optional)</option>
+                        {% for account in linked_accounts %}
+                        <option value="{{ account.id }}" data-balance="{{ account.current_balance|default:0 }}">
+                            {{ account.institution_name }} - {{ account.account_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="help">Select a linked CD account to auto-fill account details</p>
+        </div>
+    </div>
+    
+    <!-- CD Input Form -->
+    <div class="box">
+        <h2 class="title is-4">CD Account Details</h2>
+        
+        <div class="field">
+            <label class="label">Account Name</label>
+            <div class="control">
+                <input class="input" type="text" id="accountName" placeholder="e.g., 5-Year High-Yield CD" value="CD Account">
+            </div>
+        </div>
+        
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">CD Amount ($) *</label>
+                    <div class="control">
+                        <input class="input" type="number" id="cdAmount" placeholder="50000" step="0.01" value="50000" required>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label">Annual Interest Rate (%) *</label>
+                    <div class="control">
+                        <input class="input" type="number" id="annualRate" placeholder="4.5" step="0.01" value="4.5" required>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label">Biweekly Contribution ($)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="biweeklyContribution" placeholder="200" step="0.01" value="200">
+                    </div>
+                    <p class="help">26 biweekly periods × 3 years = 78 contributions per phase</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Compounding Frequency</label>
+            <div class="control">
+                <div class="select is-fullwidth">
+                    <select id="compoundingFrequency">
+                        <option value="365">Daily</option>
+                        <option value="12" selected>Monthly</option>
+                        <option value="4">Quarterly</option>
+                        <option value="2">Semi-Annually</option>
+                        <option value="1">Annually</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Notes</label>
+            <div class="control">
+                <textarea class="textarea" id="notes" placeholder="Optional notes about this CD"></textarea>
+            </div>
+        </div>
+        
+        <div class="field is-grouped">
+            <div class="control">
+                <button class="button is-primary" onclick="calculateAndSave()">
+                    Calculate & Save Assessment
+                </button>
+            </div>
+            <div class="control">
+                <button class="button is-info" onclick="calculateForecast()">
+                    Preview Forecast
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Forecast Results -->
+    <div class="box" id="forecastSection" style="display: none;">
+        <h2 class="title is-4">Forecast Projections</h2>
+        
+        <!-- Summary Chart -->
+        <div class="chart-container">
+            <canvas id="forecastChart"></canvas>
+        </div>
+        
+        <!-- Time Period Forecasts -->
+        <div id="forecastResults"></div>
+        
+        <!-- Detailed Table (Matching PDF Structure) -->
+        <div class="box" style="margin-top: 20px;">
+            <h3 class="title is-5">Certificate of Deposit (Savings) - Phase Forecast</h3>
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped forecast-table">
+                    <thead>
+                        <tr>
+                            <th>Phase</th>
+                            <th>Starting Amount</th>
+                            <th>APY (%)</th>
+                            <th>Total Amount</th>
+                            <th>Interest Earned</th>
+                        </tr>
+                    </thead>
+                    <tbody id="forecastTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 3-Year Plan Summary Table (Matching PDF) -->
+        <div class="box" style="margin-top: 20px;">
+            <h3 class="title is-5">3-Year Plan Summary</h3>
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <tr>
+                            <th>Investment Type</th>
+                            <th>Principal Amount</th>
+                            <th>Biweekly Amount<br/>(26 × 3 Years)</th>
+                            <th>Total Amount</th>
+                            <th>Total Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="planSummaryTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Saved Assessments -->
+    {% if assessments %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Saved CD Assessments</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Account Name</th>
+                        <th>CD Amount</th>
+                        <th>APY</th>
+                        <th>Biweekly Contribution</th>
+                        <th>Current Value</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assessment in assessments %}
+                    <tr>
+                        <td><strong>{{ assessment.account_name }}</strong></td>
+                        <td>${{ assessment.amount|floatformat:2 }}</td>
+                        <td>{{ assessment.annual_interest_rate|floatformat:2 }}%</td>
+                        <td>${{ assessment.biweekly_contribution|floatformat:2|default:"0.00" }}</td>
+                        <td>${{ assessment.forecast_data.phase_1.value|default:assessment.forecast_data.decade.value|default:"N/A" }}</td>
+                        <td>{{ assessment.updated_at|date:"M d, Y" }}</td>
+                        <td>
+                            <button class="button is-small" onclick="loadAssessment({{ assessment.id }})">Edit</button>
+                            <button class="button is-small is-danger" onclick="deleteAssessment({{ assessment.id }})">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let forecastChart = null;
+let currentAssessmentId = null;
+
+// Phases are 3-year periods (matching PDF structure)
+// Each phase has 26 biweekly periods × 3 years = 78 biweekly contributions
+const PHASES = [
+    { phase: 1, years: 3, label: 'Phase 1 (Years 1-3)' },
+    { phase: 2, years: 6, label: 'Phase 2 (Years 4-6)' },
+    { phase: 3, years: 9, label: 'Phase 3 (Years 7-9)' },
+    { phase: 4, years: 12, label: 'Phase 4 (Years 10-12)' },
+    { phase: 5, years: 15, label: 'Phase 5 (Years 13-15)' },
+    { phase: 6, years: 18, label: 'Phase 6 (Years 16-18)' },
+    { phase: 7, years: 21, label: 'Phase 7 (Years 19-21)' },
+    { phase: 8, years: 24, label: 'Phase 8 (Years 22-24)' },
+    { phase: 9, years: 27, label: 'Phase 9 (Years 25-27)' },
+    { phase: 10, years: 30, label: 'Phase 10 (Years 28-30)' }
+];
+
+const BIWEEKLY_PER_YEAR = 26;
+const BIWEEKLY_PER_PHASE = BIWEEKLY_PER_YEAR * 3; // 78 biweekly periods per 3-year phase
+
+async function calculateForecast() {
+    const cdAmount = parseFloat(document.getElementById('cdAmount').value) || 0;
+    const annualRate = parseFloat(document.getElementById('annualRate').value) / 100 || 0;
+    const biweeklyContrib = parseFloat(document.getElementById('biweeklyContribution').value) || 0;
+    const compoundingFreq = parseInt(document.getElementById('compoundingFrequency').value) || 12;
+    
+    if (cdAmount <= 0 || annualRate <= 0) {
+        alert('Please enter valid CD amount and APY.');
+        return;
+    }
+    
+    // Calculate forecasts for all phases (3-year periods)
+    const phases = [];
+    let startingAmount = cdAmount;
+    
+    for (const phaseInfo of PHASES) {
+        const phaseResult = calculateCDPhase(
+            startingAmount,
+            annualRate,
+            biweeklyContrib,
+            compoundingFreq,
+            phaseInfo.phase,
+            phaseInfo.years
+        );
+        phases.push(phaseResult);
+        startingAmount = phaseResult.totalAmount; // Next phase starts with this phase's total
+    }
+    
+    // Display results
+    displayForecastResults(phases);
+    document.getElementById('forecastSection').style.display = 'block';
+}
+
+function calculateCDPhase(startingAmount, apy, biweeklyContrib, compoundFreq, phaseNumber, totalYears) {
+    // Each phase is 3 years
+    const phaseYears = 3;
+    const phaseStartYear = (phaseNumber - 1) * 3;
+    const phaseEndYear = phaseNumber * 3;
+    
+    // Number of compounding periods in this phase
+    const periodsPerYear = compoundFreq;
+    const periodsInPhase = phaseYears * periodsPerYear;
+    const periodRate = apy / periodsPerYear;
+    
+    // Future value of starting amount (compounded over 3 years)
+    const fvStarting = startingAmount * Math.pow(1 + periodRate, periodsInPhase);
+    
+    // Future value of biweekly contributions (26 biweekly × 3 years = 78 contributions)
+    let fvContributions = 0;
+    if (biweeklyContrib > 0) {
+        const biweeklyPeriods = BIWEEKLY_PER_PHASE; // 78 biweekly periods per phase
+        // Convert biweekly to compounding frequency
+        const contribsPerCompoundingPeriod = periodsPerYear / BIWEEKLY_PER_YEAR;
+        const contribPerPeriod = biweeklyContrib * contribsPerCompoundingPeriod;
+        
+        // Calculate future value of annuity
+        for (let i = 0; i < periodsInPhase; i++) {
+            const periodsRemaining = periodsInPhase - i;
+            fvContributions += contribPerPeriod * Math.pow(1 + periodRate, periodsRemaining);
+        }
+    }
+    
+    const totalAmount = fvStarting + fvContributions;
+    const totalContributions = startingAmount + (biweeklyContrib * BIWEEKLY_PER_PHASE);
+    const interestEarned = totalAmount - totalContributions;
+    
+    // Calculate APY (Annual Percentage Yield)
+    const apyPercent = (Math.pow(1 + periodRate, periodsPerYear) - 1) * 100;
+    
+    return {
+        phase: phaseNumber,
+        label: `Phase ${phaseNumber} (Years ${phaseStartYear + 1}-${phaseEndYear})`,
+        startingAmount: startingAmount,
+        apy: apy * 100, // Convert back to percentage
+        totalAmount: totalAmount,
+        interestEarned: interestEarned,
+        totalContributions: totalContributions,
+        years: totalYears,
+        phaseYears: phaseYears,
+        apyCalculated: apyPercent
+    };
+}
+
+function displayForecastResults(phases) {
+    // Update chart
+    updateForecastChart(phases);
+    
+    // Update phase cards (matching PDF structure)
+    const resultsDiv = document.getElementById('forecastResults');
+    let html = '<div class="columns is-multiline">';
+    
+    for (const phase of phases) {
+        html += `
+            <div class="column is-half">
+                <div class="time-period-card">
+                    <h4>${phase.label}</h4>
+                    <div class="metric-row">
+                        <span class="metric-label">Starting Amount:</span>
+                        <span class="metric-value">$${phase.startingAmount.toFixed(2)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">APY:</span>
+                        <span class="metric-value">${phase.apy.toFixed(2)}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Interest Earned:</span>
+                        <span class="metric-value" style="color: #28a745;">$${phase.interestEarned.toFixed(2)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Amount:</span>
+                        <span class="metric-value" style="font-weight: bold; font-size: 1.2em; color: #3273dc;">$${phase.totalAmount.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    resultsDiv.innerHTML = html;
+    
+    // Update table (matching PDF table structure)
+    const tableBody = document.getElementById('forecastTableBody');
+    let tableHtml = '';
+    for (const phase of phases) {
+        tableHtml += `
+            <tr>
+                <td>${phase.phase}</td>
+                <td>$${phase.startingAmount.toFixed(2)}</td>
+                <td>${phase.apy.toFixed(2)}%</td>
+                <td><strong>$${phase.totalAmount.toFixed(2)}</strong></td>
+                <td>$${phase.interestEarned.toFixed(2)}</td>
+            </tr>
+        `;
+    }
+    tableBody.innerHTML = tableHtml;
+    
+    // Update 3-Year Plan Summary Table (matching PDF structure)
+    const planSummaryBody = document.getElementById('planSummaryTableBody');
+    if (planSummaryBody) {
+        const totalPrincipal = phases[0]?.startingAmount || 0;
+        const biweeklyAmount = phases[0]?.totalContributions ? (phases[0].totalContributions - phases[0].startingAmount) / BIWEEKLY_PER_PHASE : 0;
+        const totalAmount = phases[phases.length - 1]?.totalAmount || 0;
+        const totalPercentage = 100.0; // CD is 100% of this plan
+        
+        planSummaryBody.innerHTML = `
+            <tr>
+                <td><strong>Certificate of Deposit</strong></td>
+                <td>$${totalPrincipal.toFixed(2)}</td>
+                <td>$${biweeklyAmount.toFixed(2)}</td>
+                <td><strong>$${totalAmount.toFixed(2)}</strong></td>
+                <td>${totalPercentage.toFixed(2)}%</td>
+            </tr>
+        `;
+    }
+}
+
+function updateForecastChart(phases) {
+    const ctx = document.getElementById('forecastChart');
+    if (!ctx) return;
+    
+    if (forecastChart) {
+        forecastChart.destroy();
+    }
+    
+    const labels = [];
+    const totalAmounts = [];
+    const startingAmounts = [];
+    const interestEarned = [];
+    
+    for (const phase of phases) {
+        labels.push(`Phase ${phase.phase}`);
+        totalAmounts.push(phase.totalAmount);
+        startingAmounts.push(phase.startingAmount);
+        interestEarned.push(phase.interestEarned);
+    }
+    
+    forecastChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Starting Amount',
+                    data: startingAmounts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                },
+                {
+                    label: 'Interest Earned',
+                    data: interestEarned,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                },
+                {
+                    label: 'Total Amount',
+                    data: totalAmounts,
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                }
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ($)',
+                    },
+                },
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
+
+async function calculateAndSave() {
+    await calculateForecast();
+    await saveAssessment();
+}
+
+async function saveAssessment() {
+    const accountName = document.getElementById('accountName').value.trim() || 'CD Account';
+    const cdAmount = parseFloat(document.getElementById('cdAmount').value) || 0;
+    const annualRate = parseFloat(document.getElementById('annualRate').value) || 0;
+    const biweeklyContrib = parseFloat(document.getElementById('biweeklyContribution').value) || 0;
+    const compoundingFreq = parseInt(document.getElementById('compoundingFrequency').value) || 12;
+    
+    // Calculate forecast data for phases
+    const forecastData = {};
+    let startingAmount = cdAmount;
+    
+    for (const phaseInfo of PHASES) {
+        const phase = calculateCDPhase(
+            startingAmount,
+            annualRate / 100,
+            biweeklyContrib,
+            compoundingFreq,
+            phaseInfo.phase,
+            phaseInfo.years
+        );
+        forecastData[`phase_${phaseInfo.phase}`] = {
+            value: phase.totalAmount,
+            starting_amount: phase.startingAmount,
+            interest: phase.interestEarned,
+            total_contributions: phase.totalContributions,
+            apy: phase.apy
+        };
+        startingAmount = phase.totalAmount; // Next phase starts with this phase's total
+    }
+    
+    // Add current value
+    forecastData.current = {
+        value: cdAmount,
+        principal: cdAmount,
+        interest: 0,
+        growth_percent: 0
+    };
+    
+    const data = {
+        account_name: accountName,
+        linked_account_id: document.getElementById('plaidAccountSelect').value || null,
+        amount: cdAmount,
+        annual_interest_rate: annualRate,
+        biweekly_contribution: biweeklyContrib,
+        term_months: 36, // 3-year phases
+        compounding_frequency: compoundingFreq,
+        forecast_data: forecastData,
+        notes: document.getElementById('notes').value,
+        id: currentAssessmentId
+    };
+    
+    try {
+        const response = await fetch('{% url "web:save_cd_assessment" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(data),
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Assessment saved successfully!');
+            window.location.reload();
+        } else {
+            alert('Error saving: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error saving assessment: ' + error.message);
+    }
+}
+
+function loadAssessment(id) {
+    // Load assessment data (would need an API endpoint)
+    alert('Load assessment functionality - to be implemented');
+}
+
+function deleteAssessment(id) {
+    if (confirm('Are you sure you want to delete this assessment?')) {
+        // Delete assessment (would need an API endpoint)
+        alert('Delete assessment functionality - to be implemented');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Auto-fill from Plaid account
+document.getElementById('plaidAccountSelect').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    if (selectedOption.value && selectedOption.dataset.balance) {
+        document.getElementById('cdAmount').value = parseFloat(selectedOption.dataset.balance) || 0;
+    }
+});
+</script>
+{% endblock %}
+

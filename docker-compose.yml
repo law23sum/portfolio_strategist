@@ -1,9 +1,10 @@
 services:
   db:
-    image: postgres
+    image: postgres:15
     # persist data beyond lifetime of container
+    # Using /var/lib/postgresql for PostgreSQL 18+ compatibility
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_data:/var/lib/postgresql
     environment:
       - POSTGRES_DB=portfolio_strategist
       - POSTGRES_USER=postgres
@@ -32,8 +33,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      PYTHONUNBUFFERED: '1'
-      PYTHONDONTWRITEBYTECODE: '1'
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DJANGO_DATABASE_HOST=db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/portfolio_strategist
     env_file:
       - ./.env
     restart: unless-stopped
@@ -50,8 +53,10 @@ services:
     volumes:
       - .:/code
     environment:
-      PYTHONUNBUFFERED: '1'
-      PYTHONDONTWRITEBYTECODE: '1'
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DJANGO_DATABASE_HOST=db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/portfolio_strategist
     env_file:
       - ./.env
     depends_on:

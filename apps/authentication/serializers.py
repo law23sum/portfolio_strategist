@@ -16,20 +16,26 @@ class CustomLoginSerializer(LoginSerializer):
     password = serializers.CharField(style={'input_type': 'password'})
 
     def validate(self, attrs):
-        username = attrs.get('username')
-        email = attrs.get('email')
+        username = attrs.get('username', '').strip() if attrs.get('username') else ''
+        email = attrs.get('email', '').strip() if attrs.get('email') else ''
         password = attrs.get('password')
 
         if not password:
             raise serializers.ValidationError('Password is required.')
 
+        if not email and not username:
+            raise serializers.ValidationError('Either email or username is required.')
+
         # Try to get user by email first (since that's the primary auth method)
         user = None
         if email:
             try:
-                user = User.objects.get(email=email)
+                user = User.objects.get(email__iexact=email)
             except User.DoesNotExist:
                 pass
+            except User.MultipleObjectsReturned:
+                # If multiple users with same email (shouldn't happen), get the first one
+                user = User.objects.filter(email__iexact=email).first()
         
         # If no user found by email, try username
         if not user and username:
@@ -41,12 +47,16 @@ class CustomLoginSerializer(LoginSerializer):
         if not user:
             raise serializers.ValidationError('Unable to log in with provided credentials.')
 
-        # Authenticate the user
-        user = authenticate(request=self.context.get('request'), username=user.username, password=password)
-        if not user:
+        # Authenticate the user - use the username field for authentication
+        authenticated_user = authenticate(
+            request=self.context.get('request'), 
+            username=user.username, 
+            password=password
+        )
+        if not authenticated_user:
             raise serializers.ValidationError('Unable to log in with provided credentials.')
 
-        attrs['user'] = user
+        attrs['user'] = authenticated_user
         return attrs
 
 

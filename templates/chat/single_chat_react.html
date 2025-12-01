@@ -6,5 +6,6 @@
 {% block page_js %}
   {{ serialized_chat|json_script:'chat' }}
   {{ api_urls|json_script:'api-urls' }}
+  {{ menu_urls|json_script:'menu-urls' }}
   <script src="{% static 'js/chat-bundle.js' %}" defer></script>
 {% endblock %}

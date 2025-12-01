@@ -1,0 +1,129 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block page_head %}
+<style>
+    .tax-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    .resource-card {
+        background: white;
+        padding: 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .resource-card h3 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #3273dc;
+    }
+    .resource-card p {
+        color: #666;
+        line-height: 1.6;
+    }
+    .tip-list {
+        list-style: none;
+        padding: 0;
+    }
+    .tip-list li {
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-left: 3px solid #3273dc;
+        border-radius: 4px;
+    }
+    .tip-list li strong {
+        color: #3273dc;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="tax-container">
+    <h1 class="section-title">{% translate "Tax Optimization" %}</h1>
+    <p class="subtitle has-text-centered">{% translate "Resources for minimizing tax liabilities" %}</p>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Tax Optimization Strategies" %}</h2>
+        
+        <div class="resource-grid">
+            <div class="resource-card">
+                <h3>{% translate "Retirement Contributions" %}</h3>
+                <p>{% translate "Maximize contributions to 401(k), IRA, and other retirement accounts to reduce taxable income." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Health Savings Accounts" %}</h3>
+                <p>{% translate "Contribute to HSA accounts for triple tax benefits: tax-deductible contributions, tax-free growth, and tax-free withdrawals for medical expenses." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Tax-Loss Harvesting" %}</h3>
+                <p>{% translate "Offset capital gains by selling investments at a loss, which can reduce your overall tax burden." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Charitable Giving" %}</h3>
+                <p>{% translate "Donate to qualified charities to receive tax deductions while supporting causes you care about." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Deductions & Credits" %}</h3>
+                <p>{% translate "Take advantage of available tax deductions and credits such as education expenses, home office deductions, and energy-efficient home improvements." %}</p>
+            </div>
+            
+            <div class="resource-card">
+                <h3>{% translate "Tax-Advantaged Accounts" %}</h3>
+                <p>{% translate "Utilize 529 plans for education savings, FSA for healthcare expenses, and other tax-advantaged investment vehicles." %}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Key Tax Optimization Tips" %}</h2>
+        <ul class="tip-list">
+            <li>
+                <strong>{% translate "Plan Ahead:" %}</strong> {% translate "Review your tax situation throughout the year, not just at tax time." %}
+            </li>
+            <li>
+                <strong>{% translate "Track Expenses:" %}</strong> {% translate "Keep detailed records of deductible expenses including receipts and documentation." %}
+            </li>
+            <li>
+                <strong>{% translate "Timing Matters:" %}</strong> {% translate "Consider timing of income and deductions to optimize your tax bracket." %}
+            </li>
+            <li>
+                <strong>{% translate "Consult Professionals:" %}</strong> {% translate "Work with tax advisors or CPAs for complex tax situations and planning." %}
+            </li>
+            <li>
+                <strong>{% translate "Stay Informed:" %}</strong> {% translate "Keep up with tax law changes that may affect your financial planning." %}
+            </li>
+        </ul>
+    </div>
+    
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Tax Planning Resources" %}</h2>
+        <p>{% translate "Use our integrated financial tools to track deductible expenses, plan retirement contributions, and optimize your tax strategy throughout the year." %}</p>
+        <p style="margin-top: 15px;">
+            <a href="{% url 'solutions:budgeting' %}" class="button is-primary">{% translate "View Budget Planner" %}</a>
+            <a href="{% url 'web:investment_savings' %}" class="button is-link">{% translate "View Investment & Savings" %}</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+

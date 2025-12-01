@@ -25,5 +25,11 @@
         <span class="is-hidden-tablet-only">{% translate "Online Financial Accounts" %}</span>
       </a>
     </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'records_personal_sensitive' %}is-active{% endif %}" href="{% url 'records:personal_sensitive' %}">
+        <span class="pg-icon"><i class="fa fa-home"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Personal Sensitive Information" %}</span>
+      </a>
+    </li>
   </ul>
 </aside>

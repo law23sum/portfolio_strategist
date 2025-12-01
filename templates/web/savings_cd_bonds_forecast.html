@@ -1,0 +1,451 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .forecast-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .forecast-card {
+        background: white;
+        padding: 20px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .chart-container {
+        margin: 30px 0;
+        height: 400px;
+    }
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    .results-table th,
+    .results-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    .results-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="forecast-container">
+    <h1 class="section-title">Savings, CD, & Bonds Forecast</h1>
+    <p class="has-text-centered has-text-grey" style="margin-bottom: 30px;">
+        Calculate future value projections for savings accounts, certificates of deposit (CDs), and bonds
+    </p>
+
+    <!-- Navigation back to Investment & Retirement -->
+    <div class="box" style="margin-bottom: 30px;">
+        <a href="{% url 'web:investment_retirement' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Investment & Retirement</span>
+        </a>
+    </div>
+
+    <!-- Savings Account Forecast -->
+    <div class="forecast-card">
+        <h2 class="title is-4">Savings Account Forecast</h2>
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">Initial Deposit ($)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="savingsInitial" placeholder="10000" step="0.01" value="10000">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Annual Interest Rate (%)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="savingsRate" placeholder="2.5" step="0.01" value="2.5">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Monthly Contribution ($)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="savingsMonthly" placeholder="500" step="0.01" value="500">
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label">Time Period (Years)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="savingsYears" placeholder="10" step="0.5" value="10" min="0.5">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Compounding Frequency</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="savingsCompound">
+                                <option value="365">Daily</option>
+                                <option value="12" selected>Monthly</option>
+                                <option value="4">Quarterly</option>
+                                <option value="2">Semi-Annually</option>
+                                <option value="1">Annually</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-primary" onclick="calculateSavings()">Calculate Savings Forecast</button>
+                </div>
+            </div>
+        </div>
+        <div id="savingsResults" style="display: none; margin-top: 20px;"></div>
+    </div>
+
+    <!-- CD Forecast -->
+    <div class="forecast-card">
+        <h2 class="title is-4">Certificate of Deposit (CD) Forecast</h2>
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">CD Amount ($)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="cdAmount" placeholder="50000" step="0.01" value="50000">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Annual Interest Rate (%)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="cdRate" placeholder="4.5" step="0.01" value="4.5">
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label">Term (Months)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="cdMonths" placeholder="36" step="1" value="36" min="1">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Compounding Frequency</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="cdCompound">
+                                <option value="365">Daily</option>
+                                <option value="12" selected>Monthly</option>
+                                <option value="4">Quarterly</option>
+                                <option value="2">Semi-Annually</option>
+                                <option value="1">Annually</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-primary" onclick="calculateCD()">Calculate CD Forecast</button>
+                </div>
+            </div>
+        </div>
+        <div id="cdResults" style="display: none; margin-top: 20px;"></div>
+    </div>
+
+    <!-- Bonds Forecast -->
+    <div class="forecast-card">
+        <h2 class="title is-4">Bonds Forecast</h2>
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">Face Value ($)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="bondFace" placeholder="10000" step="0.01" value="10000">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Coupon Rate (%)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="bondCoupon" placeholder="5.0" step="0.01" value="5.0">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Purchase Price ($)</label>
+                    <div class="control">
+                        <input class="input" type="number" id="bondPrice" placeholder="10000" step="0.01" value="10000">
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label">Years to Maturity</label>
+                    <div class="control">
+                        <input class="input" type="number" id="bondYears" placeholder="10" step="0.5" value="10" min="0.5">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Payment Frequency</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="bondFrequency">
+                                <option value="2" selected>Semi-Annually</option>
+                                <option value="4">Quarterly</option>
+                                <option value="12">Monthly</option>
+                                <option value="1">Annually</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-primary" onclick="calculateBond()">Calculate Bond Forecast</button>
+                </div>
+            </div>
+        </div>
+        <div id="bondResults" style="display: none; margin-top: 20px;"></div>
+    </div>
+
+    <!-- Comparison Chart -->
+    <div class="forecast-card" id="comparisonChartBox" style="display: none;">
+        <h2 class="title is-4">Comparison Chart</h2>
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+let comparisonChart = null;
+let comparisonData = {
+    savings: null,
+    cd: null,
+    bond: null
+};
+
+function calculateSavings() {
+    const initial = parseFloat(document.getElementById('savingsInitial').value) || 0;
+    const rate = parseFloat(document.getElementById('savingsRate').value) / 100 || 0;
+    const monthly = parseFloat(document.getElementById('savingsMonthly').value) || 0;
+    const years = parseFloat(document.getElementById('savingsYears').value) || 0;
+    const compound = parseFloat(document.getElementById('savingsCompound').value) || 12;
+    
+    if (years <= 0) {
+        alert('Please enter a valid time period.');
+        return;
+    }
+    
+    // Calculate compound interest with monthly contributions
+    const periods = years * compound;
+    const periodRate = rate / compound;
+    let balance = initial;
+    const monthlyPeriods = compound / 12;
+    
+    // Future value of initial deposit
+    const fvInitial = initial * Math.pow(1 + periodRate, periods);
+    
+    // Future value of monthly contributions (annuity)
+    let fvContributions = 0;
+    if (monthly > 0) {
+        for (let i = 0; i < periods; i++) {
+            if (i % monthlyPeriods === 0) {
+                fvContributions += monthly * Math.pow(1 + periodRate, periods - i);
+            }
+        }
+    }
+    
+    const totalValue = fvInitial + fvContributions;
+    const totalContributions = initial + (monthly * 12 * years);
+    const totalInterest = totalValue - totalContributions;
+    
+    comparisonData.savings = {
+        years: years,
+        value: totalValue,
+        contributions: totalContributions,
+        interest: totalInterest
+    };
+    
+    displaySavingsResults(totalValue, totalContributions, totalInterest, years);
+    updateComparisonChart();
+}
+
+function calculateCD() {
+    const amount = parseFloat(document.getElementById('cdAmount').value) || 0;
+    const rate = parseFloat(document.getElementById('cdRate').value) / 100 || 0;
+    const months = parseFloat(document.getElementById('cdMonths').value) || 0;
+    const compound = parseFloat(document.getElementById('cdCompound').value) || 12;
+    
+    if (months <= 0) {
+        alert('Please enter a valid term.');
+        return;
+    }
+    
+    const years = months / 12;
+    const periods = years * compound;
+    const periodRate = rate / compound;
+    
+    const maturityValue = amount * Math.pow(1 + periodRate, periods);
+    const totalInterest = maturityValue - amount;
+    
+    comparisonData.cd = {
+        years: years,
+        value: maturityValue,
+        contributions: amount,
+        interest: totalInterest
+    };
+    
+    displayCDResults(maturityValue, amount, totalInterest, months);
+    updateComparisonChart();
+}
+
+function calculateBond() {
+    const faceValue = parseFloat(document.getElementById('bondFace').value) || 0;
+    const couponRate = parseFloat(document.getElementById('bondCoupon').value) / 100 || 0;
+    const purchasePrice = parseFloat(document.getElementById('bondPrice').value) || 0;
+    const years = parseFloat(document.getElementById('bondYears').value) || 0;
+    const frequency = parseFloat(document.getElementById('bondFrequency').value) || 2;
+    
+    if (years <= 0) {
+        alert('Please enter a valid maturity period.');
+        return;
+    }
+    
+    const periods = years * frequency;
+    const couponPayment = (faceValue * couponRate) / frequency;
+    const totalCouponPayments = couponPayment * periods;
+    const totalValue = faceValue + totalCouponPayments;
+    const totalReturn = totalValue - purchasePrice;
+    const yieldToMaturity = ((totalReturn / purchasePrice) / years) * 100;
+    
+    comparisonData.bond = {
+        years: years,
+        value: totalValue,
+        contributions: purchasePrice,
+        interest: totalReturn
+    };
+    
+    displayBondResults(totalValue, purchasePrice, totalReturn, totalCouponPayments, yieldToMaturity, years);
+    updateComparisonChart();
+}
+
+function displaySavingsResults(totalValue, contributions, interest, years) {
+    const resultsDiv = document.getElementById('savingsResults');
+    resultsDiv.innerHTML = `
+        <div class="box">
+            <h3 class="title is-5">Savings Forecast Results</h3>
+            <table class="table is-fullwidth">
+                <tr><th>Time Period</th><td>${years} years</td></tr>
+                <tr><th>Total Contributions</th><td>$${contributions.toFixed(2)}</td></tr>
+                <tr><th>Total Interest Earned</th><td>$${interest.toFixed(2)}</td></tr>
+                <tr><th><strong>Final Value</strong></th><td><strong>$${totalValue.toFixed(2)}</strong></td></tr>
+            </table>
+        </div>
+    `;
+    resultsDiv.style.display = 'block';
+}
+
+function displayCDResults(maturityValue, principal, interest, months) {
+    const resultsDiv = document.getElementById('cdResults');
+    resultsDiv.innerHTML = `
+        <div class="box">
+            <h3 class="title is-5">CD Forecast Results</h3>
+            <table class="table is-fullwidth">
+                <tr><th>Term</th><td>${months} months</td></tr>
+                <tr><th>Principal</th><td>$${principal.toFixed(2)}</td></tr>
+                <tr><th>Total Interest Earned</th><td>$${interest.toFixed(2)}</td></tr>
+                <tr><th><strong>Maturity Value</strong></th><td><strong>$${maturityValue.toFixed(2)}</strong></td></tr>
+            </table>
+        </div>
+    `;
+    resultsDiv.style.display = 'block';
+}
+
+function displayBondResults(totalValue, purchasePrice, totalReturn, couponPayments, ytm, years) {
+    const resultsDiv = document.getElementById('bondResults');
+    resultsDiv.innerHTML = `
+        <div class="box">
+            <h3 class="title is-5">Bond Forecast Results</h3>
+            <table class="table is-fullwidth">
+                <tr><th>Years to Maturity</th><td>${years} years</td></tr>
+                <tr><th>Purchase Price</th><td>$${purchasePrice.toFixed(2)}</td></tr>
+                <tr><th>Total Coupon Payments</th><td>$${couponPayments.toFixed(2)}</td></tr>
+                <tr><th>Total Return</th><td>$${totalReturn.toFixed(2)}</td></tr>
+                <tr><th>Yield to Maturity</th><td>${ytm.toFixed(2)}%</td></tr>
+                <tr><th><strong>Total Value at Maturity</strong></th><td><strong>$${totalValue.toFixed(2)}</strong></td></tr>
+            </table>
+        </div>
+    `;
+    resultsDiv.style.display = 'block';
+}
+
+function updateComparisonChart() {
+    const chartBox = document.getElementById('comparisonChartBox');
+    const ctx = document.getElementById('comparisonChart');
+    
+    if (!ctx) return;
+    
+    const hasData = comparisonData.savings || comparisonData.cd || comparisonData.bond;
+    if (!hasData) {
+        chartBox.style.display = 'none';
+        return;
+    }
+    
+    chartBox.style.display = 'block';
+    
+    if (comparisonChart) {
+        comparisonChart.destroy();
+    }
+    
+    const labels = [];
+    const values = [];
+    const colors = [];
+    
+    if (comparisonData.savings) {
+        labels.push(`Savings (${comparisonData.savings.years}y)`);
+        values.push(comparisonData.savings.value);
+        colors.push('rgba(75, 192, 192, 0.6)');
+    }
+    if (comparisonData.cd) {
+        labels.push(`CD (${comparisonData.cd.years.toFixed(1)}y)`);
+        values.push(comparisonData.cd.value);
+        colors.push('rgba(255, 99, 132, 0.6)');
+    }
+    if (comparisonData.bond) {
+        labels.push(`Bond (${comparisonData.bond.years}y)`);
+        values.push(comparisonData.bond.value);
+        colors.push('rgba(54, 162, 235, 0.6)');
+    }
+    
+    comparisonChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Final Value ($)',
+                data: values,
+                backgroundColor: colors,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Value ($)',
+                    },
+                },
+            },
+        },
+    });
+}
+</script>
+{% endblock %}
+

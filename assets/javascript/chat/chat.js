@@ -6,10 +6,11 @@ import ChatApplication from "./ChatApplication";
 const domContainer = document.querySelector('#chat-content');
 const chat = JSON.parse(document.getElementById('chat').textContent);
 const apiUrls = JSON.parse(document.getElementById('api-urls').textContent);
+const menuUrls = JSON.parse(document.getElementById('menu-urls').textContent);
 
 
 
 const root = createRoot(domContainer);
 root.render(
-  <ChatApplication chat={chat} apiUrls={apiUrls} />
+  <ChatApplication chat={chat} apiUrls={apiUrls} menuUrls={menuUrls} />
 );
