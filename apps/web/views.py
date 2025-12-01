@@ -23,6 +23,18 @@ def simulate_error(request):
     raise Exception("This is a simulated error.")
 
 
+def investment_retirement(request):
+    """Investment and Retirement planning page"""
+    return render(
+        request,
+        "web/investment_retirement.html",
+        context={
+            "active_tab": "investment_retirement",
+            "page_title": _("Investment & Retirement Planner"),
+        },
+    )
+
+
 class HealthCheck(MainView):
     def get(self, request, *args, **kwargs):
         tokens = settings.HEALTH_CHECK_TOKENS

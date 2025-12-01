@@ -1,0 +1,133 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% load humanize %}
+
+{% block page_head %}
+  <style>
+    .record-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .record-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      background: #fff;
+    }
+    .record-card header {
+      margin-bottom: 1rem;
+    }
+    .progress-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+      margin-top: 0.35rem;
+    }
+    .progress-bar span { display: block; height: 100%; background: #6366f1; }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    .subcat-body {
+      border-top: 1px solid #f1f5f9;
+      padding: 0.5rem 0 0.75rem;
+    }
+    .doc-chip {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 0.9rem;
+    }
+    .doc-chip:last-child { border-bottom: 0; }
+    .doc-chip small { color: #64748b; }
+    .subcat-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.75rem;
+      gap: 0.5rem;
+    }
+    .tag-muted {
+      background: #e0e7ff;
+      color: #312e81;
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+      font-size: 0.75rem;
+    }
+    .subcat-empty {
+      padding: 0.5rem 0;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+  </style>
+{% endblock %}
+
+{% block app %}
+<section class="app-card">
+  <div class="pg-title">Records Explorer</div>
+  <p class="pg-subtitle">See which subcategories are documented and jump directly to the right upload form.</p>
+  <div class="record-grid mt-5">
+    {% for record in record_tree %}
+      <article class="record-card">
+        <header>
+          <div class="pg-title is-size-5">{{ record.label }}</div>
+          <div class="pg-subtitle is-size-7 text-muted">
+            {{ record.documents_count|intcomma }} documents · {{ record.covered_subcategories }}/{{ record.total_subcategories }} subcategories
+          </div>
+          <div class="progress-bar">
+            {% if record.total_subcategories %}
+              <span style="width: {{ record.covered_subcategories|divisibleby:record.total_subcategories }}%"></span>
+            {% else %}
+              <span style="width: 0%"></span>
+            {% endif %}
+          </div>
+        </header>
+        <div>
+          {% for sub in record.subcategories %}
+            <details {% if sub.count %}open{% endif %}>
+              <summary>
+                <span>{{ sub.label }}</span>
+                <span class="tag-muted">{{ sub.count|intcomma }}</span>
+              </summary>
+              <div class="subcat-body">
+                {% if sub.count %}
+                  {% for document in sub.documents|slice:":3" %}
+                    <div class="doc-chip">
+                      <div>
+                        {{ document.original_name }}
+                        <small>Year {{ document.year }}</small>
+                      </div>
+                      <small>{% if document.processed %}Processed{% else %}Processing{% endif %}</small>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="subcat-empty">No documents yet.</div>
+                {% endif %}
+                <div class="subcat-actions">
+                  <a class="pg-button-secondary is-small" href="{% url 'records:upload' %}?record_type={{ record.record_type }}&sub_record_type={{ sub.value }}">
+                    <span class="pg-icon"><i class="fa fa-upload"></i></span>
+                    <span>Upload</span>
+                  </a>
+                  {% if sub.count %}
+                    <a class="pg-button-link" href="{% url 'records:upload' %}#document-list">View all</a>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+      </article>
+    {% empty %}
+      <p>No record taxonomy configured.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

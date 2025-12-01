@@ -1,12 +1,14 @@
 import json
 from datetime import datetime
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import FinancialDocumentForm
 from .models import ExtractedField, FinancialDocument
+from .services import build_document_library, get_document_metrics
 
 
 def upload_view(request):
@@ -20,6 +22,9 @@ def upload_view(request):
     subcategory_options_json = json.dumps(subcategory_options)
 
     documents = FinancialDocument.objects.all().order_by("record_type", "sub_record_type", "year")
+
+    preselected_record_type = request.GET.get("record_type", "")
+    preselected_sub_record_type = request.GET.get("sub_record_type", "")
 
     if request.method == "POST":
         form = FinancialDocumentForm(request.POST, request.FILES)
@@ -65,12 +70,43 @@ def upload_view(request):
         request,
         "records/upload.html",
         {
+            "active_tab": "records_upload",
             "form": form,
             "organized_docs": organized_docs,
             "documents": documents,
             "year_choices": year_choices,
             "subcategory_options_json": subcategory_options_json,
             "record_type_choices": FinancialDocument.RECORD_TYPE_CHOICES,
+            "preselected_record_type": preselected_record_type,
+            "preselected_sub_record_type": preselected_sub_record_type,
+        },
+    )
+
+
+def insights_view(request):
+    metrics = get_document_metrics()
+    charts_json = json.dumps(metrics["charts_payload"], cls=DjangoJSONEncoder)
+    return render(
+        request,
+        "records/insights.html",
+        {
+            **metrics,
+            "charts_json": charts_json,
+            "active_tab": "records_insights",
+        },
+    )
+
+
+def explorer_view(request):
+    record_tree = build_document_library()
+    metrics = get_document_metrics()
+    return render(
+        request,
+        "records/explorer.html",
+        {
+            "record_tree": record_tree,
+            "coverage_by_type": metrics["coverage_by_type"],
+            "active_tab": "records_explorer",
         },
     )
 

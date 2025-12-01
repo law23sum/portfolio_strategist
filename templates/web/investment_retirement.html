@@ -1,0 +1,281 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .investment-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .input-group {
+        margin-bottom: 15px;
+    }
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+    .input-group input, .input-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    .button-group button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    .btn-primary {
+        background-color: #3273dc;
+        color: white;
+    }
+    .btn-primary:hover {
+        background-color: #2360d4;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: white;
+    }
+    .results-table th,
+    .results-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    .results-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    .results-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    .summary-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+        border-left: 4px solid #3273dc;
+    }
+    .log-output {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 15px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin: 20px 0;
+    }
+    .notification-group {
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 20px 0;
+    }
+    .status-message {
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+        background: #e7f3ff;
+        border-left: 4px solid #3273dc;
+    }
+    .chart-container {
+        margin: 30px 0;
+        height: 400px;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="investment-container">
+    <h1 class="section-title">Investment Planner & Retirement Calculator</h1>
+    
+    <div class="status-message" id="statusMessage">
+        Enter stock information and investment details to start planning.
+    </div>
+
+    <!-- Investment Inputs -->
+    <div class="box">
+        <h2 class="title is-4">Investment Inputs</h2>
+        <div class="field">
+            <label class="label">Stock Symbol</label>
+            <div class="control">
+                <input class="input" type="text" id="stockSymbol" placeholder="e.g., AAPL, NVDA, TSLA" value="">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Current Stock Price ($)</label>
+            <div class="control">
+                <input class="input" type="number" id="currentPrice" placeholder="Enter current price" step="0.01" value="">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Investment Amount ($)</label>
+            <div class="control">
+                <input class="input" type="number" id="investmentAmount" placeholder="Total capital to deploy (USD)" step="0.01" value="">
+            </div>
+            <p class="help">OR enter share quantity below</p>
+        </div>
+        
+        <div class="field">
+            <label class="label">Share Quantity</label>
+            <div class="control">
+                <input class="input" type="number" id="shareQuantity" placeholder="Or enter desired share quantity" step="0.0001" value="">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Forecast Horizon</label>
+            <div class="control">
+                <div class="select is-fullwidth">
+                    <select id="forecastHorizon">
+                        <option value="365">1 Year</option>
+                        <option value="182">6 Months</option>
+                        <option value="90">3 Months</option>
+                        <option value="30">1 Month</option>
+                        <option value="7">1 Week</option>
+                        <option value="1">1 Day</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="button is-primary is-large" id="calculateBtn" onclick="calculateProjection()">
+                Calculate Projection
+            </button>
+            <button class="button is-secondary" onclick="clearResults()">
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Purchase Summary -->
+    <div class="summary-box" id="purchaseSummary" style="display: none;">
+        <strong>Purchase Plan:</strong> <span id="summaryText">No purchase plan calculated yet.</span>
+    </div>
+
+    <!-- Results Table -->
+    <div class="box" id="resultsBox" style="display: none;">
+        <h2 class="title is-4">Forecast Projections</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Target Date</th>
+                        <th>Forecast Price</th>
+                        <th>Growth %</th>
+                        <th>Investment Value ($)</th>
+                        <th>Profit/Loss ($)</th>
+                        <th>Peak Price</th>
+                        <th>Peak Date</th>
+                        <th>Valley Price</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="box" id="chartBox" style="display: none;">
+        <h2 class="title is-4">Price Forecast Chart</h2>
+        <div class="chart-container">
+            <canvas id="forecastChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="notification-group">
+        <h2 class="title is-4">Notifications & Alerts</h2>
+        <div class="field">
+            <label class="label">Error Margin (%)</label>
+            <div class="control">
+                <input class="input" type="number" id="errorMargin" value="6.0" min="5.0" max="7.0" step="0.1">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Check Interval (minutes)</label>
+            <div class="control">
+                <input class="input" type="number" id="checkInterval" value="5" min="1" max="60">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Email Address</label>
+            <div class="control">
+                <input class="input" type="email" id="alertEmail" placeholder="Email address for alerts (optional)">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">SMS Number</label>
+            <div class="control">
+                <input class="input" type="tel" id="alertPhone" placeholder="SMS number (e.g., +15551234567)">
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="button is-success" id="startMonitoringBtn" onclick="startMonitoring()" disabled>
+                Start Monitoring
+            </button>
+            <button class="button is-danger" id="stopMonitoringBtn" onclick="stopMonitoring()" disabled>
+                Stop Monitoring
+            </button>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="box">
+        <h2 class="title is-4">Planner Activity</h2>
+        <div class="log-output" id="logOutput">
+            <div>[System] Investment Planner ready. Enter details and calculate projection.</div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/investment_retirement.js' %}"></script>
+{% endblock %}
+

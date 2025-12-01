@@ -1,0 +1,54 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<section class="app-card">
+    <h1 class="pg-title">Personal Loan Analysis</h1>
+    <p class="pg-subtitle">Upload a CSV file to analyze personal loan data</p>
+    
+    <div class="box">
+        <h2 class="title is-4">Upload CSV File</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="field">
+                <label class="label">{{ form.csv_file.label }}</label>
+                <div class="control">
+                    {{ form.csv_file }}
+                </div>
+                <p class="help">Upload a CSV file with columns: Account, Direction, Amount</p>
+            </div>
+            
+            <div class="field">
+                <div class="control">
+                    <button type="submit" class="button is-primary">Analyze</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    {% if analyses %}
+    <div class="box">
+        <h2 class="title is-4">Previous Analyses</h2>
+        <table class="table is-fullwidth">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in analyses %}
+                <tr>
+                    <td>{{ analysis.analysis_date|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'stock_analysis:loan_results' analysis.pk %}" class="button is-small is-primary">View Results</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+

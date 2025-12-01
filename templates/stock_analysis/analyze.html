@@ -1,0 +1,70 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<section class="app-card">
+    <h1 class="pg-title">Analyze Stock</h1>
+    
+    <div class="pg-columns">
+        <div class="pg-column">
+            <div class="box">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="field">
+                        <label class="label">{{ form.symbol.label }}</label>
+                        <div class="control">
+                            {{ form.symbol }}
+                        </div>
+                        {% if form.symbol.errors %}
+                            <p class="help is-danger">{{ form.symbol.errors }}</p>
+                        {% endif %}
+                        <p class="help">{{ form.symbol.help_text }}</p>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">{{ form.forecast_days.label }}</label>
+                        <div class="control">
+                            {{ form.forecast_days }}
+                        </div>
+                        <p class="help">{{ form.forecast_days.help_text }}</p>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">{{ form.equation_type.label }}</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                {{ form.equation_type }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <div class="control">
+                            <button type="submit" class="button is-primary is-large">Analyze Stock</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="pg-column">
+            <div class="box">
+                <h2 class="title is-4">How it works</h2>
+                <ul>
+                    <li>Enter a stock symbol (e.g., AAPL, NVDA, TSLA)</li>
+                    <li>Select forecast parameters</li>
+                    <li>Get comprehensive analysis including:
+                        <ul>
+                            <li>Financial ratios</li>
+                            <li>AI-powered assessment</li>
+                            <li>Price forecasting</li>
+                            <li>Investment planning</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

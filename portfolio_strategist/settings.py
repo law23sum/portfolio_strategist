@@ -53,6 +53,7 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django.contrib.humanize",  # Humanize template filters (e.g., intcomma, naturaltime)
     "django.forms",
 ]
 
@@ -123,6 +124,7 @@ PROJECT_APPS = [
     "apps.solutions",
     "apps.records",
     "apps.categories",
+    "apps.stock_analysis.apps.StockAnalysisConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PEGASUS_APPS + PROJECT_APPS + WAGTAIL_APPS
@@ -267,7 +269,7 @@ SOCIALACCOUNT_FORMS = {
 
 # User signup configuration: change to "mandatory" to require users to confirm email before signing in.
 # or "optional" to send confirmation emails but not require them
-ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")
+ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="optional")
 
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
@@ -374,22 +376,34 @@ FORMS_URLFIELD_ASSUME_HTTPS = True
 # Email setup
 
 # default email used by your server
-SERVER_EMAIL = env("SERVER_EMAIL", default="noreply@localhost:8000")
+SERVER_EMAIL = env("SERVER_EMAIL", default="financiasoftwarecompany@gmail.com")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="financiasoftwarecompany@gmail.com")
-# The default value will print emails to the console, but you can change that here
-# and in your environment.
-BREVO_API_URL = "https://api.brevo.com/v3/"
-EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
-# EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+
+
+
+# Email setup for development and production
+# For development: emails print to console (no external service needed)
+# For production: set EMAIL_BACKEND environment variable to use Brevo, Mailgun, etc.
+
+# Default to console backend for development
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+
+# Uncomment and configure for production:
+# EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+# EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
 # EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
 
-# Most production backends will require further customization. The below example uses Mailgun.
+# Brevo configuration (only needed if using Brevo in production)
+# Set BREVO_API_KEY in environment variables for production
+BREVO_API_URL = "https://api.brevo.com/v3/"
+
+# Most production backends will require further customization
 ANYMAIL = {
-      "BREVO_API_KEY": "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",
-      # "BREVO_SEND_DEFAULTS"
-#     "MAILGUN_API_KEY": env("MAILGUN_API_KEY", default=None),
-#     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN", default=None),
+    "SENDINBLUE_API_KEY": "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",
+    "SENDGRID_API_KEY": "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",
 }
+
+SENDGRID_API_URL = "https://api.sendgrid.com/v3/"
 
 # use in production
 # see https://github.com/anymail/django-anymail for more details/examples
@@ -518,8 +532,14 @@ GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
 # The defaults are provided to prevent crashes if your keys don"t match the expected format.
 STRIPE_LIVE_PUBLIC_KEY = env("STRIPE_LIVE_PUBLIC_KEY", default="pk_live_***")
 STRIPE_LIVE_SECRET_KEY = env("STRIPE_LIVE_SECRET_KEY", default="sk_live_***")
-STRIPE_TEST_PUBLIC_KEY = env("STRIPE_TEST_PUBLIC_KEY", default="pk_test_***")
-STRIPE_TEST_SECRET_KEY = env("STRIPE_TEST_SECRET_KEY", default="sk_test_***")
+STRIPE_TEST_PUBLIC_KEY = env(
+    "STRIPE_TEST_PUBLIC_KEY",
+    default="pk_test_51OIE3YEFA67QKvyuA7lXaTvpqM2rHOiLDlF7PKMNJcsaZk7HNDaxRZxkGZDnp3wO28vP085j2ePJv52UMYOiER8z006GdBxZql",
+)
+STRIPE_TEST_SECRET_KEY = env(
+    "STRIPE_TEST_SECRET_KEY",
+    default="sk_test_51OIE3YEFA67QKvyuxrqq3FjOILLgpkjBW5pJO0iC0X5vkNCijQbiLNZmzAKc6mOKeO45zIODPj8UFBmizb0dO2NS00dy1McYq9",
+)
 # Change to True in production
 STRIPE_LIVE_MODE = env.bool("STRIPE_LIVE_MODE", False)
 STRIPE_PRICING_TABLE_ID = env("STRIPE_PRICING_TABLE_ID", default="")

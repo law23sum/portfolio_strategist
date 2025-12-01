@@ -1,0 +1,15 @@
+from django.urls import path
+from . import views
+
+app_name = 'stock_analysis'
+
+urlpatterns = [
+    path('', views.stock_analysis_home, name='home'),
+    path('analyze/', views.analyze_stock, name='analyze'),
+    path('results/<int:pk>/', views.analysis_results, name='results'),
+    path('planner/<int:analysis_pk>/', views.investment_planner, name='planner'),
+    path('download/<int:pk>/', views.download_pdf, name='download_pdf'),
+    path('loan/', views.personal_loan_analysis, name='loan'),
+    path('loan/results/<int:pk>/', views.loan_results, name='loan_results'),
+]
+

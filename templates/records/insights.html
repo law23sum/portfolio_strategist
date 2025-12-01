@@ -1,0 +1,290 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block page_head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <style>
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+    .insight-card {
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      border: 1px solid #e2e8f0;
+    }
+    .insight-card h3 {
+      margin-bottom: 0.35rem;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+    }
+    .insight-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .insight-card small {
+      color: #64748b;
+    }
+    .chart-card {
+      min-height: 360px;
+    }
+    .progress-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+    .progress-bar span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(135deg, #6366f1, #22d3ee);
+    }
+    .recent-docs-list li {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 0.75rem 0;
+    }
+    .recent-docs-list li:last-child {
+      border-bottom: 0;
+    }
+    .doc-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .doc-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+    }
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      background: #e0e7ff;
+      color: #312e81;
+      margin-left: 0.35rem;
+    }
+    .empty-state {
+      padding: 1rem;
+      text-align: center;
+      color: #64748b;
+      border: 1px dashed #cbd5f5;
+      border-radius: 0.75rem;
+      background: #f8fafc;
+    }
+  </style>
+{% endblock %}
+
+{% block app %}
+<section class="app-card">
+  <div class="pg-title">Portfolio Intelligence</div>
+  <p class="pg-subtitle">High-level telemetry built from your uploaded financial evidence.</p>
+  <div class="insights-grid mt-5">
+    <div class="insight-card">
+      <h3>Total documents</h3>
+      <div class="value">{{ totals.total|default:0|intcomma }}</div>
+      <small>{{ totals.processed|intcomma }} processed / {{ totals.pending|intcomma }} pending review</small>
+    </div>
+    <div class="insight-card">
+      <h3>Record types covered</h3>
+      <div class="value">{{ coverage_by_type|length }}</div>
+      <small>Tracking {{ documents_by_type|length }} active categories</small>
+    </div>
+    <div class="insight-card">
+      <h3>Most active type</h3>
+      {% with documents_by_type|first as leader %}
+        <div class="value">{% if leader %}{{ leader.label }}{% else %}—{% endif %}</div>
+        {% if leader %}<small>{{ leader.count|intcomma }} files</small>{% else %}<small>Upload documents to populate</small>{% endif %}
+      {% endwith %}
+    </div>
+    <div class="insight-card">
+      <h3>Open data fields</h3>
+      {% with extracted_field_leaders|length as field_count %}
+        <div class="value">{{ field_count }}</div>
+        <small>Most common OCR fields detected</small>
+      {% endwith %}
+    </div>
+  </div>
+</section>
+
+<section class="pg-columns app-card">
+  <div class="pg-column chart-card">
+    <h3 class="pg-subtitle mb-3">Documents by type</h3>
+    {% if totals.total %}
+      <canvas id="records-chart-type" height="300"></canvas>
+    {% else %}
+      <div class="empty-state">Upload your first records to unlock this chart.</div>
+    {% endif %}
+  </div>
+  <div class="pg-column chart-card">
+    <h3 class="pg-subtitle mb-3">Processed vs pending</h3>
+    {% if totals.total %}
+      <canvas id="records-chart-processing" height="300"></canvas>
+    {% else %}
+      <div class="empty-state">Processing telemetry becomes available after uploads.</div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="app-card">
+  <div class="pg-columns">
+    <div class="pg-column-two-thirds">
+      <h3 class="pg-subtitle">Coverage by record type</h3>
+      <table class="table is-fullwidth is-striped mt-4">
+        <thead>
+          <tr>
+            <th>Record type</th>
+            <th class="pg-text-centered">Coverage</th>
+            <th class="pg-text-right">Documents</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in coverage_by_type %}
+            <tr>
+              <td>{{ entry.label }}</td>
+              <td>
+                <div class="progress-bar">
+                  <span style="width: {{ entry.percent }}%"></span>
+                </div>
+                <small>{{ entry.covered }} / {{ entry.total }} subcategories</small>
+              </td>
+              <td class="pg-text-right">{{ entry.covered|intcomma }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="pg-text-centered">No taxonomy defined</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="pg-column">
+      <h3 class="pg-subtitle">Most active subcategories</h3>
+      <ol class="mt-4">
+        {% for row in subcategory_leaders %}
+          <li class="mb-2">
+            <strong>{{ row.record_label }}</strong>
+            <span class="badge">{{ row.sub_label }}</span>
+            <div class="text-muted">{{ row.count|intcomma }} files</div>
+          </li>
+        {% empty %}
+          <div class="empty-state">Subcategory activity appears once records are uploaded.</div>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section class="pg-columns app-card">
+  <div class="pg-column-two-thirds">
+    <h3 class="pg-subtitle">Latest uploads</h3>
+    {% if recent_documents %}
+      <ul class="recent-docs-list mt-3">
+        {% for document in recent_documents %}
+          <li>
+            <div class="doc-row">
+              <div>
+                <strong>{{ document.original_name }}</strong>
+                <span class="badge">{{ document.get_record_type_display }}</span>
+                <span class="badge">{{ document.get_sub_record_type_display }}</span>
+              </div>
+              <small>{{ document.uploaded_at|date:"M j, Y" }}</small>
+            </div>
+            <div class="doc-actions">
+              <span class="pg-tag {% if document.processed %}is-success{% else %}is-warning{% endif %}">
+                {% if document.processed %}Processed{% else %}Processing{% endif %}
+              </span>
+              {% if document.document %}
+                <a href="{{ document.document.url }}" target="_blank">View file</a>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state">Nothing here yet — upload financial evidence to seed the system.</div>
+    {% endif %}
+  </div>
+  <div class="pg-column">
+    <h3 class="pg-subtitle">Top extracted fields</h3>
+    {% if extracted_field_leaders %}
+      <ul class="mt-3">
+        {% for field in extracted_field_leaders %}
+          <li class="mb-2 field-row">
+            <span>{{ field.field_name }}</span>
+            <span class="pg-tag">{{ field.count|intcomma }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state">OCR-based insights will display here once documents are parsed.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block page_js %}
+  <script id="records-insights-data" type="application/json">{{ charts_json|safe }}</script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const payloadEl = document.getElementById('records-insights-data');
+      if (!payloadEl) {
+        return;
+      }
+      const payload = JSON.parse(payloadEl.textContent || '{}');
+      if (!payload.hasData) {
+        return;
+      }
+
+      const chartConfig = (ctx, type, data, options = {}) => new Chart(ctx, {
+        type,
+        data,
+        options: Object.assign({
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+          },
+          scales: type === 'bar' ? { y: { beginAtZero: true } } : {},
+        }, options),
+      });
+
+      const typeCtx = document.getElementById('records-chart-type');
+      if (typeCtx) {
+        chartConfig(typeCtx, 'bar', {
+          labels: payload.byType.labels,
+          datasets: [{
+            label: 'Documents',
+            data: payload.byType.data,
+            backgroundColor: '#4f46e5',
+          }],
+        });
+      }
+
+      const processingCtx = document.getElementById('records-chart-processing');
+      if (processingCtx) {
+        chartConfig(processingCtx, 'doughnut', {
+          labels: payload.processing.labels,
+          datasets: [{
+            data: payload.processing.data,
+            backgroundColor: ['#22c55e', '#fbbf24'],
+          }],
+        }, {
+          plugins: { legend: { position: 'right' } },
+        });
+      }
+    });
+  </script>
+{% endblock %}

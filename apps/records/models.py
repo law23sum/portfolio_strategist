@@ -27,7 +27,7 @@ class FinancialDocument(models.Model):
     # Main record type choices (unchanged)
     RECORD_TYPE_CHOICES = [
         ('earnings', "Earnings"),
-        ('government', "Personal Sensitive Information"),
+        ('government', "Governemnt"),
         ('retirement', "Retirement"),
         ('insurance', "Insurance"),
         ('debt', "Debt"),

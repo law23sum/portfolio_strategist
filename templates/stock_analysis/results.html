@@ -1,0 +1,75 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<section class="app-card">
+    <h1 class="pg-title">Analysis Results: {{ analysis.symbol }}</h1>
+    <p class="pg-subtitle">Analysis Date: {{ analysis.analysis_date|date:"M d, Y H:i" }}</p>
+    
+    <div class="buttons">
+        <a href="{% url 'stock_analysis:planner' analysis.pk %}" class="button is-primary">Investment Planner</a>
+        <a href="{% url 'stock_analysis:download_pdf' analysis.pk %}" class="button">Download PDF</a>
+        <a href="{% url 'stock_analysis:analyze' %}" class="button">New Analysis</a>
+    </div>
+    
+    {% if ratios_df and not ratios_df.empty %}
+    <div class="box">
+        <h2 class="title is-4">Financial Ratios</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Ratio Name</th>
+                        <th>Value</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in ratios_df.itertuples %}
+                    <tr>
+                        <td>{{ row.Ratio_Name }}</td>
+                        <td>{{ row.Ratio_Value|floatformat:2 }}</td>
+                        <td><span class="tag">{{ row.Performance }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if analysis.ai_assessment %}
+    <div class="box">
+        <h2 class="title is-4">AI Assessment</h2>
+        <div class="content">
+            <p>{{ analysis.ai_assessment|linebreaks }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if forecast_df and not forecast_df.empty %}
+    <div class="box">
+        <h2 class="title is-4">Price Forecast</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Forecasted Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in forecast_df.itertuples %}
+                    <tr>
+                        <td>{{ row.Date|date:"M d, Y" }}</td>
+                        <td>${{ row.Forecasted_Close|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+

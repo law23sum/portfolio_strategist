@@ -1,0 +1,64 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<section class="app-card">
+    <h1 class="pg-title">Loan Analysis Results</h1>
+    <p class="pg-subtitle">Analysis Date: {{ analysis.analysis_date|date:"M d, Y H:i" }}</p>
+    
+    {% if individual_df and not individual_df.empty %}
+    <div class="box">
+        <h2 class="title is-4">Individual Amounts by Account and Direction</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Direction</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in individual_df.itertuples %}
+                    <tr>
+                        <td>{{ row.Account }}</td>
+                        <td>{{ row.Direction }}</td>
+                        <td>${{ row.Amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if total_df and not total_df.empty %}
+    <div class="box">
+        <h2 class="title is-4">Total Amounts by Direction</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Direction</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in total_df.itertuples %}
+                    <tr>
+                        <td>{{ row.Direction }}</td>
+                        <td><strong>${{ row.Total|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="buttons">
+        <a href="{% url 'stock_analysis:loan' %}" class="button">New Analysis</a>
+    </div>
+</section>
+{% endblock %}
+

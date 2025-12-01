@@ -1,0 +1,16 @@
+{
+  "articles": [
+    {
+      "title": "NVIDIA extends AI leadership",
+      "publisher": "Financia Newsroom",
+      "summary": "NVIDIA unveiled new data center GPUs aimed at accelerating generative AI workloads across industries.",
+      "link": "https://example.com/nvda-ai"
+    },
+    {
+      "title": "Chip demand remains strong",
+      "publisher": "Market Pulse",
+      "summary": "Supply-chain partners indicated that cloud providers continue to prioritize NVIDIA hardware despite macro headwinds.",
+      "link": "https://example.com/nvda-demand"
+    }
+  ]
+}

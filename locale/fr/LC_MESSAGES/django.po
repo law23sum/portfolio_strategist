@@ -1064,7 +1064,7 @@ msgid "Impersonate User"
 msgstr "Usurper l'identité d'un utilisateur"
 
 #: templates/web/components/categories_menu_items.html:6
-msgid "Personal Sensitive Information"
+msgid "Governemnt"
 msgstr ""
 
 #: templates/web/components/footer.html:5

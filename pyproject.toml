@@ -66,6 +66,19 @@ dependencies = [
     "stripe",
     "wagtail",
     "whitenoise[brotli]",
+    # Stock analysis dependencies
+    "yfinance",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "plotly",
+    "matplotlib",
+    "reportlab",
+    "beautifulsoup4",
+    "filterpy",
+    "pykalman",
+    "python-dotenv",
+    "tenacity",
 ]
 
 [dependency-groups]

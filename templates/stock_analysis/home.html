@@ -1,0 +1,46 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<section class="app-card">
+    <h1 class="pg-title">Stock Analysis</h1>
+    <p class="pg-subtitle">Analyze stocks, create investment plans, and track your portfolio</p>
+    
+    <div class="tabs is-boxed">
+        <ul>
+            <li class="is-active"><a href="{% url 'stock_analysis:analyze' %}">Analyze Stock</a></li>
+            <li><a href="{% url 'stock_analysis:loan' %}">Personal Loan Analysis</a></li>
+        </ul>
+    </div>
+    
+    <div class="box">
+        <h2 class="title is-4">Recent Analyses</h2>
+        {% if analyses %}
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for analysis in analyses %}
+                    <tr>
+                        <td><strong>{{ analysis.symbol }}</strong></td>
+                        <td>{{ analysis.analysis_date|date:"M d, Y" }}</td>
+                        <td>
+                            <a href="{% url 'stock_analysis:results' analysis.pk %}" class="button is-small is-primary">View</a>
+                            <a href="{% url 'stock_analysis:download_pdf' analysis.pk %}" class="button is-small">Download PDF</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No analyses yet. <a href="{% url 'stock_analysis:analyze' %}">Start analyzing a stock</a></p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+

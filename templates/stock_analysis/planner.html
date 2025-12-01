@@ -1,0 +1,88 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<section class="app-card">
+    <h1 class="pg-title">Investment Planner: {{ analysis.symbol }}</h1>
+    
+    <div class="box">
+        <h2 class="title is-4">Create Investment Plan</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label class="label">{{ form.investment_amount.label }}</label>
+                <div class="control">
+                    {{ form.investment_amount }}
+                </div>
+            </div>
+            
+            <div class="field">
+                <label class="label">{{ form.share_quantity.label }}</label>
+                <div class="control">
+                    {{ form.share_quantity }}
+                </div>
+            </div>
+            
+            {% if current_price %}
+            <div class="field">
+                <label class="label">Current Price</label>
+                <div class="control">
+                    <input class="input" type="text" value="${{ current_price|floatformat:2 }}" readonly>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="field">
+                <label class="checkbox">
+                    {{ form.alert_enabled }} {{ form.alert_enabled.label }}
+                </label>
+            </div>
+            
+            <div class="field">
+                <label class="label">{{ form.alert_email.label }}</label>
+                <div class="control">
+                    {{ form.alert_email }}
+                </div>
+            </div>
+            
+            <div class="field">
+                <label class="label">{{ form.alert_phone.label }}</label>
+                <div class="control">
+                    {{ form.alert_phone }}
+                </div>
+            </div>
+            
+            <div class="field">
+                <div class="control">
+                    <button type="submit" class="button is-primary">Create Plan</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    {% if plans %}
+    <div class="box">
+        <h2 class="title is-4">Your Investment Plans</h2>
+        <table class="table is-fullwidth">
+            <thead>
+                <tr>
+                    <th>Investment Amount</th>
+                    <th>Share Quantity</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plans %}
+                <tr>
+                    <td>${{ plan.investment_amount|floatformat:2 }}</td>
+                    <td>{{ plan.share_quantity|floatformat:4 }}</td>
+                    <td>{{ plan.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+

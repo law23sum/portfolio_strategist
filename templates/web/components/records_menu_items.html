@@ -1,10 +1,23 @@
 {% load i18n %}
 <aside class="menu is-hidden-mobile">
   <ul class="menu-list">
-<li>
-  <a class="navbar-item is-tab  {% if active_tab == 'upload_records' %}is-active{% endif %}" href="{% url 'records:upload' %}">
-    <span class="pg-icon"><i class="fa fa-home"></i></span><span class="is-hidden-tablet-only">{% translate "Upload Records" %}</span>
-  </a>
-</li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'records_insights' %}is-active{% endif %}" href="{% url 'records:insights' %}">
+        <span class="pg-icon"><i class="fa fa-chart-pie"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Portfolio Insights" %}</span>
+      </a>
+    </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'records_explorer' %}is-active{% endif %}" href="{% url 'records:explorer' %}">
+        <span class="pg-icon"><i class="fa fa-folder-tree"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Records Explorer" %}</span>
+      </a>
+    </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'records_upload' %}is-active{% endif %}" href="{% url 'records:upload' %}">
+        <span class="pg-icon"><i class="fa fa-upload"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Upload Records" %}</span>
+      </a>
+    </li>
   </ul>
 </aside>
