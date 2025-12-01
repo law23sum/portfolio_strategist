@@ -155,7 +155,16 @@ async function exchangeToken(publicToken, providerId, metadata) {
         if (data.error) {
             alert('Error: ' + data.error);
         } else {
-            alert(`Successfully linked ${data.accounts_created} account(s)!`);
+            let message = `Successfully linked ${data.accounts_created} account(s)!\n\n`;
+            if (data.categorized) {
+                message += 'Categorized as:\n';
+                if (data.categorized.budget > 0) message += `- ${data.categorized.budget} Budget account(s)\n`;
+                if (data.categorized.debt > 0) message += `- ${data.categorized.debt} Debt account(s)\n`;
+                if (data.categorized.investment > 0) message += `- ${data.categorized.investment} Investment account(s)\n`;
+                if (data.categorized.retirement > 0) message += `- ${data.categorized.retirement} Retirement account(s)\n`;
+                if (data.categorized.other > 0) message += `- ${data.categorized.other} Other account(s)\n`;
+            }
+            alert(message);
             window.location.reload();
         }
     } catch (error) {

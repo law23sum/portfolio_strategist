@@ -130,6 +130,138 @@
         Powered by <strong>financia</strong> investment prediction engine with advanced forecasting models
     </p>
     
+    <!-- Financial Accounts Summary -->
+    {% if investment_data %}
+    <div class="box" style="margin-bottom: 30px;">
+        <h2 class="title is-4">Your Investment & Retirement Accounts</h2>
+        
+        {% if investment_data.total_portfolio_value %}
+        <div class="summary-box">
+            <div class="columns">
+                <div class="column">
+                    <strong>Total Portfolio Value:</strong> ${{ investment_data.total_portfolio_value|floatformat:2 }}
+                </div>
+                {% if investment_data.total_cost_basis %}
+                <div class="column">
+                    <strong>Total Cost Basis:</strong> ${{ investment_data.total_cost_basis|floatformat:2 }}
+                </div>
+                {% endif %}
+                {% if investment_data.total_gain_loss is not None %}
+                <div class="column">
+                    <strong>Total Gain/Loss:</strong> 
+                    <span style="color: {% if investment_data.total_gain_loss >= 0 %}green{% else %}red{% endif %};">
+                        ${{ investment_data.total_gain_loss|floatformat:2 }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if investment_data.account_summaries %}
+        <h3 class="title is-5" style="margin-top: 20px;">Linked Accounts</h3>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Account Name</th>
+                        <th>Institution</th>
+                        <th>Account Type</th>
+                        <th>Portfolio Value</th>
+                        <th>Holdings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for summary in investment_data.account_summaries %}
+                    <tr>
+                        <td>{{ summary.account.account_name }}</td>
+                        <td>{{ summary.account.institution_name }}</td>
+                        <td>{{ summary.account.get_account_type_display }}</td>
+                        <td>${{ summary.value|floatformat:2 }}</td>
+                        <td>{{ summary.holdings_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {% if investment_data.holdings %}
+        <h3 class="title is-5" style="margin-top: 30px;">Holdings</h3>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Security</th>
+                        <th>Ticker</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Current Value</th>
+                        <th>Cost Basis</th>
+                        <th>Gain/Loss</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for holding in investment_data.holdings %}
+                    <tr>
+                        <td>{{ holding.security_name }}</td>
+                        <td>{{ holding.security_ticker|default:"N/A" }}</td>
+                        <td>{{ holding.security_type|default:"N/A" }}</td>
+                        <td>{{ holding.quantity|floatformat:4 }}</td>
+                        <td>${{ holding.value|floatformat:2 }}</td>
+                        <td>${{ holding.cost_basis|floatformat:2 }}</td>
+                        <td style="color: {% if holding.gain_loss >= 0 %}green{% else %}red{% endif %};">
+                            {% if holding.gain_loss is not None %}
+                                ${{ holding.gain_loss|floatformat:2 }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {% if investment_data.recent_transactions %}
+        <h3 class="title is-5" style="margin-top: 30px;">Recent Investment Transactions</h3>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Security</th>
+                        <th>Amount</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in investment_data.recent_transactions %}
+                    <tr>
+                        <td>{{ transaction.date|date:"M d, Y" }}</td>
+                        <td>{{ transaction.account.account_name }}</td>
+                        <td>{{ transaction.get_transaction_type_display }}</td>
+                        <td>{{ transaction.security_name|default:"N/A" }}</td>
+                        <td>${{ transaction.amount|floatformat:2 }}</td>
+                        <td>{{ transaction.quantity|default:"N/A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {% if not investment_data.account_summaries and not investment_data.holdings %}
+        <div class="notification is-info">
+            <p>No investment accounts linked yet. <a href="{% url 'records:link_account' %}">Link your accounts</a> to see your portfolio data here.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
     <div class="status-message" id="statusMessage">
         Enter stock information and investment details to start planning.
     </div>

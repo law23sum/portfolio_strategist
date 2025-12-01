@@ -473,9 +473,7 @@ REST_AUTH = {
     "USER_DETAILS_SERIALIZER": "apps.users.serializers.CustomUserSerializer",
 }
 
-CORS_ALLOWED_ORIGINS = "http://localhost:19006",  # Your React Native dev server
-"http://10.37.129.2:19006",  # Your mobile IP
-env.list("CORS_ALLOWED_ORIGINS", default = ["http://localhost:5173"])
+# CORS settings are configured below (see line 641)
 
 
 SPECTACULAR_SETTINGS = {
@@ -638,11 +636,13 @@ LOGGING = {
 CORS_ALLOW_ALL_ORIGINS = True
 
 # OR if you want to allow only specific origins:
-CORS_ALLOWED_ORIGINS = [
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://10.0.2.2:8000",  # Android emulator
-]
+    "http://localhost:19006",  # React Native dev server
+    "http://10.37.129.2:19006",  # Mobile device IP
+])
 
 # Allow credentials (if using authentication cookies)
 CORS_ALLOW_CREDENTIALS = True

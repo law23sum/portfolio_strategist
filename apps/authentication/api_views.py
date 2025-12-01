@@ -30,6 +30,8 @@ class LoginViewWith2fa(LoginView):
     """
     Custom login view that checks if 2FA is enabled for the user.
     """
+    from .serializers import CustomLoginSerializer
+    serializer_class = CustomLoginSerializer
 
     @extend_schema(
         responses={
@@ -92,14 +94,20 @@ class VerifyOTPView(GenericAPIView):
         if user and TOTP(Authenticator.objects.get(user=user, type=Authenticator.Type.TOTP)).validate_code(otp):
             # OTP is valid, generate JWT tokens
             refresh = RefreshToken.for_user(user)
+            jwt_data = JWTSerializer(
+                {
+                    "user": user,
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                }
+            ).data
+            # Also return access and refresh at top level for easier mobile app consumption
             return Response(
-                JWTSerializer(
-                    {
-                        "user": user,
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token),
-                    }
-                ).data,
+                {
+                    **jwt_data,
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
                 status=status.HTTP_200_OK,
             )
         else:

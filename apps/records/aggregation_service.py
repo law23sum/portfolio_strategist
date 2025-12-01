@@ -58,6 +58,126 @@ from .encryption import encrypt_token, decrypt_token
 logger = logging.getLogger(__name__)
 
 
+def categorize_and_connect_account(linked_account: LinkedAccount) -> Dict[str, Any]:
+    """
+    Categorize a linked account and connect it to the appropriate financial category:
+    - Budget: depository accounts (checking, savings)
+    - Debt: credit cards and loans
+    - Investment: investment and brokerage accounts
+    - Retirement: retirement accounts (401k, IRA, etc.)
+    
+    Returns a dict with categorization info.
+    """
+    category_info = {
+        'category': None,
+        'connected': False,
+        'details': {}
+    }
+    
+    account_type = linked_account.account_type
+    account_subtype = linked_account.account_subtype.lower() if linked_account.account_subtype else ''
+    
+    # Determine category based on account type and subtype
+    if account_type == 'depository':
+        # Budget accounts: checking, savings, money market, etc.
+        category_info['category'] = 'budget'
+        category_info['connected'] = True
+        category_info['details'] = {
+            'type': 'budget',
+            'subtype': account_subtype or 'checking',
+            'description': f'Budget account: {linked_account.account_name}'
+        }
+        logger.info(f"Account {linked_account.id} categorized as BUDGET")
+        
+    elif account_type in ['credit', 'loan']:
+        # Debt accounts: credit cards, loans, mortgages
+        category_info['category'] = 'debt'
+        
+        # Determine debt type from account subtype
+        debt_type_map = {
+            'credit card': 'credit_card',
+            'paypal': 'credit_card',
+            'mortgage': 'mortgage',
+            'auto': 'auto_loan',
+            'student': 'student_loan',
+            'personal': 'personal_loan',
+        }
+        
+        debt_type = 'other'
+        for key, value in debt_type_map.items():
+            if key in account_subtype:
+                debt_type = value
+                break
+        
+        # Create or update DebtAccount
+        latest_balance = linked_account.balances.first()
+        if latest_balance:
+            debt_account, created = DebtAccount.objects.update_or_create(
+                account=linked_account,
+                defaults={
+                    'debt_type': debt_type,
+                    'current_balance': latest_balance.current_balance,
+                    'credit_limit': latest_balance.limit if account_type == 'credit' else None,
+                    'as_of_date': latest_balance.balance_date,
+                    'raw_data': latest_balance.raw_data,
+                }
+            )
+            category_info['connected'] = True
+            category_info['details'] = {
+                'type': 'debt',
+                'debt_type': debt_type,
+                'debt_account_id': debt_account.id,
+                'description': f'Debt account: {linked_account.account_name}'
+            }
+            logger.info(f"Account {linked_account.id} categorized as DEBT ({debt_type})")
+        else:
+            logger.warning(f"Account {linked_account.id} has no balance data for debt categorization")
+        
+    elif account_type in ['investment', 'brokerage']:
+        # Investment accounts: brokerage, investment accounts
+        category_info['category'] = 'investment'
+        category_info['connected'] = True
+        category_info['details'] = {
+            'type': 'investment',
+            'subtype': account_subtype or 'brokerage',
+            'description': f'Investment account: {linked_account.account_name}'
+        }
+        logger.info(f"Account {linked_account.id} categorized as INVESTMENT")
+        
+    elif account_type == 'retirement':
+        # Retirement accounts: 401k, IRA, pension, etc.
+        category_info['category'] = 'retirement'
+        category_info['connected'] = True
+        
+        # Determine retirement account subtype
+        retirement_subtype = '401k'  # default
+        if 'ira' in account_subtype or 'roth' in account_subtype:
+            retirement_subtype = 'ira'
+        elif 'pension' in account_subtype:
+            retirement_subtype = 'pension'
+        elif '403b' in account_subtype:
+            retirement_subtype = '403b'
+        elif '457' in account_subtype:
+            retirement_subtype = '457'
+        
+        category_info['details'] = {
+            'type': 'retirement',
+            'subtype': retirement_subtype,
+            'description': f'Retirement account: {linked_account.account_name}'
+        }
+        logger.info(f"Account {linked_account.id} categorized as RETIREMENT ({retirement_subtype})")
+        
+    else:
+        category_info['category'] = 'other'
+        category_info['details'] = {
+            'type': 'other',
+            'description': f'Other account type: {linked_account.account_name}'
+        }
+        logger.info(f"Account {linked_account.id} categorized as OTHER")
+    
+    return category_info
+
+
 class PlaidAggregationService:
     """Service for integrating with Plaid API"""
     
@@ -195,6 +315,9 @@ class PlaidAggregationService:
             # Sync investment transactions
             investment_transactions_synced = self._sync_investment_transactions(linked_account, access_token)
             
+            # Categorize and connect account to appropriate category (budget/debt/investment/retirement)
+            category_info = categorize_and_connect_account(linked_account)
+            
             # Update account status
             linked_account.status = 'active'
             linked_account.last_synced_at = timezone.now()
@@ -205,6 +328,10 @@ class PlaidAggregationService:
             sync_log.status = 'success'
             sync_log.completed_at = timezone.now()
             sync_log.duration_seconds = (sync_log.completed_at - sync_log.started_at).total_seconds()
+            sync_log.metadata = {
+                'category': category_info.get('category'),
+                'connected': category_info.get('connected', False),
+            }
             
         except Exception as e:
             logger.error(f"Error syncing account {linked_account.id}: {e}")

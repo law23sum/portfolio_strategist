@@ -22,4 +22,5 @@ urlpatterns = [
     path("features/", TemplateView.as_view(template_name = "web/features_page.html", extra_context = {"active_tab": "features_page"}), name = "features_page"),
     path("investment-retirement/", views.investment_retirement, name = "investment_retirement"),
     path("budget-planner/", views.budget_planner, name = "budget_planner"),
+    path("ai-financial-services/", views.ai_financial_services, name = "ai_financial_services"),
     ]

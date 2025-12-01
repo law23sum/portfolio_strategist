@@ -21,7 +21,7 @@ from .models import (
     DebtAccount,
     DataSyncLog,
 )
-from .aggregation_service import PlaidAggregationService, AggregationServiceFactory
+from .aggregation_service import PlaidAggregationService, AggregationServiceFactory, categorize_and_connect_account
 from .encryption import encrypt_token
 from .tasks import sync_linked_account
 
@@ -95,6 +95,14 @@ def exchange_token(request):
         
         # Create linked accounts for each account returned
         created_accounts = []
+        categorized_accounts = {
+            'budget': [],
+            'debt': [],
+            'investment': [],
+            'retirement': [],
+            'other': []
+        }
+        
         for account_data in accounts_data:
             account_type_map = {
                 'depository': 'depository',
@@ -104,6 +112,18 @@ def exchange_token(request):
                 'brokerage': 'brokerage',
                 'other': 'other',
             }
+            
+            # Check if this is a retirement account based on subtype
+            account_subtype = account_data.get('subtype', '').lower()
+            account_type = account_data.get('type', '').lower()
+            
+            # Identify retirement accounts by subtype (401k, ira, pension, etc.)
+            retirement_keywords = ['401k', '403b', '457', 'ira', 'roth', 'pension', 'retirement', 'sep', 'simple']
+            is_retirement = any(keyword in account_subtype for keyword in retirement_keywords)
+            
+            # Override account type if it's a retirement account
+            if is_retirement and account_type in ['investment', 'brokerage']:
+                account_type = 'retirement'
             
             # Encrypt access token before storing
             encrypted_token = encrypt_token(access_token)
@@ -118,7 +138,7 @@ def exchange_token(request):
                     'institution_name': institution_name,
                     'institution_id': institution_id,
                     'account_name': account_data.get('name', 'Unknown Account'),
-                    'account_type': account_type_map.get(account_data.get('type', '').lower(), 'other'),
+                    'account_type': 'retirement' if is_retirement else account_type_map.get(account_type, 'other'),
                     'account_subtype': account_data.get('subtype', ''),
                     'account_number_masked': account_data.get('mask', ''),
                     'status': 'pending',
@@ -128,13 +148,32 @@ def exchange_token(request):
             
             if created:
                 created_accounts.append(linked_account)
-                # Trigger initial sync
+                
+                # Categorize and connect the account
+                category_info = categorize_and_connect_account(linked_account)
+                category = category_info.get('category', 'other')
+                if category in categorized_accounts:
+                    categorized_accounts[category].append({
+                        'account_id': linked_account.id,
+                        'account_name': linked_account.account_name,
+                        'category_info': category_info
+                    })
+                
+                # Trigger initial sync (this will also create debt accounts if needed)
                 sync_linked_account.delay(linked_account.id)
         
         return JsonResponse({
             'success': True,
             'accounts_created': len(created_accounts),
             'account_ids': [acc.id for acc in created_accounts],
+            'categorized': {
+                'budget': len(categorized_accounts['budget']),
+                'debt': len(categorized_accounts['debt']),
+                'investment': len(categorized_accounts['investment']),
+                'retirement': len(categorized_accounts['retirement']),
+                'other': len(categorized_accounts['other']),
+            },
+            'categories': categorized_accounts,
         })
         
     except Exception as e:

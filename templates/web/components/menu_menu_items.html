@@ -7,6 +7,12 @@
   </a>
 </li>
 <li>
+  <a class="navbar-item is-tab {% if active_tab == 'ai_financial_services' %}is-active{% endif %}" href="{% url 'web:ai_financial_services' %}">
+    <span class="pg-icon"><i class="fa-solid fa-robot"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "AI Financial Services" %}</span>
+  </a>
+</li>
+<li>
   <a class="navbar-item is-tab {% if '/pegasus/' in request.path %}is-active{% endif %}" href="{% url 'pegasus_examples:examples_home' %}">
     <span class="pg-icon"> <i class="fa fa-th-large"></i></span>
     <span class="is-hidden-tablet-only">{% translate "Examples Gallery" %}</span>

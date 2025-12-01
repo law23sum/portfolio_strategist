@@ -80,6 +80,25 @@ def budget_planner(request):
     )
 
 
+@login_required
+def ai_financial_services(request):
+    """AI Financial Services page with chat functionality"""
+    from apps.chat.models import Chat
+    
+    # Get user's chats
+    chats = Chat.objects.filter(user=request.user).order_by('-created_at')
+    
+    return render(
+        request,
+        "web/ai_financial_services.html",
+        context={
+            "active_tab": "ai_financial_services",
+            "page_title": _("AI Financial Services"),
+            "chats": chats,
+        },
+    )
+
+
 class HealthCheck(MainView):
     def get(self, request, *args, **kwargs):
         tokens = settings.HEALTH_CHECK_TOKENS
