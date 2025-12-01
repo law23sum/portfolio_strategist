@@ -19,5 +19,11 @@
         <span class="is-hidden-tablet-only">{% translate "Upload Records" %}</span>
       </a>
     </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'records_link_account' %}is-active{% endif %}" href="{% url 'records:link_account' %}">
+        <span class="pg-icon"><i class="fa fa-link"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Online Financial Accounts" %}</span>
+      </a>
+    </li>
   </ul>
 </aside>

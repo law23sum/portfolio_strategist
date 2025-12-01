@@ -5,9 +5,17 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Dict, List
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 
-from .models import ExtractedField, FinancialDocument
+from .models import (
+    ExtractedField,
+    FinancialDocument,
+    LinkedAccount,
+    AccountBalance,
+    FinancialTransaction,
+    InvestmentHolding,
+    DebtAccount,
+)
 
 RecordTree = List[Dict[str, object]]
 
@@ -114,6 +122,16 @@ def get_document_metrics() -> Dict[str, object]:
         },
     }
 
+    # Include aggregated account data
+    linked_accounts_count = LinkedAccount.objects.count()
+    # Get latest balance for each active account and sum them
+    active_accounts = LinkedAccount.objects.filter(status='active')
+    total_account_balance = sum(
+        account.balances.first().current_balance 
+        for account in active_accounts 
+        if account.balances.first()
+    )
+    
     return {
         "totals": totals,
         "documents_by_type": documents_by_type,
@@ -123,6 +141,8 @@ def get_document_metrics() -> Dict[str, object]:
         "recent_documents": FinancialDocument.objects.select_related("user").order_by("-uploaded_at")[:8],
         "extracted_field_leaders": extracted_field_leaders,
         "charts_payload": charts_payload,
+        "linked_accounts_count": linked_accounts_count,
+        "total_account_balance": total_account_balance,
     }
 
 

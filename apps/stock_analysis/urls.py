@@ -11,5 +11,7 @@ urlpatterns = [
     path('download/<int:pk>/', views.download_pdf, name='download_pdf'),
     path('loan/', views.personal_loan_analysis, name='loan'),
     path('loan/results/<int:pk>/', views.loan_results, name='loan_results'),
+    # API endpoint for investment prediction
+    path('api/investment-forecast/', views.investment_forecast_api, name='investment_forecast_api'),
 ]
 

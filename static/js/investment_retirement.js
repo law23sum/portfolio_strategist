@@ -1,5 +1,5 @@
 // Investment and Retirement Planner - JavaScript Implementation
-// Converted from financia Python code
+// Integrated with financia backend API for full prediction logic
 
 // Horizon windows matching Python HORIZON_WINDOWS
 const HORIZON_WINDOWS = {
@@ -15,9 +15,10 @@ let forecastData = [];
 let summaryData = [];
 let monitoringInterval = null;
 let forecastChart = null;
+let currentApiData = null;
 
 // Utility functions
-function parseFloat(value) {
+function parseFloatValue(value) {
     if (!value || value.trim() === '') return null;
     const parsed = parseFloat(value);
     return isNaN(parsed) ? null : parsed;
@@ -33,12 +34,14 @@ function formatPercent(value, decimals = 2) {
     return `${value.toFixed(decimals)}%`;
 }
 
-function formatDate(date) {
-    if (!date) return '-';
-    if (typeof date === 'string') {
-        date = new Date(date);
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    } catch (e) {
+        return dateString;
     }
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 function appendLog(message) {
@@ -59,127 +62,18 @@ function updateStatus(message) {
     }
 }
 
-// Calculate purchase plan (converted from Python calculate_purchase_plan)
-function calculatePurchasePlan(currentPrice, investmentAmount, shareQuantity) {
-    if (!currentPrice || currentPrice <= 0) {
-        throw new Error("Current price is required and must be non-zero.");
-    }
-
-    let normalizedShares = 0.0;
-    if (shareQuantity !== null && shareQuantity > 0) {
-        normalizedShares = shareQuantity;
-    } else if (investmentAmount !== null && investmentAmount > 0) {
-        normalizedShares = investmentAmount / currentPrice;
-    }
-
-    normalizedShares = Math.max(0.0, normalizedShares);
-    const totalCost = normalizedShares * currentPrice;
-
-    return {
-        shares: normalizedShares,
-        totalCost: totalCost,
-    };
-}
-
-// Get current price from historical data (simplified for web)
-function getCurrentPrice(priceInput) {
-    const price = parseFloat(priceInput);
-    return price && price > 0 ? price : null;
-}
-
-// Calculate forecast summary (converted from Python summarize_forecast)
-function summarizeForecast(forecastPrices, currentPrice, shareQuantity, totalCost, forecastDays) {
-    if (!forecastPrices || forecastPrices.length === 0) {
-        throw new Error("Forecast data is empty; cannot summarize.");
-    }
-
-    const summary = [];
-    const horizons = Object.entries(HORIZON_WINDOWS).filter(([_, days]) => days <= forecastDays);
-    
-    horizons.forEach(([label, daysAhead]) => {
-        const idx = Math.min(Math.floor((daysAhead / forecastDays) * forecastPrices.length), forecastPrices.length - 1);
-        const targetPrice = forecastPrices[idx].price;
-        const investmentValue = shareQuantity > 0 ? shareQuantity * targetPrice : null;
-        const profitLoss = investmentValue !== null ? investmentValue - totalCost : null;
-        const growthPct = currentPrice ? ((targetPrice - currentPrice) / currentPrice) * 100.0 : null;
-
-        // Find peak and valley in the subset
-        const subsetPrices = forecastPrices.slice(0, idx + 1);
-        const peak = subsetPrices.reduce((max, p) => p.price > max.price ? p : max, subsetPrices[0]);
-        const valley = subsetPrices.reduce((min, p) => p.price < min.price ? p : min, subsetPrices[0]);
-
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + daysAhead);
-
-        summary.push({
-            label: label,
-            days: daysAhead,
-            forecastPrice: targetPrice,
-            growthPct: growthPct,
-            investmentValue: investmentValue,
-            profitLoss: profitLoss,
-            targetDate: targetDate,
-            peak: {
-                price: peak.price,
-                date: peak.date,
-                type: "peak",
-            },
-            valley: {
-                price: valley.price,
-                date: valley.date,
-                type: "valley",
-            },
-        });
-    });
-
-    return summary;
-}
-
-// Generate forecast prices using Geometric Brownian Motion (simplified)
-function generateForecast(currentPrice, forecastDays, volatility = 0.02, drift = 0.0001) {
-    const prices = [];
-    const dates = [];
-    let price = currentPrice;
-    
-    const today = new Date();
-    
-    for (let day = 0; day <= forecastDays; day++) {
-        // Simple GBM simulation
-        const randomChange = (Math.random() - 0.5) * 2; // -1 to 1
-        const dailyReturn = drift + (volatility * randomChange);
-        price = price * (1 + dailyReturn);
-        
-        const date = new Date(today);
-        date.setDate(date.getDate() + day);
-        
-        prices.push({
-            price: price,
-            date: date,
-            day: day,
-        });
-    }
-    
-    return prices;
-}
-
-// Main calculation function
-function calculateProjection() {
+// Main calculation function - calls financia backend API
+async function calculateProjection() {
     try {
         const stockSymbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
-        const currentPriceInput = document.getElementById('currentPrice').value;
-        const investmentAmount = parseFloat(document.getElementById('investmentAmount').value);
-        const shareQuantity = parseFloat(document.getElementById('shareQuantity').value);
+        const investmentAmount = parseFloatValue(document.getElementById('investmentAmount').value);
+        const shareQuantity = parseFloatValue(document.getElementById('shareQuantity').value);
         const forecastDays = parseInt(document.getElementById('forecastHorizon').value);
+        const equationType = document.getElementById('equationType').value;
 
         // Validation
         if (!stockSymbol) {
             alert('Please enter a stock symbol.');
-            return;
-        }
-
-        const currentPrice = getCurrentPrice(currentPriceInput);
-        if (!currentPrice || currentPrice <= 0) {
-            alert('Please enter a valid current stock price.');
             return;
         }
 
@@ -188,36 +82,59 @@ function calculateProjection() {
             return;
         }
 
-        appendLog(`Calculating projection for ${stockSymbol}...`);
-        updateStatus('Calculating projection...');
+        appendLog(`Calculating projection for ${stockSymbol} using ${equationType}...`);
+        updateStatus('Calculating projection with financia prediction engine...');
 
-        // Calculate purchase plan
-        const plan = calculatePurchasePlan(currentPrice, investmentAmount, shareQuantity);
-        
-        if (plan.shares <= 0) {
-            alert('Calculated share quantity is zero. Adjust your inputs and try again.');
-            return;
+        // Call backend API with full financia logic
+        const response = await fetch('/stock-analysis/api/investment-forecast/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                symbol: stockSymbol,
+                investment_amount: investmentAmount,
+                share_quantity: shareQuantity,
+                forecast_days: forecastDays,
+                equation_type: equationType,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to calculate projection');
         }
 
+        if (!data.success) {
+            throw new Error(data.error || 'Projection calculation failed');
+        }
+
+        // Store API data
+        currentApiData = data;
+
+        // Auto-fill current price
+        document.getElementById('currentPrice').value = data.current_price.toFixed(2);
+
         // Display purchase summary
-        const summaryText = `${plan.shares.toFixed(4)} shares (~${formatCurrency(plan.totalCost)}) at ${formatCurrency(currentPrice)}`;
+        const plan = data.purchase_plan;
+        const summaryText = `${plan.shares.toFixed(4)} shares (~${formatCurrency(plan.total_cost)}) at ${formatCurrency(data.current_price)}`;
         document.getElementById('summaryText').textContent = summaryText;
         document.getElementById('purchaseSummary').style.display = 'block';
 
         appendLog(`Purchase plan: ${summaryText}`);
+        appendLog(`Using ${data.equation_type} model for forecasting`);
 
-        // Generate forecast
-        appendLog('Generating price forecast...');
-        forecastData = generateForecast(currentPrice, forecastDays);
-        
-        // Calculate summary
-        summaryData = summarizeForecast(
-            forecastData,
-            currentPrice,
-            plan.shares,
-            plan.totalCost,
-            forecastDays
-        );
+        // Process forecast data
+        forecastData = data.forecast_data.map(item => ({
+            price: item.price,
+            date: new Date(item.date),
+            day: item.day,
+        }));
+
+        // Process summary data
+        summaryData = data.summary;
 
         // Update UI
         updateResultsTable();
@@ -228,12 +145,13 @@ function calculateProjection() {
         document.getElementById('startMonitoringBtn').disabled = false;
         
         updateStatus('Projection ready. Review horizons or start monitoring alerts.');
-        appendLog(`Projection ready for ${summaryData.length} horizons.`);
+        appendLog(`Projection ready for ${summaryData.length} horizons using financia prediction engine.`);
 
     } catch (error) {
         appendLog(`Error: ${error.message}`);
         alert(`Error calculating projection: ${error.message}`);
         updateStatus('Projection failed. Review the logs and adjust inputs.');
+        console.error('Projection error:', error);
     }
 }
 
@@ -249,11 +167,11 @@ function updateResultsTable() {
         
         row.innerHTML = `
             <td>${entry.label}</td>
-            <td>${formatDate(entry.targetDate)}</td>
-            <td>${formatCurrency(entry.forecastPrice)}</td>
-            <td>${formatPercent(entry.growthPct)}</td>
-            <td>${formatCurrency(entry.investmentValue)}</td>
-            <td style="color: ${entry.profitLoss >= 0 ? 'green' : 'red'}">${formatCurrency(entry.profitLoss)}</td>
+            <td>${formatDate(entry.target_date)}</td>
+            <td>${formatCurrency(entry.forecast_price)}</td>
+            <td>${formatPercent(entry.growth_pct)}</td>
+            <td>${formatCurrency(entry.investment_value)}</td>
+            <td style="color: ${entry.profit_loss >= 0 ? 'green' : 'red'}">${formatCurrency(entry.profit_loss)}</td>
             <td>${formatCurrency(entry.peak.price)}</td>
             <td>${formatDate(entry.peak.date)}</td>
             <td>${formatCurrency(entry.valley.price)}</td>
@@ -280,7 +198,7 @@ function updateChart() {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Forecasted Price',
+                label: 'Forecasted Price (Financia Prediction)',
                 data: prices,
                 borderColor: 'rgb(75, 192, 192)',
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -326,6 +244,7 @@ function updateChart() {
 function clearResults() {
     forecastData = [];
     summaryData = [];
+    currentApiData = null;
     document.getElementById('resultsBox').style.display = 'none';
     document.getElementById('chartBox').style.display = 'none';
     document.getElementById('purchaseSummary').style.display = 'none';
@@ -348,7 +267,7 @@ function startMonitoring() {
 
     stopMonitoring();
 
-    const errorMargin = parseFloat(document.getElementById('errorMargin').value) / 100.0;
+    const errorMargin = parseFloatValue(document.getElementById('errorMargin').value) / 100.0;
     const intervalMinutes = parseInt(document.getElementById('checkInterval').value);
     const email = document.getElementById('alertEmail').value.trim() || null;
     const phone = document.getElementById('alertPhone').value.trim() || null;
@@ -379,17 +298,31 @@ function stopMonitoring() {
     updateStatus('Monitoring stopped.');
 }
 
+// Get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    appendLog('Investment Planner initialized.');
+    appendLog('Investment Planner initialized with financia prediction engine.');
     
     // Auto-fetch stock price when symbol is entered (optional enhancement)
     document.getElementById('stockSymbol').addEventListener('blur', function() {
         const symbol = this.value.trim().toUpperCase();
         if (symbol) {
-            // In a real implementation, you could fetch the current price from an API
-            appendLog(`Stock symbol set to ${symbol}. Enter current price manually or fetch from API.`);
+            appendLog(`Stock symbol set to ${symbol}. Price will be fetched from financia backend.`);
         }
     });
 });
-

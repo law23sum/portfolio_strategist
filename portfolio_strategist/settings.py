@@ -203,16 +203,38 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 # Database
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 
+# Detect if we're running in Docker
+def is_docker():
+    """Check if we're running inside a Docker container."""
+    try:
+        if os.path.exists("/.dockerenv"):
+            return True
+        if os.path.exists("/proc/self/cgroup"):
+            with open("/proc/self/cgroup", "r") as f:
+                return any("docker" in line for line in f)
+        return False
+    except (OSError, IOError):
+        return False
+
 if "DATABASE_URL" in env:
     DATABASES = {"default": env.db()}
 else:
+    # Auto-detect database host: use "db" in Docker, "localhost" otherwise
+    # If explicitly set to "db" but not in Docker, fall back to "localhost"
+    db_host = env("DJANGO_DATABASE_HOST", default=None)
+    if db_host is None:
+        db_host = "db" if is_docker() else "localhost"
+    elif db_host == "db" and not is_docker():
+        # User has "db" in .env but running locally - use localhost instead
+        db_host = "localhost"
+    
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": env("DJANGO_DATABASE_NAME", default="portfolio_strategist"),
             "USER": env("DJANGO_DATABASE_USER", default="postgres"),
             "PASSWORD": env("DJANGO_DATABASE_PASSWORD", default="***"),
-            "HOST": env("DJANGO_DATABASE_HOST", default="localhost"),
+            "HOST": db_host,
             "PORT": env("DJANGO_DATABASE_PORT", default="5432"),
         }
     }
@@ -563,6 +585,16 @@ if "test" in sys.argv:
 # Investment & Retirement Setup
 AI_CHAT_OPENAI_API_KEY = env("AI_CHAT_OPENAI_API_KEY", default="")
 AI_CHAT_OPENAI_MODEL = env("AI_CHAT_OPENAI_MODEL", default="gpt-4o")
+
+# Financial Data Aggregation (Plaid, Yodlee, etc.)
+PLAID_CLIENT_ID = env("PLAID_CLIENT_ID", default="")
+PLAID_SECRET = env("PLAID_SECRET", default="")
+PLAID_ENVIRONMENT = env("PLAID_ENVIRONMENT", default="sandbox")  # sandbox, development, or production
+PLAID_WEBHOOK_URL = env("PLAID_WEBHOOK_URL", default="")
+
+# Encryption key for sensitive financial data (access tokens, etc.)
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FERNET_KEY = env("FERNET_KEY", default="")
 
 
 # Sentry setup

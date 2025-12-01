@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.postgres.fields import JSONField
+from django.core.validators import MinValueValidator
 
 from apps.users.models import CustomUser
 
@@ -183,3 +185,359 @@ class ExtractedField(models.Model):
 
     def __str__(self):
         return f"{self.field_name}: {self.field_value}"
+
+
+# Financial Data Aggregation Models
+
+class AggregationProvider(models.Model):
+    """Supported financial data aggregation providers (Plaid, Yodlee, Finicity, etc.)"""
+    PROVIDER_CHOICES = [
+        ('plaid', 'Plaid'),
+        ('yodlee', 'Yodlee'),
+        ('finicity', 'Finicity (Mastercard)'),
+        ('mx', 'MX'),
+        ('stripe_financial', 'Stripe Financial Connections'),
+        ('flinks', 'Flinks'),
+        ('akoya', 'Akoya'),
+    ]
+    
+    name = models.CharField(max_length=50, choices=PROVIDER_CHOICES, unique=True)
+    display_name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    api_key = models.CharField(max_length=255, blank=True, help_text="Encrypted API key")
+    api_secret = models.CharField(max_length=255, blank=True, help_text="Encrypted API secret")
+    environment = models.CharField(max_length=20, choices=[('sandbox', 'Sandbox'), ('development', 'Development'), ('production', 'Production')], default='sandbox')
+    webhook_url = models.URLField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['display_name']
+    
+    def __str__(self):
+        return self.display_name
+
+
+class LinkedAccount(models.Model):
+    """Represents a user's linked financial account (bank, brokerage, credit card, etc.)"""
+    ACCOUNT_TYPE_CHOICES = [
+        ('depository', 'Bank Account'),
+        ('credit', 'Credit Card'),
+        ('loan', 'Loan'),
+        ('investment', 'Investment Account'),
+        ('brokerage', 'Brokerage Account'),
+        ('retirement', 'Retirement Account'),
+        ('other', 'Other'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('pending', 'Pending'),
+        ('error', 'Error'),
+        ('disconnected', 'Disconnected'),
+    ]
+    
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='linked_accounts')
+    provider = models.ForeignKey(AggregationProvider, on_delete=models.PROTECT, related_name='linked_accounts')
+    
+    # Provider-specific identifiers
+    provider_account_id = models.CharField(max_length=255, db_index=True, help_text="Account ID from aggregation provider")
+    provider_item_id = models.CharField(max_length=255, db_index=True, help_text="Item ID from aggregation provider (e.g., Plaid item_id)")
+    access_token = models.TextField(help_text="Encrypted access token for fetching data")
+    
+    # Account details
+    institution_name = models.CharField(max_length=255)
+    institution_id = models.CharField(max_length=255, blank=True)
+    account_name = models.CharField(max_length=255)
+    account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPE_CHOICES)
+    account_subtype = models.CharField(max_length=100, blank=True)
+    account_number_masked = models.CharField(max_length=50, blank=True, help_text="Last 4 digits or masked account number")
+    
+    # Status and metadata
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    error_message = models.TextField(blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    next_sync_at = models.DateTimeField(null=True, blank=True)
+    
+    # Additional metadata from provider
+    metadata = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = [['user', 'provider', 'provider_account_id']]
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['provider', 'provider_account_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.institution_name} - {self.account_name} ({self.user.email})"
+
+
+class AccountBalance(models.Model):
+    """Current and historical balances for linked accounts"""
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='balances')
+    
+    # Balance information
+    available_balance = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    current_balance = models.DecimalField(max_digits=15, decimal_places=2)
+    limit = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, help_text="Credit limit for credit cards")
+    
+    # Currency
+    currency_code = models.CharField(max_length=3, default='USD')
+    
+    # Timestamp
+    balance_date = models.DateTimeField()
+    
+    # Additional data from provider
+    raw_data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-balance_date']
+        indexes = [
+            models.Index(fields=['account', '-balance_date']),
+        ]
+        get_latest_by = 'balance_date'
+    
+    def __str__(self):
+        return f"{self.account.account_name}: ${self.current_balance} ({self.balance_date.date()})"
+
+
+class FinancialTransaction(models.Model):
+    """Transactions from linked accounts"""
+    TRANSACTION_TYPE_CHOICES = [
+        ('debit', 'Debit'),
+        ('credit', 'Credit'),
+        ('transfer', 'Transfer'),
+    ]
+    
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='transactions')
+    
+    # Transaction identifiers
+    transaction_id = models.CharField(max_length=255, db_index=True, help_text="Provider transaction ID")
+    provider_transaction_id = models.CharField(max_length=255, blank=True)
+    
+    # Transaction details
+    amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0)])
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    date = models.DateField(db_index=True)
+    authorized_date = models.DateField(null=True, blank=True)
+    
+    # Categorization
+    category = models.CharField(max_length=100, blank=True)
+    category_detail = models.CharField(max_length=255, blank=True)
+    merchant_name = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    
+    # Payment details
+    payment_channel = models.CharField(max_length=50, blank=True)
+    pending = models.BooleanField(default=False)
+    
+    # Location (if available)
+    location = models.JSONField(default=dict, blank=True)
+    
+    # Additional metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    raw_data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']
+        unique_together = [['account', 'transaction_id']]
+        indexes = [
+            models.Index(fields=['account', '-date']),
+            models.Index(fields=['date', 'category']),
+            models.Index(fields=['account', 'pending']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.account_name}: ${self.amount} - {self.description[:50]} ({self.date})"
+
+
+class InvestmentHolding(models.Model):
+    """Investment holdings (stocks, bonds, mutual funds, etc.) from brokerage/retirement accounts"""
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='holdings')
+    
+    # Security information
+    security_id = models.CharField(max_length=255, db_index=True)
+    security_name = models.CharField(max_length=255)
+    security_ticker = models.CharField(max_length=20, blank=True)
+    security_type = models.CharField(max_length=100, blank=True)
+    
+    # Holding details
+    quantity = models.DecimalField(max_digits=15, decimal_places=6)
+    price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    value = models.DecimalField(max_digits=15, decimal_places=2)
+    cost_basis = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    
+    # Currency
+    currency_code = models.CharField(max_length=3, default='USD')
+    
+    # Timestamp
+    as_of_date = models.DateTimeField()
+    
+    # Additional metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    raw_data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-as_of_date', 'security_name']
+        unique_together = [['account', 'security_id', 'as_of_date']]
+        indexes = [
+            models.Index(fields=['account', '-as_of_date']),
+            models.Index(fields=['security_ticker']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.account_name}: {self.security_name} - {self.quantity} @ ${self.price or 0}"
+
+
+class InvestmentTransaction(models.Model):
+    """Investment transactions (buys, sells, dividends, etc.)"""
+    TRANSACTION_TYPE_CHOICES = [
+        ('buy', 'Buy'),
+        ('sell', 'Sell'),
+        ('dividend', 'Dividend'),
+        ('interest', 'Interest'),
+        ('transfer', 'Transfer'),
+        ('fee', 'Fee'),
+        ('other', 'Other'),
+    ]
+    
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='investment_transactions')
+    
+    # Transaction identifiers
+    transaction_id = models.CharField(max_length=255, db_index=True)
+    provider_transaction_id = models.CharField(max_length=255, blank=True)
+    
+    # Security information
+    security_id = models.CharField(max_length=255, blank=True)
+    security_name = models.CharField(max_length=255, blank=True)
+    security_ticker = models.CharField(max_length=20, blank=True)
+    
+    # Transaction details
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    quantity = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True)
+    price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    date = models.DateField(db_index=True)
+    
+    # Fees and costs
+    fees = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    
+    # Currency
+    currency_code = models.CharField(max_length=3, default='USD')
+    
+    # Additional metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    raw_data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']
+        unique_together = [['account', 'transaction_id']]
+        indexes = [
+            models.Index(fields=['account', '-date']),
+            models.Index(fields=['date', 'transaction_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.account_name}: {self.transaction_type} {self.security_name or 'N/A'} - ${self.amount} ({self.date})"
+
+
+class DebtAccount(models.Model):
+    """Debt accounts (loans, credit cards, mortgages) extracted from linked accounts"""
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='debt_accounts')
+    
+    # Debt details
+    debt_type = models.CharField(max_length=50, choices=[
+        ('credit_card', 'Credit Card'),
+        ('mortgage', 'Mortgage'),
+        ('auto_loan', 'Auto Loan'),
+        ('student_loan', 'Student Loan'),
+        ('personal_loan', 'Personal Loan'),
+        ('other', 'Other'),
+    ])
+    
+    # Balance information
+    current_balance = models.DecimalField(max_digits=15, decimal_places=2)
+    original_balance = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    credit_limit = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    
+    # Interest and terms
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Annual percentage rate")
+    minimum_payment = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    next_payment_date = models.DateField(null=True, blank=True)
+    next_payment_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    
+    # Timestamp
+    as_of_date = models.DateTimeField()
+    
+    # Additional metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    raw_data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-as_of_date']
+        indexes = [
+            models.Index(fields=['account', '-as_of_date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.account_name}: {self.debt_type} - ${self.current_balance}"
+
+
+class DataSyncLog(models.Model):
+    """Log of data synchronization attempts for linked accounts"""
+    STATUS_CHOICES = [
+        ('success', 'Success'),
+        ('error', 'Error'),
+        ('partial', 'Partial'),
+    ]
+    
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='sync_logs')
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    started_at = models.DateTimeField()
+    completed_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.FloatField(null=True, blank=True)
+    
+    # Sync results
+    accounts_synced = models.IntegerField(default=0)
+    transactions_synced = models.IntegerField(default=0)
+    balances_synced = models.IntegerField(default=0)
+    holdings_synced = models.IntegerField(default=0)
+    
+    # Error information
+    error_message = models.TextField(blank=True)
+    error_code = models.CharField(max_length=100, blank=True)
+    
+    # Additional metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['account', '-started_at']),
+            models.Index(fields=['status', '-started_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.account_name}: {self.status} at {self.started_at}"

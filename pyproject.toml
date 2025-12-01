@@ -79,6 +79,9 @@ dependencies = [
     "pykalman",
     "python-dotenv",
     "tenacity",
+    # Financial data aggregation
+    "plaid-python>=11.0.0",
+    "cryptography", # For encrypting tokens
 ]
 
 [dependency-groups]

@@ -1,0 +1,232 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block app %}
+<div class="container">
+    <h1 class="title">{% if page_title %}{{ page_title }}{% else %}Online Financial Accounts{% endif %}</h1>
+    <p class="subtitle">Connect your bank, credit card, investment, and other financial accounts to automatically import transactions and balances.</p>
+
+    <div class="box">
+        <h2 class="title is-4">Available Providers</h2>
+        
+        {% if providers %}
+            <div class="columns is-multiline">
+                {% for provider in providers %}
+                <div class="column is-half">
+                    <div class="card">
+                        <div class="card-content">
+                            <h3 class="title is-5">{{ provider.display_name }}</h3>
+                            <p class="subtitle is-6">{{ provider.get_environment_display }} Environment</p>
+                            <button 
+                                class="button is-primary" 
+                                onclick="initiateLink('{{ provider.id }}', '{{ provider.name }}')"
+                                id="link-btn-{{ provider.id }}"
+                            >
+                                Link Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No aggregation providers are currently configured. Please contact support.</p>
+        {% endif %}
+    </div>
+
+    {% if linked_accounts %}
+    <div class="box">
+        <h2 class="title is-4">Linked Accounts</h2>
+        <table class="table is-fullwidth">
+            <thead>
+                <tr>
+                    <th>Institution</th>
+                    <th>Account Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Last Synced</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in linked_accounts %}
+                <tr>
+                    <td>{{ account.institution_name }}</td>
+                    <td>{{ account.account_name }}</td>
+                    <td>{{ account.get_account_type_display }}</td>
+                    <td>
+                        <span class="tag {% if account.status == 'active' %}is-success{% elif account.status == 'error' %}is-danger{% else %}is-warning{% endif %}">
+                            {{ account.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if account.last_synced_at %}
+                            {{ account.last_synced_at|date:"M d, Y H:i" }}
+                        {% else %}
+                            Never
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'records:account_detail' account.id %}" class="button is-small">View</a>
+                        <button onclick="syncAccount({{ account.id }})" class="button is-small is-info">Sync</button>
+                        <button onclick="disconnectAccount({{ account.id }})" class="button is-small is-danger">Disconnect</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Plaid Link script -->
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+<script>
+let linkHandler = null;
+
+async function initiateLink(providerId, providerName) {
+    if (providerName !== 'plaid') {
+        alert('Only Plaid is currently supported');
+        return;
+    }
+
+    try {
+        // Get link token from backend
+        const response = await fetch('{% url "records:create_link_token" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `provider_id=${providerId}`
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        // Initialize Plaid Link
+        if (linkHandler) {
+            linkHandler.destroy();
+        }
+
+        linkHandler = Plaid.create({
+            token: data.link_token,
+            onSuccess: async (publicToken, metadata) => {
+                // Exchange public token for access token
+                await exchangeToken(publicToken, providerId, metadata);
+            },
+            onExit: (err, metadata) => {
+                if (err) {
+                    console.error('Plaid Link error:', err);
+                }
+            },
+        });
+
+        linkHandler.open();
+    } catch (error) {
+        console.error('Error initiating link:', error);
+        alert('Error connecting to account. Please try again.');
+    }
+}
+
+async function exchangeToken(publicToken, providerId, metadata) {
+    try {
+        const response = await fetch('{% url "records:exchange_token" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                public_token: publicToken,
+                provider_id: providerId,
+                institution_id: metadata.institution.institution_id,
+                institution_name: metadata.institution.name
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(`Successfully linked ${data.accounts_created} account(s)!`);
+            window.location.reload();
+        }
+    } catch (error) {
+        console.error('Error exchanging token:', error);
+        alert('Error completing account linking. Please try again.');
+    }
+}
+
+async function syncAccount(accountId) {
+    try {
+        const response = await fetch(`/records/api/sync-account/${accountId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Sync started. This may take a few moments.');
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error syncing account:', error);
+        alert('Error syncing account. Please try again.');
+    }
+}
+
+async function disconnectAccount(accountId) {
+    if (!confirm('Are you sure you want to disconnect this account?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/records/api/disconnect-account/${accountId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Account disconnected successfully.');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error disconnecting account:', error);
+        alert('Error disconnecting account. Please try again.');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

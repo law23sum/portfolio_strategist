@@ -126,6 +126,9 @@
 {% block app %}
 <div class="investment-container">
     <h1 class="section-title">Investment Planner & Retirement Calculator</h1>
+    <p class="has-text-centered has-text-grey" style="margin-bottom: 20px;">
+        Powered by <strong>financia</strong> investment prediction engine with advanced forecasting models
+    </p>
     
     <div class="status-message" id="statusMessage">
         Enter stock information and investment details to start planning.
@@ -144,8 +147,9 @@
         <div class="field">
             <label class="label">Current Stock Price ($)</label>
             <div class="control">
-                <input class="input" type="number" id="currentPrice" placeholder="Enter current price" step="0.01" value="">
+                <input class="input" type="number" id="currentPrice" placeholder="Will be fetched automatically" step="0.01" value="" readonly>
             </div>
+            <p class="help">Current price is automatically fetched from financia backend when you calculate</p>
         </div>
         
         <div class="field">
@@ -177,6 +181,26 @@
                     </select>
                 </div>
             </div>
+        </div>
+        
+        <div class="field">
+            <label class="label">Forecast Model</label>
+            <div class="control">
+                <div class="select is-fullwidth">
+                    <select id="equationType">
+                        <option value="Geometric Brownian Motion External Macroeconomic Factors" selected>
+                            GBM with External Factors (Recommended)
+                        </option>
+                        <option value="Geometric Brownian Motion with Mean Reversion">
+                            GBM with Mean Reversion
+                        </option>
+                        <option value="Geometric Brownian Motion">
+                            Standard Geometric Brownian Motion
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <p class="help">Advanced models use market data, volatility, and interest rates for more accurate predictions</p>
         </div>
         
         <div class="button-group">
