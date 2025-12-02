@@ -1,0 +1,176 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .overview-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .chart-container {
+        margin: 30px 0;
+        height: 500px;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="overview-container">
+    <div style="margin-bottom: 20px;">
+        {% if request.GET.return_url %}
+        <a href="{{ request.GET.return_url }}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back</span>
+        </a>
+        {% else %}
+        <a href="{% url 'web:stocks_assessment' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Stocks Assessment</span>
+        </a>
+        {% endif %}
+    </div>
+    
+    <h1 class="title is-2">Market Overview: {{ symbol }} vs {{ market_ticker }}</h1>
+    <p class="subtitle">Comparative performance analysis</p>
+    
+    {% if status_message %}
+    <div class="notification is-info">
+        <p>{{ status_message }}</p>
+    </div>
+    {% endif %}
+    
+    {% if stock_data and market_data %}
+    <div class="box">
+        <h2 class="title is-4">Performance Comparison</h2>
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Metrics Table -->
+    {% if metrics %}
+    <div class="box">
+        <h2 class="title is-4">Key Metrics</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if metrics.current_price %}
+                    <tr>
+                        <td><strong>Latest Close</strong></td>
+                        <td>${{ metrics.current_price|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if metrics.period_performance_pct is not None %}
+                    <tr>
+                        <td><strong>Period Performance</strong></td>
+                        <td>{{ metrics.period_performance_pct|floatformat:2 }}%</td>
+                    </tr>
+                    {% endif %}
+                    {% if metrics.benchmark_performance_pct is not None %}
+                    <tr>
+                        <td><strong>{{ market_ticker }} Performance</strong></td>
+                        <td>{{ metrics.benchmark_performance_pct|floatformat:2 }}%</td>
+                    </tr>
+                    {% endif %}
+                    {% if metrics.relative_performance_pct is not None %}
+                    <tr>
+                        <td><strong>Relative vs Benchmark</strong></td>
+                        <td>{{ metrics.relative_performance_pct|floatformat:2 }}%</td>
+                    </tr>
+                    {% endif %}
+                    {% if metrics.latest_daily_return_pct is not None %}
+                    <tr>
+                        <td><strong>Last Daily Return</strong></td>
+                        <td>{{ metrics.latest_daily_return_pct|floatformat:2 }}%</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="notification is-warning">
+        <p>Unable to fetch market comparison data. Please try again later.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if stock_data and market_data %}
+    const stockData = JSON.parse('{{ stock_data|escapejs }}');
+    const marketData = JSON.parse('{{ market_data|escapejs }}');
+    
+    const ctx = document.getElementById('comparisonChart');
+    if (ctx) {
+        // Get common dates
+        const stockDates = stockData.map(d => d.date);
+        const marketDates = marketData.map(d => d.date);
+        const commonDates = stockDates.filter(d => marketDates.includes(d));
+        
+        const stockValues = commonDates.map(date => {
+            const item = stockData.find(d => d.date === date);
+            return item ? item.value : null;
+        });
+        
+        const marketValues = commonDates.map(date => {
+            const item = marketData.find(d => d.date === date);
+            return item ? item.value : null;
+        });
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: commonDates,
+                datasets: [
+                    {
+                        label: '{{ symbol }}',
+                        data: stockValues,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    },
+                    {
+                        label: '{{ market_ticker }}',
+                        data: marketValues,
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Percentage Change (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}
+

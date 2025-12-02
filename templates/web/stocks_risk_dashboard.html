@@ -1,0 +1,151 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<style>
+    .risk-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .risk-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .risk-metric {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .risk-metric:last-child {
+        border-bottom: none;
+    }
+    .metric-label {
+        font-weight: 600;
+        color: #666;
+    }
+    .metric-value {
+        font-size: 1.2em;
+        color: #333;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="risk-container">
+    <div style="margin-bottom: 20px;">
+        {% if request.GET.return_url %}
+        <a href="{{ request.GET.return_url }}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back</span>
+        </a>
+        {% else %}
+        <a href="{% url 'web:stocks_assessment' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Stocks Assessment</span>
+        </a>
+        {% endif %}
+    </div>
+    
+    <h1 class="title is-2">Risk Dashboard: {{ symbol }}</h1>
+    <p class="subtitle">Comprehensive risk analysis and metrics</p>
+    
+    {% if risk_metrics %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Risk Metrics</h2>
+        <div class="risk-card">
+            {% if risk_metrics.annual_return is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Annual Return</span>
+                <span class="metric-value">{{ risk_metrics.annual_return|floatformat:2 }}%</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.annual_volatility is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Annual Volatility</span>
+                <span class="metric-value">{{ risk_metrics.annual_volatility|floatformat:2 }}%</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.sharpe_ratio is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Sharpe Ratio</span>
+                <span class="metric-value">{{ risk_metrics.sharpe_ratio|floatformat:4 }}</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.sortino_ratio is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Sortino Ratio</span>
+                <span class="metric-value">{{ risk_metrics.sortino_ratio|floatformat:4 }}</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.max_drawdown is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Maximum Drawdown</span>
+                <span class="metric-value" style="color: {% if risk_metrics.max_drawdown < -0.2 %}red{% else %}orange{% endif %};">
+                    {{ risk_metrics.max_drawdown|floatformat:2 }}%
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.value_at_risk_95 is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Value at Risk (95%)</span>
+                <span class="metric-value">{{ risk_metrics.value_at_risk_95|floatformat:4 }}</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.beta is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Beta (vs {{ market_ticker }})</span>
+                <span class="metric-value">{{ risk_metrics.beta|floatformat:4 }}</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.benchmark_annual_return is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Benchmark Annual Return</span>
+                <span class="metric-value">{{ risk_metrics.benchmark_annual_return|floatformat:2 }}%</span>
+            </div>
+            {% endif %}
+            
+            {% if risk_metrics.relative_return is not None %}
+            <div class="risk-metric">
+                <span class="metric-label">Relative Return</span>
+                <span class="metric-value" style="color: {% if risk_metrics.relative_return > 0 %}green{% else %}red{% endif %};">
+                    {{ risk_metrics.relative_return|floatformat:2 }}%
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if risk_insights %}
+    <div class="box">
+        <h2 class="title is-4">Risk Insights</h2>
+        {% for insight in risk_insights %}
+        <div class="notification {% if insight.severity == 'high' %}is-danger{% elif insight.severity == 'medium' %}is-warning{% else %}is-info{% endif %}">
+            <p><strong>{{ insight.title }}</strong></p>
+            <p>{{ insight.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if not risk_metrics %}
+    <div class="notification is-warning">
+        <p>Unable to calculate risk metrics. Please ensure sufficient historical data is available.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

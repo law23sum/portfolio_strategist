@@ -11,6 +11,30 @@ def get_user_context(user):
     """Get user's personal details and Plaid account data for context"""
     context_parts = []
     
+    def truncate_list(items, limit=5):
+        return items[:limit] if isinstance(items, list) else items
+
+    def build_context_text(parts):
+        # Keep total context small (17% of assumed model capacity)
+        approx_chars_per_token = 4
+        model_capacity_tokens = getattr(settings, "AI_CHAT_MAX_MODEL_TOKENS", 16000)
+        max_tokens = max(1, int(model_capacity_tokens * 0.17))
+        max_chars = max(1000, max_tokens * approx_chars_per_token)
+        assembled = []
+        current_length = 0
+        for part in parts:
+            separator = "\n\n" if assembled else ""
+            addition = f"{separator}{part}"
+            if current_length + len(addition) > max_chars:
+                remaining = max_chars - current_length
+                if remaining > 0:
+                    assembled.append(addition[:remaining].rstrip())
+                assembled.append("[Context truncated]")
+                break
+            assembled.append(addition)
+            current_length += len(addition)
+        return "".join(assembled)
+    
     # User personal details
     user_details = {
         "name": user.get_full_name() or user.username,
@@ -46,7 +70,15 @@ def get_user_context(user):
     
     # Plaid/Linked accounts data
     try:
-        from apps.records.models import LinkedAccount, AccountBalance, FinancialTransaction, InvestmentHolding
+        from apps.records.models import (
+            LinkedAccount,
+            AccountBalance,
+            FinancialTransaction,
+            InvestmentHolding,
+            InvestmentTransaction,
+            DebtAccount,
+            DataSyncLog,
+        )
         
         linked_accounts = LinkedAccount.objects.filter(user=user, status='active')
         if linked_accounts.exists():
@@ -102,10 +134,219 @@ def get_user_context(user):
                     for h in holdings[:20]
                 ]
                 context_parts.append(f"Investment Holdings: {holdings_summary}")
+
+            # Investment transactions summary
+            investment_transactions = InvestmentTransaction.objects.filter(
+                account__user=user
+            ).order_by('-date')[:20]
+            if investment_transactions.exists():
+                investment_tx_summary = [
+                    {
+                        "date": str(tx.date),
+                        "type": tx.transaction_type,
+                        "amount": str(tx.amount),
+                        "security": tx.security_name or tx.security_ticker,
+                        "account": tx.account.account_name,
+                    }
+                    for tx in investment_transactions
+                ]
+                context_parts.append(f"Investment Transactions: {investment_tx_summary}")
+
+            # Debt accounts snapshot
+            debt_accounts = DebtAccount.objects.filter(account__user=user).order_by('-as_of_date')
+            if debt_accounts.exists():
+                debt_summary = [
+                    {
+                        "account": debt.account.account_name,
+                        "debt_type": debt.debt_type,
+                        "current_balance": str(debt.current_balance),
+                        "interest_rate": str(debt.interest_rate) if debt.interest_rate else None,
+                        "next_payment_date": str(debt.next_payment_date) if debt.next_payment_date else None,
+                        "next_payment_amount": str(debt.next_payment_amount) if debt.next_payment_amount else None,
+                    }
+                    for debt in debt_accounts[:20]
+                ]
+                context_parts.append(f"Debt Accounts: {debt_summary}")
+
+            # Recent data sync activity
+            sync_logs = DataSyncLog.objects.filter(account__user=user).order_by('-started_at')[:10]
+            if sync_logs.exists():
+                sync_summary = [
+                    {
+                        "account": log.account.account_name,
+                        "status": log.status,
+                        "started_at": str(log.started_at),
+                        "completed_at": str(log.completed_at) if log.completed_at else None,
+                        "balances_synced": log.balances_synced,
+                        "transactions_synced": log.transactions_synced,
+                    }
+                    for log in sync_logs
+                ]
+                context_parts.append(f"Plaid Sync Activity: {sync_summary}")
     except ImportError:
         pass
     
-    return "\n\n".join(context_parts)
+    # Aggregated financial summaries for quicker insights
+    try:
+        from apps.records.financial_aggregation import (
+            BudgetAggregationService,
+            InvestmentAggregationService,
+            DebtAggregationService,
+            DashboardAggregationService,
+        )
+    except ImportError:
+        BudgetAggregationService = InvestmentAggregationService = None
+        DebtAggregationService = DashboardAggregationService = None
+    
+    if BudgetAggregationService:
+        try:
+            budget_data = BudgetAggregationService.get_user_budget_data(user=user, days=30)
+            budget_summary = {
+                "period_days": budget_data.get("period_days"),
+                "income": budget_data.get("income"),
+                "expenses": budget_data.get("expenses"),
+                "net_flow": budget_data.get("net_flow"),
+                "total_balance": budget_data.get("total_balance"),
+                "top_categories": truncate_list(budget_data.get("spending_by_category", []), limit=5),
+            }
+            context_parts.append(f"Budget Summary (last 30 days): {budget_summary}")
+        except Exception:
+            pass
+    
+    if InvestmentAggregationService:
+        try:
+            investment_data = InvestmentAggregationService.get_user_investment_data(user=user)
+            investment_summary = {
+                "total_portfolio_value": investment_data.get("total_portfolio_value"),
+                "total_cost_basis": investment_data.get("total_cost_basis"),
+                "total_gain_loss": investment_data.get("total_gain_loss"),
+                "top_holdings": truncate_list(investment_data.get("holdings", []), limit=10),
+            }
+            context_parts.append(f"Investment Portfolio Summary: {investment_summary}")
+        except Exception:
+            pass
+    
+    if DebtAggregationService:
+        try:
+            debt_data = DebtAggregationService.get_user_debt_data(user=user)
+            debt_summary = {
+                "total_debt": debt_data.get("total_debt"),
+                "credit_utilization": debt_data.get("credit_utilization"),
+                "debt_breakdown": truncate_list(debt_data.get("debt_by_type", []), limit=5),
+                "upcoming_payments": truncate_list(debt_data.get("upcoming_payments", []), limit=5),
+            }
+            context_parts.append(f"Debt Overview: {debt_summary}")
+        except Exception:
+            pass
+    
+    if DashboardAggregationService:
+        try:
+            dashboard_summary = DashboardAggregationService.get_user_financial_summary(user=user)
+            high_level_summary = {
+                "net_worth": dashboard_summary.get("net_worth"),
+                "total_assets": dashboard_summary.get("total_assets"),
+                "total_liabilities": dashboard_summary.get("total_liabilities"),
+                "total_cash": dashboard_summary.get("total_cash"),
+                "total_investments": dashboard_summary.get("total_investments"),
+                "account_counts": dashboard_summary.get("account_counts"),
+            }
+            context_parts.append(f"Financial Dashboard Summary: {high_level_summary}")
+        except Exception:
+            pass
+    
+    # User created investment & savings assessments
+    try:
+        from apps.records.models import StocksAssessment, SavingsAssessment, CDAssessment, BondAssessment
+        
+        stocks_assessments = StocksAssessment.objects.filter(user=user).order_by('-updated_at')
+        if stocks_assessments.exists():
+            stocks_summary = [
+                {
+                    "symbol": assessment.symbol,
+                    "investment_amount": str(assessment.investment_amount) if assessment.investment_amount is not None else None,
+                    "current_price": str(assessment.current_price),
+                    "forecast": {
+                        key: assessment.forecast_data.get(key)
+                        for key in ["current", "monthly", "yearly", "decade"]
+                        if assessment.forecast_data.get(key)
+                    },
+                }
+                for assessment in stocks_assessments[:5]
+            ]
+            context_parts.append(f"Stocks Assessments: {stocks_summary}")
+        
+        savings_assessments = SavingsAssessment.objects.filter(user=user).order_by('-updated_at')
+        if savings_assessments.exists():
+            savings_summary = [
+                {
+                    "account_name": assessment.account_name,
+                    "initial_deposit": str(assessment.initial_deposit),
+                    "annual_interest_rate": str(assessment.annual_interest_rate),
+                    "monthly_contribution": str(assessment.monthly_contribution),
+                    "forecast": assessment.forecast_data.get("yearly"),
+                }
+                for assessment in savings_assessments[:5]
+            ]
+            context_parts.append(f"Savings Assessments: {savings_summary}")
+        
+        cd_assessments = CDAssessment.objects.filter(user=user).order_by('-updated_at')
+        if cd_assessments.exists():
+            cd_summary = [
+                {
+                    "account_name": assessment.account_name,
+                    "amount": str(assessment.amount),
+                    "annual_interest_rate": str(assessment.annual_interest_rate),
+                    "term_months": assessment.term_months,
+                    "forecast": assessment.forecast_data.get("yearly"),
+                }
+                for assessment in cd_assessments[:5]
+            ]
+            context_parts.append(f"CD Assessments: {cd_summary}")
+        
+        bond_assessments = BondAssessment.objects.filter(user=user).order_by('-updated_at')
+        if bond_assessments.exists():
+            bond_summary = [
+                {
+                    "account_name": assessment.account_name,
+                    "face_value": str(assessment.face_value),
+                    "coupon_rate": str(assessment.coupon_rate),
+                    "years_to_maturity": str(assessment.years_to_maturity),
+                    "forecast": assessment.forecast_data.get("yearly"),
+                }
+                for assessment in bond_assessments[:5]
+            ]
+            context_parts.append(f"Bond Assessments: {bond_summary}")
+    except ImportError:
+        pass
+
+    # Organized Plaid data snapshot (as used throughout the web app)
+    try:
+        from apps.records.plaid_data_distribution import PlaidDataDistributionService
+
+        plaid_data = PlaidDataDistributionService.get_organized_plaid_data(user)
+        if plaid_data:
+            plaid_snapshot = {}
+
+            def materialize(value, limit=5):
+                if isinstance(value, list):
+                    return truncate_list(value, limit)
+                if isinstance(value, dict):
+                    return {
+                        key: materialize(val, limit)
+                        for key, val in list(value.items())[:limit]
+                    }
+                return value
+
+            for key, value in plaid_data.items():
+                plaid_snapshot[key] = materialize(value, limit=5)
+
+            context_parts.append(f"Organized Plaid Data Snapshot: {plaid_snapshot}")
+    except ImportError:
+        pass
+    except Exception:
+        pass
+
+    return build_context_text(context_parts)
 
 
 def extract_file_content(message):

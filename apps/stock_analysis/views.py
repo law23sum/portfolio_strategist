@@ -599,12 +599,12 @@ def investment_forecast_api(request):
 @require_http_methods(["GET", "POST"])
 def stock_details_api(request):
     """
-    API endpoint to fetch comprehensive stock details from yfinance including:
-    - Stock info (fundamentals)
-    - Historical price data (for charts)
-    - Financial ratios
-    - News
-    - Volume data
+    API endpoint to fetch comprehensive stock details from multiple sources:
+    - Polygon.io (if API key available)
+    - Alpha Vantage (if API key available)
+    - Yahoo Finance (via web scraping)
+    
+    Data is aggregated, deduplicated, and merged intelligently.
     """
     try:
         import json
@@ -617,24 +617,89 @@ def stock_details_api(request):
         if not symbol:
             return JsonResponse({'error': 'Stock symbol is required'}, status=400)
         
-        service = StockAnalysisService()
+        # Use data aggregator to fetch from all sources
+        from .lib.data_aggregator import StockDataAggregator
         
-        # Fetch stock data (fundamentals)
-        stock_data = service.stock_app.fetch_stock_data(symbol)
-        if not stock_data:
-            return JsonResponse({'error': f'Unable to fetch stock data for {symbol}'}, status=400)
+        service = StockAnalysisService()
+        aggregator = StockDataAggregator(fetcher=service.stock_app.fetcher)
+        
+        # Get comprehensive aggregated data
+        try:
+            comprehensive_data = aggregator.get_comprehensive_data(symbol)
+        except Exception as agg_error:
+            import traceback
+            # Fallback to original method if aggregator fails
+            print(f"Aggregator failed, falling back to single-source fetch: {agg_error}")
+            traceback.print_exc()
+            
+            # Fallback to original method
+            stock_data = service.stock_app.fetch_stock_data(symbol)
+            if not stock_data:
+                return JsonResponse({
+                    'error': f'Unable to fetch stock data for {symbol}',
+                    'suggestion': 'Please verify the stock symbol is correct and try again.'
+                }, status=400)
+            
+            history_df = service.stock_app.fetch_stock_history(symbol, period="1y", interval="1d")
+            news_html = service.stock_app.fetch_stock_news(symbol)
+            ratios_table = service.stock_app.analyze_stock(stock_data)
+            
+            # Prepare response in old format
+            historical_data = []
+            if not history_df.empty:
+                for _, row in history_df.iterrows():
+                    historical_data.append({
+                        'date': str(row.get('Date', '')),
+                        'open': float(row.get('Open', 0)) if pd.notna(row.get('Open')) else None,
+                        'high': float(row.get('High', 0)) if pd.notna(row.get('High')) else None,
+                        'low': float(row.get('Low', 0)) if pd.notna(row.get('Low')) else None,
+                        'close': float(row.get('Close', 0)) if pd.notna(row.get('Close')) else None,
+                        'volume': int(row.get('Volume', 0)) if pd.notna(row.get('Volume')) else None,
+                    })
+            
+            ratios_data = []
+            if not ratios_table.empty:
+                ratios_data = ratios_table.to_dict('records')
+            
+            current_price = stock_data.get('currentPrice', None)
+            if (current_price is None or current_price <= 0) and not history_df.empty:
+                if 'Close' in history_df.columns:
+                    close_prices = history_df['Close'].dropna()
+                    if not close_prices.empty:
+                        current_price = float(close_prices.iloc[-1])
+            
+            key_metrics = {
+                'sector': stock_data.get('sector', 'N/A'),
+                'industry': stock_data.get('industry', 'N/A'),
+                'marketCap': stock_data.get('marketCap', None),
+                'currentPrice': current_price,
+            }
+            
+            return JsonResponse({
+                'success': True,
+                'symbol': symbol,
+                'stock_data': stock_data,
+                'key_metrics': key_metrics,
+                'historical_data': historical_data,
+                'ratios': ratios_data,
+                'news_html': news_html,
+                'sources_used': ['fallback'],
+            })
+        
+        # Process aggregated data
+        fundamentals = comprehensive_data.get('fundamentals', {})
+        stock_history = comprehensive_data.get('stock_history', pd.DataFrame())
         
         # Fetch historical data for charts
-        history_df = service.stock_app.fetch_stock_history(symbol, period="1y", interval="1d")
-        if history_df.empty:
-            # Try longer period
-            history_df = service.stock_app.fetch_stock_history(symbol, period="2y", interval="1d")
+        if stock_history.empty:
+            history_df = service.stock_app.fetch_stock_history(symbol, period="1y", interval="1d")
+            if history_df.empty:
+                history_df = service.stock_app.fetch_stock_history(symbol, period="2y", interval="1d")
+        else:
+            history_df = stock_history
         
-        # Fetch news
-        news_html = service.stock_app.fetch_stock_news(symbol)
-        
-        # Analyze ratios
-        ratios_table = service.stock_app.analyze_stock(stock_data)
+        # Analyze ratios using aggregated fundamentals
+        ratios_table = service.stock_app.analyze_stock(fundamentals)
         
         # Prepare historical data for charts
         historical_data = []
@@ -654,35 +719,81 @@ def stock_details_api(request):
         if not ratios_table.empty:
             ratios_data = ratios_table.to_dict('records')
         
-        # Extract key metrics from stock_data
+        # Get current price from aggregated fundamentals
+        current_price = fundamentals.get('currentPrice', None)
+        if (current_price is None or current_price <= 0) and not history_df.empty:
+            try:
+                from .lib.investment_utils import get_current_price
+                current_price = get_current_price(history_df)
+            except (ImportError, Exception):
+                if 'Close' in history_df.columns:
+                    close_prices = history_df['Close'].dropna()
+                    if not close_prices.empty:
+                        current_price = float(close_prices.iloc[-1])
+        
+        # Build key metrics from aggregated fundamentals
         key_metrics = {
-            'sector': stock_data.get('sector', 'N/A'),
-            'industry': stock_data.get('industry', 'N/A'),
-            'marketCap': stock_data.get('marketCap', None),
-            'enterpriseValue': stock_data.get('enterpriseValue', None),
-            'trailingPE': stock_data.get('trailingPE', None),
-            'forwardPE': stock_data.get('forwardPE', None),
-            'beta': stock_data.get('beta', None),
-            'dividendYield': stock_data.get('dividendYield', None),
-            '52WeekHigh': stock_data.get('fiftyTwoWeekHigh', None),
-            '52WeekLow': stock_data.get('fiftyTwoWeekLow', None),
-            'currentPrice': stock_data.get('currentPrice', None),
-            'targetHighPrice': stock_data.get('targetHighPrice', None),
-            'targetLowPrice': stock_data.get('targetLowPrice', None),
-            'targetMeanPrice': stock_data.get('targetMeanPrice', None),
-            'recommendationMean': stock_data.get('recommendationMean', None),
-            'recommendationKey': stock_data.get('recommendationKey', None),
+            'sector': fundamentals.get('sector', 'N/A'),
+            'industry': fundamentals.get('industry', 'N/A'),
+            'marketCap': fundamentals.get('marketCap', None),
+            'enterpriseValue': fundamentals.get('enterpriseValue', None),
+            'trailingPE': fundamentals.get('trailingPE', None),
+            'forwardPE': fundamentals.get('forwardPE', None),
+            'beta': fundamentals.get('beta', None),
+            'dividendYield': fundamentals.get('dividendYield', None),
+            '52WeekHigh': fundamentals.get('52WeekHigh', None),
+            '52WeekLow': fundamentals.get('52WeekLow', None),
+            'currentPrice': current_price,
         }
         
-        return JsonResponse({
+        # Prepare news HTML from aggregated news
+        news_items = comprehensive_data.get('news', [])
+        news_html_parts = []
+        for item in news_items:
+            title = item.get("title", "")
+            url = item.get("url", "")
+            publisher = item.get("publisher", item.get("source", ""))
+            description = item.get("description", "")
+            
+            if title and url:
+                article_html = f'<article><h2>{title}</h2>'
+                if publisher:
+                    article_html += f'<p><em>{publisher}</em></p>'
+                if description:
+                    article_html += f'<p>{description}</p>'
+                article_html += f'<p><a href="{url}">Read more</a></p></article>'
+                news_html_parts.append(article_html)
+        
+        news_html = "\n".join(news_html_parts) if news_html_parts else ""
+        
+        # Get Yahoo Finance data
+        yahoo_finance = comprehensive_data.get('yahoo_finance', {})
+        
+        # Build response with aggregated data
+        response_data = {
             'success': True,
             'symbol': symbol,
-            'stock_data': stock_data,
+            'stock_data': fundamentals,  # Use aggregated fundamentals
             'key_metrics': key_metrics,
             'historical_data': historical_data,
             'ratios': ratios_data,
             'news_html': news_html,
-        })
+            'sources_used': comprehensive_data.get('sources_used', []),
+        }
+        
+        # Add Yahoo Finance comprehensive data if available
+        if yahoo_finance:
+            response_data['yahoo_finance'] = {
+                'summary': yahoo_finance.get('summary', {}),
+                'news': yahoo_finance.get('news', []),
+                'chart_details': yahoo_finance.get('chart_details', {}),
+                'statistics': yahoo_finance.get('statistics', {}),
+                'options': yahoo_finance.get('options', {}),
+                'holders': yahoo_finance.get('holders', {}),
+                'profile': yahoo_finance.get('profile', {}),
+            }
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
         import traceback

@@ -4,6 +4,34 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+class MarketDataCredential(models.Model):
+    """API keys for external market data providers."""
+
+    PROVIDER_POLYGON = 'polygon'
+    PROVIDER_ALPHA = 'alpha_vantage'
+    PROVIDER_CHOICES = (
+        (PROVIDER_POLYGON, 'Polygon.io'),
+        (PROVIDER_ALPHA, 'Alpha Vantage'),
+    )
+
+    provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES, unique=True)
+    label = models.CharField(max_length=128, blank=True,
+                             help_text='Optional note to help identify this key')
+    api_key = models.CharField(max_length=512)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Market Data Credential'
+        verbose_name_plural = 'Market Data Credentials'
+        ordering = ['provider']
+
+    def __str__(self):
+        label = self.label or dict(self.PROVIDER_CHOICES).get(self.provider, self.provider)
+        return f"{label} ({'active' if self.is_active else 'inactive'})"
+
+
 class StockAnalysis(models.Model):
     """Store stock analysis results"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stock_analyses')

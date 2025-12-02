@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import StockAnalysis, InvestmentPlan, PersonalLoanAnalysis
+from .models import (
+    StockAnalysis,
+    InvestmentPlan,
+    PersonalLoanAnalysis,
+    MarketDataCredential,
+)
 
 
 @admin.register(StockAnalysis)
@@ -23,3 +28,10 @@ class PersonalLoanAnalysisAdmin(admin.ModelAdmin):
     list_filter = ['analysis_date']
     search_fields = ['user__email']
 
+
+@admin.register(MarketDataCredential)
+class MarketDataCredentialAdmin(admin.ModelAdmin):
+    list_display = ['provider', 'label', 'is_active', 'updated_at']
+    list_filter = ['provider', 'is_active']
+    search_fields = ['label']
+    ordering = ['provider']

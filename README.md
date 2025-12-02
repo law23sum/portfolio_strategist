@@ -44,6 +44,27 @@ uv sync
 
 This will create your virtual environment in the `.venv` directory of your project root.
 
+## Stock Market Data API Configuration
+
+The application uses reliable stock market data APIs (Polygon.io and Alpha Vantage) instead of yfinance for more accurate and reliable data.
+
+### Setting up API Keys
+
+1. **Polygon.io (Recommended - Primary Provider)**
+   - Sign up for a free account at https://polygon.io/
+   - Get your API key from the dashboard (free tier: 5 calls/minute)
+   - Provide the key via one of the following options:
+     - Set an environment variable: `export POLYGON_API_KEY=your_key_here`
+     - Add it to your `.env` file: `POLYGON_API_KEY=your_key_here`
+     - Or store it in the database from **Django Admin → Stock Analysis → Market Data Credentials**
+
+2. **Alpha Vantage (Fallback Provider)**
+   - Sign up for a free account at https://www.alphavantage.co/support/#api-key
+   - Get your API key from the website (free tier: 5 calls/minute, 500 per day)
+   - Provide it through the same options (environment variable, `.env`, or Market Data Credential in Django Admin)
+
+**Note:** At least one API key is required. Polygon.io is preferred as it's more reliable. The system will automatically fall back to Alpha Vantage if Polygon.io is unavailable.
+
 ## Set up database
 
 *If you are using Docker you can skip these steps.*

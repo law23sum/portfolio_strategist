@@ -241,13 +241,6 @@
             <p class="help">How often coupon payments are made</p>
         </div>
         
-        <div class="field">
-            <label class="label">Notes</label>
-            <div class="control">
-                <textarea class="textarea" id="notes" placeholder="Optional notes about this bond investment"></textarea>
-            </div>
-        </div>
-        
         <div class="field is-grouped">
             <div class="control">
                 <button class="button is-primary" onclick="calculateAndSave()">
@@ -693,7 +686,6 @@ async function saveAssessment() {
         biweekly_contribution: biweeklyContrib,
         payment_frequency: paymentFreq,
         forecast_data: forecastData,
-        notes: document.getElementById('notes').value,
         id: currentAssessmentId
     };
     
@@ -808,4 +800,3 @@ if (plaidSelect) {
 }
 </script>
 {% endblock %}
-

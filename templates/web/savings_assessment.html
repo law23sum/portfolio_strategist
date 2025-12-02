@@ -220,13 +220,6 @@
             </div>
         </div>
         
-        <div class="field">
-            <label class="label">Notes</label>
-            <div class="control">
-                <textarea class="textarea" id="notes" placeholder="Optional notes about this savings account"></textarea>
-            </div>
-        </div>
-        
         <div class="field is-grouped">
             <div class="control">
                 <button class="button is-primary" onclick="calculateAndSave()">
@@ -630,7 +623,6 @@ async function saveAssessment() {
         monthly_contribution: biweeklyContrib * (26/12), // Convert biweekly to monthly for backward compatibility
         compounding_frequency: compoundingFreq,
         forecast_data: forecastData,
-        notes: document.getElementById('notes').value,
         id: currentAssessmentId
     };
     
@@ -745,4 +737,3 @@ document.getElementById('biweeklyContribution').addEventListener('input', functi
 });
 </script>
 {% endblock %}
-

@@ -1,0 +1,86 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<style>
+    .decision-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .recommendation-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .recommendation-buy {
+        border-left: 4px solid #28a745;
+    }
+    .recommendation-hold {
+        border-left: 4px solid #ffc107;
+    }
+    .recommendation-sell {
+        border-left: 4px solid #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="decision-container">
+    <div style="margin-bottom: 20px;">
+        {% if request.GET.return_url %}
+        <a href="{{ request.GET.return_url }}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back</span>
+        </a>
+        {% else %}
+        <a href="{% url 'web:stocks_assessment' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Stocks Assessment</span>
+        </a>
+        {% endif %}
+    </div>
+    
+    <h1 class="title is-2">Decision Support: {{ symbol }}</h1>
+    <p class="subtitle">AI-powered investment recommendations</p>
+    
+    {% if decision_support %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Investment Recommendation</h2>
+        {% if decision_support.recommendation %}
+        <div class="recommendation-card recommendation-{{ decision_support.recommendation|lower }}">
+            <h3 class="title is-4">{{ decision_support.recommendation }}</h3>
+            {% if decision_support.reasoning %}
+            <p>{{ decision_support.reasoning }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if decision_support.key_factors %}
+        <h3 class="title is-5" style="margin-top: 30px;">Key Factors</h3>
+        <ul>
+            {% for factor in decision_support.key_factors %}
+            <li>{{ factor }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        
+        {% if decision_support.risks %}
+        <h3 class="title is-5" style="margin-top: 30px;">Risks to Consider</h3>
+        <ul>
+            {% for risk in decision_support.risks %}
+            <li>{{ risk }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="notification is-info">
+        <p>Decision support analysis is being generated. Please check back shortly.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

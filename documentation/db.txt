@@ -1,9 +1,156 @@
+https://github.com/plaid/quickstart?tab=readme-ov-file 
+
 rm -f db.sqlite3                                            database deletion
 rm -r [app_name]/migrations
 
 python manage.py makemigrations [app_name]                  apply those changes to the db. stores changes to your models (and thus your database schema)
 python manage.py migrate                                    create migrations for changes & create tables in db prior to usage
 python manage.py sqlmigrate [app_name] 0001                 table names automatically generate combining app_name & model's lowercase name
+
+docker compose run web python  manage.py makemigrations
+docker compose run web python  manage.py migrate
+docker compose exec web python manage.py bootstrap_plaid
+uv run manage.py bootstrap_plaid
+cd assets/javascript/mobile
+cp index.js index.js.backup
+cp index.test-simple.js index.js
+killall node
+
+Open Simulator manually: open -a Simulator
+Boot a specific device: xcrun simctl boot "iPhone 16 Pro"
+npx react-native start --reset-cache
+npx react-native run-ios
+
+cd ios && xcodebuild -workspace mobile.xcworkspace -scheme mobile -destination
+npx react-native run-ios
+npx react-native run-ios --simulator="iPhone 16 Pro"
+cd ios && xcodebuild -workspace mobile.xcworkspace -scheme
+    mobile -destination "platform=iOS Simulator,name=iPhone 16 Pro
+
+docker compose run web python manage.py
+
+[account]
+    account_unsetmultipleprimaryemails
+
+[auth]
+    changepassword
+    createsuperuser
+
+[authtoken]
+    drf_create_token
+
+[chat]
+    test_openai
+
+[content]
+    bootstrap_content
+
+[contenttypes]
+    remove_stale_contenttypes
+
+[debug_toolbar]
+    debugsqlshell
+
+[django]
+    check
+    compilemessages
+    createcachetable
+    dbshell
+    diffsettings
+    dumpdata
+    flush
+    inspectdb
+    loaddata
+    makemessages
+    makemigrations
+    migrate
+    optimizemigration
+    sendtestemail
+    shell
+    showmigrations
+    sqlflush
+    sqlmigrate
+    sqlsequencereset
+    squashmigrations
+    startapp
+    startproject
+    test
+    testserver
+
+[djstripe]
+    djstripe_clear_expired_idempotency_keys
+    djstripe_init_customers
+    djstripe_process_events
+    djstripe_sync_customers
+    djstripe_sync_models
+    djstripe_update_invoiceitem_ids
+
+[drf_spectacular]
+    spectacular
+
+[health_check]
+    health_check
+
+[images]
+    wagtail_update_image_renditions
+
+[otp_static]
+    addstatictoken
+
+[records]
+    bootstrap_plaid
+
+[redirects]
+    import_redirects
+
+[rest_framework]
+    generateschema
+
+[search]
+    update_index
+    wagtail_update_index
+
+[sessions]
+    clearsessions
+
+[staticfiles]
+    collectstatic
+    findstatic
+    runserver
+
+[subscriptions]
+    bootstrap_subscriptions
+
+[taggit]
+    deduplicate_tags
+    remove_orphaned_tags
+
+[users]
+    promote_user_to_superuser
+
+[waffle]
+    waffle_delete
+    waffle_flag
+    waffle_sample
+    waffle_switch
+
+[wagtail]
+    convert_mariadb_uuids
+    create_log_entries_from_revisions
+    fixtree
+    move_pages
+    publish_scheduled
+    publish_scheduled_pages
+    purge_embeds
+    purge_revisions
+    rebuild_references_index
+    set_url_paths
+    show_references_index
+
+[web]
+    fix_djstripe_tax_percent
+    migrate_allauth_2fa
+    send_test_email
 
 UPDATE socialaccount_socialapp
 SET

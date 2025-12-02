@@ -1,0 +1,66 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<style>
+    .alerts-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .alert-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="alerts-container">
+    <div style="margin-bottom: 20px;">
+        {% if request.GET.return_url %}
+        <a href="{{ request.GET.return_url }}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back</span>
+        </a>
+        {% else %}
+        <a href="{% url 'web:stocks_assessment' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Stocks Assessment</span>
+        </a>
+        {% endif %}
+    </div>
+    
+    <h1 class="title is-2">Investment Planner Alerts: {{ symbol }}</h1>
+    <p class="subtitle">Manage your investment alerts and notifications</p>
+    
+    {% if plans %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Active Investment Plans</h2>
+        {% for plan in plans %}
+        <div class="alert-card">
+            <h3 class="title is-5">{{ plan.name|default:"Investment Plan" }}</h3>
+            <p><strong>Created:</strong> {{ plan.created_at|date:"M d, Y" }}</p>
+            {% if plan.target_price %}
+            <p><strong>Target Price:</strong> ${{ plan.target_price|floatformat:2 }}</p>
+            {% endif %}
+            {% if plan.alert_enabled %}
+            <p><span class="tag is-success">Alerts Enabled</span></p>
+            {% else %}
+            <p><span class="tag is-light">Alerts Disabled</span></p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="notification is-info">
+        <p>No investment plans found for {{ symbol }}. Create a plan from the Stocks Assessment page.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

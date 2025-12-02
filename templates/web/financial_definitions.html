@@ -1,0 +1,81 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<style>
+    .definitions-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .definition-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .definition-card h3 {
+        color: #3273dc;
+        margin-bottom: 10px;
+    }
+    .definition-term {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    .definition-formula {
+        font-family: monospace;
+        background: #f5f5f5;
+        padding: 8px;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="definitions-container">
+    <div style="margin-bottom: 20px;">
+        {% if request.GET.return_url %}
+        <a href="{{ request.GET.return_url }}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back</span>
+        </a>
+        {% else %}
+        <a href="{% url 'web:stocks_assessment' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Stocks Assessment</span>
+        </a>
+        {% endif %}
+    </div>
+    
+    <h1 class="title is-2">Financial Definitions</h1>
+    <p class="subtitle">Comprehensive guide to financial terms and ratios</p>
+    
+    <div class="box" style="margin-top: 30px;">
+        {% if definitions %}
+            {% for definition in definitions %}
+            <div class="definition-card">
+                <h3 class="title is-4">{{ definition.name }}</h3>
+                {% if definition.term %}
+                <p class="definition-term">Term: {{ definition.term }}</p>
+                {% endif %}
+                <p>{{ definition.definition }}</p>
+                {% if definition.formula %}
+                <div class="definition-formula">
+                    <strong>Formula:</strong> {{ definition.formula }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="notification is-info">
+                <p>No definitions available at this time.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,145 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .reports-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .ratio-table {
+        margin: 20px 0;
+    }
+    .news-section {
+        margin-top: 30px;
+    }
+    .news-article {
+        background: white;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="reports-container">
+    <div style="margin-bottom: 20px;">
+        {% if request.GET.return_url %}
+        <a href="{{ request.GET.return_url }}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back</span>
+        </a>
+        {% else %}
+        <a href="{% url 'web:stocks_assessment' %}" class="button">
+            <span class="icon"><i class="fa fa-arrow-left"></i></span>
+            <span>Back to Stocks Assessment</span>
+        </a>
+        {% endif %}
+    </div>
+    
+    <h1 class="title is-2">Stock Detailed Reports: {{ symbol }}</h1>
+    <p class="subtitle">Comprehensive stock analysis and financial ratios</p>
+    
+    <!-- Stock Fundamentals -->
+    {% if stock_data %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Stock Fundamentals</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, value in stock_data.items %}
+                    <tr>
+                        <td><strong>{{ key }}</strong></td>
+                        <td>
+                            {% if value %}
+                                {% if value|add:"0"|add:"0" == value|add:"0"|add:"0" %}
+                                    {{ value|floatformat:2 }}
+                                {% else %}
+                                    {{ value }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Financial Ratios -->
+    {% if ratios_table %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Financial Ratios</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped ratio-table">
+                <thead>
+                    <tr>
+                        <th>Ratio Name</th>
+                        <th>Ratio Value</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ratio in ratios_table %}
+                    <tr>
+                        <td><strong>{{ ratio.display_name|default:ratio.ratio_name|default:"N/A" }}</strong></td>
+                        <td>
+                            {% if ratio.ratio_value %}
+                                {{ ratio.ratio_value|floatformat:4 }}
+                            {% elif ratio.value %}
+                                {{ ratio.value|floatformat:4 }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ratio.performance %}
+                                <span class="tag {% if ratio.performance == 'Good' %}is-success{% elif ratio.performance == 'Fair' %}is-warning{% else %}is-danger{% endif %}">
+                                    {{ ratio.performance }}
+                                </span>
+                            {% else %}
+                                <span class="tag is-light">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="has-text-centered">No ratio data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- News Section -->
+    {% if news_html %}
+    <div class="box news-section">
+        <h2 class="title is-4">Latest News</h2>
+        <div class="content">
+            {{ news_html|safe }}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if not stock_data and not ratios_table %}
+    <div class="notification is-warning">
+        <p>Unable to fetch stock data for {{ symbol }}. Please check the symbol and try again.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

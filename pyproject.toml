@@ -79,6 +79,8 @@ dependencies = [
     "pykalman",
     "python-dotenv",
     "tenacity",
+    "selenium>=4.0.0",
+    "webdriver-manager",
     # Financial data aggregation
     "plaid-python>=11.0.0",
     "cryptography", # For encrypting tokens

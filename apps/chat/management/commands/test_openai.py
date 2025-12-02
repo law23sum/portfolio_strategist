@@ -30,3 +30,4 @@ class Command(BaseCommand):
             self.stdout.write("2. That the API key is valid and has sufficient credits")
             self.stdout.write("3. That your network connection is working")
 
+

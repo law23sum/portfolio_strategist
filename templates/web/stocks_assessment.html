@@ -9,9 +9,51 @@
         margin: 0 auto;
         padding: 20px;
     }
+    .section-block {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 32px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(50, 115, 220, 0.08);
+    }
+    .section-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .section-heading .eyebrow {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.14em;
+        color: #6c63ff;
+        margin-bottom: 6px;
+    }
+    .section-heading p {
+        margin: 0;
+        color: #7a7a7a;
+    }
+    .functionality-divider {
+        padding: 8px 18px;
+        margin: 24px 0 16px;
+        background: linear-gradient(90deg, rgba(50,115,220,0.12), rgba(72,199,142,0.08));
+        border-radius: 999px;
+        font-size: 0.85rem;
+        color: #1f2a44;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+    }
+    .functionality-divider .icon {
+        color: #3273dc;
+    }
     .chart-container {
         margin: 30px 0;
-        height: 400px;
+        min-height: 430px;
         position: relative;
     }
     .forecast-table {
@@ -77,6 +119,133 @@
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 15px;
     }
+    .twin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+    }
+    .form-card {
+        padding: 24px;
+        border-radius: 14px;
+        border: 1px solid rgba(0,0,0,0.06);
+        background: linear-gradient(180deg, rgba(245, 248, 255, 0.8), #fff);
+    }
+    .form-card h3 {
+        margin-top: 0;
+        font-size: 1.15rem;
+        color: #23395d;
+        margin-bottom: 14px;
+    }
+    .cta-hint {
+        font-size: 0.9rem;
+        color: #556;
+    }
+    .action-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+        margin-top: 16px;
+    }
+    .action-link-button {
+        border: none;
+        background: none;
+        padding: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #3273dc;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .action-link-button.is-primary {
+        color: #1746a2;
+    }
+    .action-link-button.is-accent {
+        color: #0f9d58;
+    }
+    .action-link-button.is-muted {
+        color: #7a7a7a;
+    }
+    .action-link-button:focus-visible,
+    .action-link-button:hover {
+        text-decoration: underline;
+    }
+    .action-link-button.is-loading,
+    .action-link-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+    }
+    .action-grid .button.is-disabled,
+    .action-grid .button[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    .action-grid .button.is-disabled,
+    .action-grid .button[style*="pointer-events: none"] {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+    }
+    .chart-panel {
+        padding: 18px;
+        border-radius: 16px;
+        background: #f8fbff;
+        border: 1px solid rgba(50,115,220,0.15);
+    }
+    .confidence-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 0.85rem;
+        color: #4a4a4a;
+        margin-top: 16px;
+    }
+    .confidence-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    .confidence-pill span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    #populateProgressContainer {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    #populateProgressContainer .box {
+        background: #f5f5f5;
+        border: 1px solid #dbdbdb;
+    }
+    #progressStatus {
+        font-weight: 600;
+        color: #3273dc;
+        margin-bottom: 10px;
+    }
+    #populateProgress {
+        height: 30px;
+        margin-bottom: 10px;
+    }
+    #progressDetails {
+        color: #666;
+        font-style: italic;
+    }
 </style>
 {% endblock %}
 
@@ -92,9 +261,18 @@
     <h1 class="title is-2">Stocks Assessment</h1>
     <p class="subtitle">Analyze and forecast your stock investments</p>
     
-    <div class="box" style="margin-bottom: 30px;">
-        <h2 class="title is-4">Linked Investment Overview (Plaid)</h2>
-        <p class="subtitle is-6">Financia-style snapshot of your connected investment accounts</p>
+    <div class="functionality-divider">
+        <span class="icon"><i class="fa fa-university"></i></span>
+        Linked Investment Overview
+    </div>
+    <section class="section-block">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Plaid Insights</p>
+                <h2 class="title is-4">Linked Investment Overview</h2>
+                <p class="subtitle is-6">Financia snapshot of your connected investment accounts so every forecast starts with reality.</p>
+            </div>
+        </div>
         {% if account_defaults and account_defaults.accounts and account_defaults.accounts|length > 0 %}
         <div class="columns is-multiline">
             <div class="column is-one-quarter">
@@ -141,12 +319,22 @@
         </div>
         {% endif %}
         <p class="help">Values refresh whenever you link/sync accounts. Use them to auto-fill your stock plans.</p>
-    </div>
+    </section>
 
     <!-- Plaid Integration -->
     {% if linked_accounts or account_defaults.accounts %}
-    <div class="box" style="margin-bottom: 30px;">
-        <h2 class="title is-4">Import from Linked Account</h2>
+    <div class="functionality-divider">
+        <span class="icon"><i class="fa fa-cloud-download"></i></span>
+        Import Live Balances
+    </div>
+    <section class="section-block">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Auto Populate</p>
+                <h2 class="title is-4">Import from Linked Account</h2>
+                <p class="subtitle is-6">Pull institutions, symbols, and balances directly into your assessment workflow.</p>
+            </div>
+        </div>
         <div class="field">
             <label class="label">Select Plaid Investment Account</label>
             <div class="control">
@@ -178,103 +366,247 @@
             </div>
             <p class="help">Choose an account to auto-fill your Financia stock plan with live Plaid balances.</p>
         </div>
-    </div>
+    </section>
     {% endif %}
     
-    <!-- Stock Input Form -->
-    <div class="box">
-        <h2 class="title is-4">Stock Investment Details</h2>
-        
-        <div class="field">
-            <label class="label">Stock Symbol *</label>
-            <div class="control">
-                <input class="input" type="text" id="stockSymbol" placeholder="e.g., AAPL, NVDA, TSLA" required>
+    <div class="functionality-divider">
+        <span class="icon"><i class="fa fa-sliders"></i></span>
+        Configure & Quantify
+    </div>
+    <section class="section-block">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Plan Builder</p>
+                <h2 class="title is-4">Stock Analysis & Investment Inputs</h2>
+                <p class="subtitle is-6">Configure the stock behavior and the dollars attached to it—these inputs drive the visualization that follows.</p>
             </div>
-            <p class="help">
-                <button type="button" class="button is-small is-info" onclick="fetchStockDetails()">
-                    Fetch Stock Details & Charts
-                </button>
-            </p>
+            <p class="cta-hint">Populate from Plaid, adjust assumptions, then preview the outcome.</p>
         </div>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Investment Amount ($)</label>
-                    <div class="control">
-                        <input class="input" type="number" id="investmentAmount" placeholder="10000" step="0.01" value="{% if account_defaults.total_investments > 0 %}{{ account_defaults.total_investments|floatformat:2 }}{% endif %}">
-                    </div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="field">
-                    <label class="label">Share Quantity</label>
-                    <div class="control">
-                        <input class="input" type="number" id="shareQuantity" placeholder="100" step="0.0001">
-                    </div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="field">
-                    <label class="label">Current Price ($)</label>
-                    <div class="control">
-                        <input class="input" type="number" id="currentPrice" placeholder="Auto-filled" step="0.01" readonly>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Biweekly Contribution ($)</label>
-                    <div class="control">
-                        <input class="input" type="number" id="biweeklyContribution" placeholder="300" step="0.01" value="300">
-                    </div>
-                    <p class="help">26 biweekly periods × 3 years = 78 contributions per phase</p>
-                </div>
-            </div>
-            <div class="column">
-                <div class="field">
-                    <label class="label">Forecast Model</label>
-                    <div class="control">
-                        <div class="select is-fullwidth">
-                            <select id="forecastModel">
-                                <option value="Geometric Brownian Motion External Macroeconomic Factors" selected>GBM with External Macroeconomic Factors (Recommended)</option>
-                                <option value="Geometric Brownian Motion with Mean Reversion">GBM with Mean Reversion</option>
-                                <option value="Geometric Brownian Motion">Standard GBM</option>
-                            </select>
+
+        <div class="twin-grid">
+            <div class="form-card">
+                <h3>Stock Analysis Configuration</h3>
+                <div class="columns is-multiline">
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Stock Symbol *</label>
+                            <div class="control">
+                                <input class="input" type="text" id="stockSymbol" placeholder="e.g., MDB, AAPL, NVDA" required>
+                            </div>
                         </div>
                     </div>
-                    <p class="help">Uses financia advanced forecasting models</p>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Market Benchmark</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="marketTicker">
+                                        <option value="^GSPC" selected>S&P 500 (SPX)</option>
+                                        <option value="^DJI">Dow Jones (DJIA)</option>
+                                        <option value="^IXIC">Nasdaq Composite (IXIC)</option>
+                                        <option value="^RUT">Russell 2000 (RUT)</option>
+                                        <option value="^VIX">CBOE Volatility Index (VIX)</option>
+                                        <option value="^TNX">10-Year Treasury Yield (TNX)</option>
+                                        <option value="^TYX">30-Year Treasury Yield (TYX)</option>
+                                        <option value="GLD">Gold (GLD)</option>
+                                        <option value="USO">Crude Oil (USO)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Stock Period</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="stockPeriod">
+                                        <option value="1d">1 Day</option>
+                                        <option value="5d">5 Days</option>
+                                        <option value="1mo">1 Month</option>
+                                        <option value="3mo">3 Months</option>
+                                        <option value="6mo">6 Months</option>
+                                        <option value="1y" selected>1 Year</option>
+                                        <option value="2y">2 Years</option>
+                                        <option value="5y">5 Years</option>
+                                        <option value="10y">10 Years</option>
+                                        <option value="ytd">Year to Date</option>
+                                        <option value="max">Max</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Stock Interval</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="stockInterval">
+                                        <option value="1m">1 Minute</option>
+                                        <option value="2m">2 Minutes</option>
+                                        <option value="5m">5 Minutes</option>
+                                        <option value="15m">15 Minutes</option>
+                                        <option value="30m">30 Minutes</option>
+                                        <option value="60m">1 Hour</option>
+                                        <option value="90m">90 Minutes</option>
+                                        <option value="1h">1 Hour</option>
+                                        <option value="1d" selected>1 Day</option>
+                                        <option value="5d">5 Days</option>
+                                        <option value="1wk">1 Week</option>
+                                        <option value="1mo">1 Month</option>
+                                        <option value="3mo">3 Months</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Forecasting Model</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="forecastModel">
+                                        <option value="Geometric Brownian Motion External Macroeconomic Factors" selected>Geometric Brownian Motion External Macroeconomic Factors</option>
+                                        <option value="Geometric Brownian Motion with Mean Reversion">Geometric Brownian Motion with Mean Reversion</option>
+                                        <option value="Geometric Brownian Motion">Geometric Brownian Motion</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Date Range</label>
+                            <div class="columns is-gapless">
+                                <div class="column" style="padding-right: 0.5rem;">
+                                    <input class="input" type="date" id="startDate">
+                                </div>
+                                <div class="column" style="padding-left: 0.5rem;">
+                                    <input class="input" type="date" id="endDate">
+                                </div>
+                            </div>
+                            <p class="help">Optional custom range for the historical pull.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <h3>Investment Details</h3>
+                <p class="cta-hint">Share counts and contributions here determine how aggressive or conservative the forecast dollars become.</p>
+                <div class="columns is-multiline">
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Investment Amount ($)</label>
+                            <div class="control">
+                                <input class="input" type="number" id="investmentAmount" placeholder="10000" step="0.01" value="{% if account_defaults.total_investments > 0 %}{{ account_defaults.total_investments|floatformat:2 }}{% endif %}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Share Quantity</label>
+                            <div class="control">
+                                <input class="input" type="number" id="shareQuantity" placeholder="100" step="0.0001">
+                            </div>
+                            <p class="help" id="shareQuantityHelp">Enter the number of shares you plan to purchase.</p>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Current Price ($)</label>
+                            <div class="control">
+                                <input class="input" type="number" id="currentPrice" placeholder="Auto-filled" step="0.01" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Biweekly Contribution ($)</label>
+                            <div class="control">
+                                <input class="input" type="number" id="biweeklyContribution" placeholder="300" step="0.01" value="300">
+                            </div>
+                            <p class="help">26 biweekly periods × 3 years = 78 contributions per phase</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="field">
-            <label class="label">Notes</label>
-            <div class="control">
-                <textarea class="textarea" id="notes" placeholder="Optional notes about this stock investment"></textarea>
+
+        <div class="action-links" role="navigation" aria-label="Stock actions">
+            <button type="button" class="action-link-button is-primary" id="btnPopulateInfo">
+                <span class="icon"><i class="fa fa-download"></i></span>
+                <span>Populate Information</span>
+            </button>
+            <button type="button" class="action-link-button is-accent" onclick="calculateAndSave()">
+                <span class="icon"><i class="fa fa-save"></i></span>
+                <span>Calculate &amp; Save Assessment</span>
+            </button>
+            <button type="button" class="action-link-button" onclick="calculateForecast()">
+                <span class="icon"><i class="fa fa-line-chart"></i></span>
+                <span>Preview Forecast</span>
+            </button>
+            <button type="button" class="action-link-button is-muted" onclick="resetStock()">
+                <span class="icon"><i class="fa fa-refresh"></i></span>
+                <span>Reset Stock</span>
+            </button>
+        </div>
+
+        <div id="populateProgressContainer" style="display: none; margin-bottom: 20px; margin-top: 20px;">
+            <div class="box" style="background: #f5f5f5; border: 2px solid #3273dc;">
+                <div class="field">
+                    <label class="label" id="progressStatus" style="font-weight: 600; color: #3273dc; font-size: 1.1em;">Initializing...</label>
+                    <progress class="progress is-primary is-large" id="populateProgress" value="0" max="100" style="height: 35px; margin-bottom: 10px;">0%</progress>
+                    <p class="help" id="progressDetails" style="color: #666; font-style: italic; font-size: 0.95em;">Preparing to fetch stock information...</p>
+                </div>
             </div>
         </div>
-        
-        <div class="field is-grouped">
-            <div class="control">
-                <button type="button" class="button is-primary" onclick="calculateAndSave()">
-                    Calculate & Save Assessment
-                </button>
-            </div>
-            <div class="control">
-                <button type="button" class="button is-info" onclick="calculateForecast()">
-                    Preview Forecast
-                </button>
-            </div>
+
+        <div class="action-grid">
+            <a href="#" class="button is-fullwidth is-disabled" id="btnDetailedReports" onclick="return navigateToDetailedReports(event)" style="opacity: 0.5; pointer-events: none; cursor: not-allowed;" aria-disabled="true">
+                <span class="icon"><i class="fa fa-file-text"></i></span>
+                <span>Stock Detailed Reports</span>
+            </a>
+            <a href="#" class="button is-fullwidth is-disabled" id="btnAnalysisPredictions" onclick="return navigateToAnalysisPredictions(event)" style="opacity: 0.5; pointer-events: none; cursor: not-allowed;" aria-disabled="true">
+                <span class="icon"><i class="fa fa-line-chart"></i></span>
+                <span>Stock Analysis/Predictions</span>
+            </a>
+            <a href="#" class="button is-fullwidth is-disabled" id="btnMarketOverview" onclick="return navigateToMarketOverview(event)" style="opacity: 0.5; pointer-events: none; cursor: not-allowed;" aria-disabled="true">
+                <span class="icon"><i class="fa fa-globe"></i></span>
+                <span>Market Overview</span>
+            </a>
+            <a href="#" class="button is-fullwidth is-disabled" id="btnRiskDashboard" onclick="return navigateToRiskDashboard(event)" style="opacity: 0.5; pointer-events: none; cursor: not-allowed;" aria-disabled="true">
+                <span class="icon"><i class="fa fa-shield"></i></span>
+                <span>Risk Dashboard</span>
+            </a>
+            <a href="#" class="button is-fullwidth is-disabled" id="btnDecisionSupport" onclick="return navigateToDecisionSupport(event)" style="opacity: 0.5; pointer-events: none; cursor: not-allowed;" aria-disabled="true">
+                <span class="icon"><i class="fa fa-lightbulb-o"></i></span>
+                <span>Decision Support</span>
+            </a>
+            <a href="#" class="button is-fullwidth is-disabled" id="btnInvestmentPlannerAlerts" onclick="return navigateToInvestmentPlannerAlerts(event)" style="opacity: 0.5; pointer-events: none; cursor: not-allowed;" aria-disabled="true">
+                <span class="icon"><i class="fa fa-bell"></i></span>
+                <span>Investment Planner Alerts</span>
+            </a>
+            <a href="{% url 'web:financial_definitions' %}?return_url={{ request.get_full_path|urlencode }}" class="button is-fullwidth">
+                <span class="icon"><i class="fa fa-book"></i></span>
+                <span>Financial Definitions</span>
+            </a>
         </div>
-    </div>
-    
+    </section>
     <!-- Forecast Charts -->
-    <div class="box" id="forecastSection" style="display: none;">
-        <h2 class="title is-4">Forecast Projections</h2>
+    <div class="functionality-divider">
+        <span class="icon"><i class="fa fa-area-chart"></i></span>
+        Visualize Stock Behavior
+    </div>
+    <section class="section-block" id="forecastSection" style="display: none;">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Projected Behavior</p>
+                <h2 class="title is-4">Forecast Projections</h2>
+                <p class="subtitle is-6">See the price behavior, the dollar impact of your position, and variance bands at ±1σ, ±2σ, ±3σ.</p>
+            </div>
+        </div>
         
         <!-- Financia Summary Cards -->
         <div class="financia-summary-grid" id="financiaSummaryCards" style="display: none;">
@@ -301,8 +633,11 @@
         </div>
 
         <!-- Summary Chart -->
-        <div class="chart-container">
-            <canvas id="forecastChart"></canvas>
+        <div class="chart-panel">
+            <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+            </div>
+            <div class="confidence-legend" id="confidenceLegend" style="display: none;"></div>
         </div>
         
         <!-- Time Period Forecasts -->
@@ -354,12 +689,22 @@
             <h3 class="title is-5">Financia Advanced Analysis</h3>
             <div id="financiaDetailsContent"></div>
         </div>
-    </div>
+    </section>
     
     <!-- Saved Assessments -->
     {% if assessments %}
-    <div class="box" style="margin-top: 30px;">
-        <h2 class="title is-4">Saved Stock Assessments</h2>
+    <div class="functionality-divider">
+        <span class="icon"><i class="fa fa-archive"></i></span>
+        Saved Stock Assessments
+    </div>
+    <section class="section-block" style="margin-top: 0;">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">History</p>
+                <h2 class="title is-4">Saved Stock Assessments</h2>
+                <p class="subtitle is-6">Reopen, edit, or delete existing plans in a single table.</p>
+            </div>
+        </div>
         <div class="table-container">
             <table class="table is-fullwidth is-striped">
                 <thead>
@@ -390,7 +735,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
     {% endif %}
 </div>
 
@@ -402,15 +747,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const plaidData = {{ plaid_data|safe }};
     {% endif %}
 
+    const investmentInput = document.getElementById('investmentAmount');
+
     {% if account_defaults_json %}
     const accountDefaults = {{ account_defaults_json|safe }};
-    const investmentInput = document.getElementById('investmentAmount');
     if (accountDefaults && accountDefaults.total_investments && investmentInput && !investmentInput.value) {
         investmentInput.value = Number(accountDefaults.total_investments).toFixed(2);
     }
     {% else %}
     const accountDefaults = null;
     {% endif %}
+
+    const priceInput = document.getElementById('currentPrice');
+    if (investmentInput) {
+        investmentInput.addEventListener('input', updateShareQuantityMax);
+    }
+    if (priceInput) {
+        priceInput.addEventListener('input', updateShareQuantityMax);
+    }
+    updateShareQuantityMax();
     
     // Auto-fill from Plaid account selection
     const plaidSelect = document.getElementById('plaidAccountSelect');
@@ -422,15 +777,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 const investmentInput = document.getElementById('investmentAmount');
                 if (investmentInput && balance > 0) {
                     investmentInput.value = balance.toFixed(2);
+                    updateShareQuantityMax();
                 }
             }
         });
     }
 });
 
-let forecastChart = null;
-let currentAssessmentId = null;
-let currentStockData = null;
+// Global variables for forecast chart (check if already declared in investment_retirement.js)
+if (typeof window.forecastChart === 'undefined') {
+    window.forecastChart = null;
+}
+if (typeof window.currentAssessmentId === 'undefined') {
+    window.currentAssessmentId = null;
+}
+if (typeof window.currentStockData === 'undefined') {
+    window.currentStockData = null;
+}
 
 function updateFinanciaSummaryCards(data, plan) {
     const grid = document.getElementById('financiaSummaryCards');
@@ -481,12 +844,135 @@ const TIME_PERIODS = {
 // Average annual stock market return (S&P 500 historical average ~10%)
 const DEFAULT_ANNUAL_RETURN = 0.10;
 const DEFAULT_VOLATILITY = 0.15; // 15% volatility
+const FORECAST_PERIOD_ORDER = ['biweekly', 'monthly', 'quarterly', 'biyearly', 'yearly', '3years', '5years', 'decade', 'twodecades', 'threedecades'];
+const DEFAULT_DAILY_SIGMA = DEFAULT_VOLATILITY / Math.sqrt(252);
+
+function getOrderedForecastPeriods(forecasts) {
+    const ordered = FORECAST_PERIOD_ORDER.filter(period => forecasts[period]);
+    const extras = Object.keys(forecasts).filter(period => !FORECAST_PERIOD_ORDER.includes(period));
+    return [...ordered, ...extras];
+}
+
+function formatPeriodLabel(period) {
+    const labelOverrides = {
+        '3years': '3 Years',
+        '5years': '5 Years',
+        'decade': 'Decade',
+        'twodecades': 'Two Decades',
+        'threedecades': 'Three Decades'
+    };
+    if (labelOverrides[period]) {
+        return labelOverrides[period];
+    }
+    return period.charAt(0).toUpperCase() + period.slice(1).replace(/([A-Z])/g, ' $1');
+}
+
+function getDailySigma(data) {
+    if (data && data.statistics && typeof data.statistics.sigma_daily !== 'undefined') {
+        const sigma = parseFloat(data.statistics.sigma_daily);
+        if (!isNaN(sigma) && sigma > 0) {
+            return sigma;
+        }
+    }
+    return DEFAULT_DAILY_SIGMA;
+}
+
+function updateShareQuantityMax() {
+    const shareInput = document.getElementById('shareQuantity');
+    const priceInput = document.getElementById('currentPrice');
+    const investmentInput = document.getElementById('investmentAmount');
+    const helpEl = document.getElementById('shareQuantityHelp');
+
+    if (!shareInput) {
+        return;
+    }
+
+    const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+    const investment = parseFloat(investmentInput ? investmentInput.value : 0) || 0;
+
+    if (price > 0 && investment > 0) {
+        const maxShares = investment / price;
+        const maxDisplay = maxShares.toFixed(4);
+        shareInput.max = maxDisplay;
+        shareInput.setAttribute('data-max-shares', maxDisplay);
+        shareInput.setAttribute('title', `Max shares based on $${investment.toFixed(2)}: ${maxDisplay}`);
+        if (parseFloat(shareInput.value) > maxShares) {
+            shareInput.value = maxDisplay;
+        }
+        if (helpEl) {
+            helpEl.textContent = `Max shares available based on $${investment.toFixed(2)}: ${maxDisplay}`;
+            helpEl.style.display = 'block';
+        }
+    } else {
+        shareInput.removeAttribute('max');
+        shareInput.removeAttribute('data-max-shares');
+        shareInput.removeAttribute('title');
+        if (helpEl) {
+            helpEl.textContent = 'Enter the number of shares you plan to purchase.';
+            helpEl.style.display = '';
+        }
+    }
+}
+
+async function ensureCurrentPrice(symbol) {
+    const priceInput = document.getElementById('currentPrice');
+    let currentPrice = parseFloat(priceInput ? priceInput.value : 0) || 0;
+
+    if (currentPrice > 0) {
+        return currentPrice;
+    }
+
+    if (!symbol) {
+        throw new Error('Please enter a stock symbol first.');
+    }
+
+    if (window.currentStockData) {
+        const cachedPrice = window.currentStockData.current_price
+            || window.currentStockData.stock_data?.currentPrice
+            || window.currentStockData?.purchase_plan?.current_price
+            || (window.currentStockData.summary && window.currentStockData.summary[0]?.forecast_price);
+        if (cachedPrice && !isNaN(cachedPrice)) {
+            currentPrice = parseFloat(cachedPrice);
+            if (priceInput) {
+                priceInput.value = currentPrice.toFixed(2);
+            }
+            return currentPrice;
+        }
+    }
+
+    try {
+        const stockData = await fetchStockDetails({ silent: true });
+        const latestPrice = stockData && stockData.key_metrics ? parseFloat(stockData.key_metrics.currentPrice) : 0;
+        if (latestPrice && latestPrice > 0 && priceInput) {
+            priceInput.value = latestPrice.toFixed(2);
+            updateShareQuantityMax();
+        }
+        currentPrice = latestPrice || 0;
+    } catch (error) {
+        const fallback = window.currentStockData && window.currentStockData.stock_data && window.currentStockData.stock_data.currentPrice;
+        if (fallback && priceInput) {
+            const fallbackValue = parseFloat(fallback);
+            if (!isNaN(fallbackValue) && fallbackValue > 0) {
+                priceInput.value = fallbackValue.toFixed(2);
+                return fallbackValue;
+            }
+        }
+        const errorMsg = error.message || 'Unable to fetch the latest price.';
+        throw new Error(errorMsg + ' Please click "Populate Information" button to fetch stock details first.');
+    }
+
+    if (!currentPrice || currentPrice <= 0) {
+        throw new Error('Unable to retrieve the latest price. The stock symbol may be invalid or the data source may be temporarily unavailable. Please verify the symbol and try clicking "Populate Information" again.');
+    }
+
+    return currentPrice;
+}
 
 async function calculateForecast() {
     const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
     const investmentAmount = parseFloat(document.getElementById('investmentAmount').value) || 0;
     const shareQuantity = parseFloat(document.getElementById('shareQuantity').value) || 0;
-    const currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+    let currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
     
     if (!symbol) {
         alert('Please enter a stock symbol.');
@@ -494,8 +980,12 @@ async function calculateForecast() {
     }
     
     if (currentPrice <= 0) {
-        alert('Please fetch stock details first to get the current price.');
-        return;
+        try {
+            currentPrice = await ensureCurrentPrice(symbol);
+        } catch (error) {
+            alert(error.message || 'Please fetch stock details first to get the current price.');
+            return;
+        }
     }
     
     // Determine shares and investment amount
@@ -552,7 +1042,7 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
         throw new Error(data.error || 'Forecast failed');
     }
     
-    currentStockData = data;
+    window.currentStockData = data;
     
     // Use the summary data from financia API which includes proper forecasts
     const forecasts = {};
@@ -723,7 +1213,7 @@ function calculateForecastSimplified(symbol, investment, shares, currentPrice) {
 
 function displayForecastResults(forecasts, investment, shares, currentPrice, apiData = null) {
     // Update chart
-    updateForecastChart(forecasts);
+    updateForecastChart(forecasts, apiData);
     
     // Calculate biweekly contribution if available
     const biweeklyContrib = parseFloat(document.getElementById('biweeklyContribution').value) || 0;
@@ -733,8 +1223,11 @@ function displayForecastResults(forecasts, investment, shares, currentPrice, api
     const resultsDiv = document.getElementById('forecastResults');
     let html = '<div class="columns is-multiline">';
     
-    for (const [period, data] of Object.entries(forecasts)) {
-        const periodLabel = period.charAt(0).toUpperCase() + period.slice(1).replace(/([A-Z])/g, ' $1');
+    const orderedPeriods = getOrderedForecastPeriods(forecasts);
+    for (const period of orderedPeriods) {
+        const data = forecasts[period];
+        if (!data) continue;
+        const periodLabel = formatPeriodLabel(period);
         // Calculate total with biweekly contributions for 3-year periods
         let totalWithContributions = data.investmentValue;
         if (biweeklyContrib > 0 && data.years >= 3) {
@@ -798,8 +1291,10 @@ function displayForecastResults(forecasts, investment, shares, currentPrice, api
     // Update table
     const tableBody = document.getElementById('forecastTableBody');
     let tableHtml = '';
-    for (const [period, data] of Object.entries(forecasts)) {
-        const periodLabel = period.charAt(0).toUpperCase() + period.slice(1).replace(/([A-Z])/g, ' $1');
+    for (const period of orderedPeriods) {
+        const data = forecasts[period];
+        if (!data) continue;
+        const periodLabel = formatPeriodLabel(period);
         tableHtml += `
             <tr>
                 <td>${periodLabel}</td>
@@ -911,58 +1406,137 @@ function displayFinanciaDetails(data) {
 }
 
 
-function updateForecastChart(forecasts) {
+function updateForecastChart(forecasts, apiData = null) {
     const ctx = document.getElementById('forecastChart');
+    const legendEl = document.getElementById('confidenceLegend');
     if (!ctx) return;
-    
-    if (forecastChart) {
-        forecastChart.destroy();
+
+    if (window.forecastChart) {
+        window.forecastChart.destroy();
     }
-    
+
+    const orderedPeriods = getOrderedForecastPeriods(forecasts);
     const labels = [];
-    const values = [];
-    const investments = [];
-    const profits = [];
-    
-    for (const [period, data] of Object.entries(forecasts)) {
-        const periodLabel = period.charAt(0).toUpperCase() + period.slice(1).replace(/([A-Z])/g, ' $1');
-        labels.push(periodLabel);
-        values.push(data.investmentValue);
-        investments.push(data.investmentValue - data.profitLoss);
-        profits.push(data.profitLoss);
+    const priceSeries = [];
+    const valueSeries = [];
+    const sigmaBands = {
+        1: { upper: [], lower: [] },
+        2: { upper: [], lower: [] },
+        3: { upper: [], lower: [] }
+    };
+
+    const sigmaDaily = getDailySigma(apiData || window.currentStockData || null);
+
+    orderedPeriods.forEach((period) => {
+        const data = forecasts[period];
+        if (!data) return;
+        const price = Number(data.forecastPrice) || 0;
+        const investmentValue = Number(data.investmentValue) || 0;
+        labels.push(formatPeriodLabel(period));
+        priceSeries.push(price);
+        valueSeries.push(investmentValue);
+
+        const years = data.years || TIME_PERIODS[period] || 0;
+        const days = Math.max(1, years * 365);
+        const sigmaFraction = sigmaDaily * Math.sqrt(days);
+        const sigmaDistance = price * sigmaFraction;
+
+        [1, 2, 3].forEach((level) => {
+            const upper = price + (sigmaDistance * level);
+            const lower = Math.max(price - (sigmaDistance * level), 0);
+            sigmaBands[level].upper.push(upper);
+            sigmaBands[level].lower.push(lower);
+        });
+    });
+
+    if (!labels.length) {
+        if (legendEl) {
+            legendEl.style.display = 'none';
+        }
+        window.forecastChart = null;
+        return;
     }
-    
-    forecastChart = new Chart(ctx, {
-        type: 'bar',
+
+    const datasets = [
+        {
+            label: 'Forecast Price',
+            data: priceSeries,
+            borderColor: '#3273dc',
+            backgroundColor: 'transparent',
+            pointRadius: 3,
+            tension: 0.3,
+            fill: false,
+        },
+        {
+            label: 'Investment Value',
+            data: valueSeries,
+            borderColor: '#48c78e',
+            backgroundColor: 'transparent',
+            borderDash: [6, 4],
+            pointRadius: 3,
+            tension: 0.3,
+            fill: false,
+        },
+    ];
+
+    const bandColors = {
+        1: 'rgba(50, 115, 220, 0.12)',
+        2: 'rgba(72, 199, 142, 0.12)',
+        3: 'rgba(255, 193, 7, 0.16)'
+    };
+    const lineColors = {
+        1: 'rgba(50, 115, 220, 0.5)',
+        2: 'rgba(72, 199, 142, 0.6)',
+        3: 'rgba(255, 193, 7, 0.7)'
+    };
+
+    [1, 2, 3].forEach((level) => {
+        if (!sigmaBands[level].upper.length) {
+            return;
+        }
+        datasets.push({
+            label: `_sigma_lower_${level}`,
+            data: sigmaBands[level].lower,
+            pointRadius: 0,
+            borderWidth: 0,
+            borderColor: 'rgba(0,0,0,0)',
+            fill: false,
+        });
+        datasets.push({
+            label: `±${level}σ`,
+            data: sigmaBands[level].upper,
+            borderColor: lineColors[level],
+            backgroundColor: bandColors[level],
+            borderDash: [4, 4],
+            pointRadius: 0,
+            tension: 0.3,
+            fill: {
+                target: '-1',
+                above: bandColors[level],
+                below: bandColors[level],
+            },
+        });
+    });
+
+    window.forecastChart = new Chart(ctx, {
+        type: 'line',
         data: {
             labels: labels,
-            datasets: [
-                {
-                    label: 'Initial Investment',
-                    data: investments,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                },
-                {
-                    label: 'Profit/Loss',
-                    data: profits,
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                },
-                {
-                    label: 'Investment Value',
-                    data: values,
-                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
-                }
-            ],
+            datasets: datasets,
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             scales: {
                 y: {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Amount ($)',
+                        text: 'Dollar Impact ($)',
                     },
                 },
             },
@@ -970,17 +1544,46 @@ function updateForecastChart(forecasts) {
                 legend: {
                     display: true,
                     position: 'top',
+                    labels: {
+                        filter: function(item) {
+                            return !item.text.startsWith('_sigma_');
+                        }
+                    }
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                            const value = context.parsed.y;
+                            if (typeof value === 'number' && isFinite(value)) {
+                                return `${context.dataset.label}: $${value.toFixed(2)}`;
+                            }
+                            return context.dataset.label;
                         },
                     },
                 },
             },
         },
     });
+
+    if (legendEl) {
+        const legendItems = [];
+        [1, 2, 3].forEach((level) => {
+            if (sigmaBands[level].upper.length) {
+                legendItems.push(`
+                    <div class="confidence-pill">
+                        <span style="background:${bandColors[level]};"></span>
+                        ±${level}σ variance band
+                    </div>
+                `);
+            }
+        });
+        if (legendItems.length) {
+            legendEl.innerHTML = legendItems.join('');
+            legendEl.style.display = 'flex';
+        } else {
+            legendEl.style.display = 'none';
+        }
+    }
 }
 
 async function calculateAndSave() {
@@ -997,12 +1600,16 @@ async function saveAssessment() {
     
     const investmentAmount = parseFloat(document.getElementById('investmentAmount').value) || 0;
     const shareQuantity = parseFloat(document.getElementById('shareQuantity').value) || 0;
-    const currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+    let currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
     const biweeklyContrib = parseFloat(document.getElementById('biweeklyContribution').value) || 0;
     
     if (currentPrice <= 0) {
-        alert('Please fetch stock details first.');
-        return;
+        try {
+            currentPrice = await ensureCurrentPrice(symbol);
+        } catch (error) {
+            alert(error.message || 'Please fetch stock details first.');
+            return;
+        }
     }
     
     let shares = shareQuantity;
@@ -1016,9 +1623,9 @@ async function saveAssessment() {
     
     // Use currentStockData if available (from financia API), otherwise calculate simplified
     let forecastData = {};
-    if (currentStockData && currentStockData.summary) {
+    if (window.currentStockData && window.currentStockData.summary) {
         // Use financia API data
-        const summary = currentStockData.summary || [];
+        const summary = window.currentStockData.summary || [];
         // Use the same mapping logic as in calculateForecastWithAPI
         const apiLabelToPeriod = {
             'Biweekly': 'biweekly',
@@ -1125,21 +1732,21 @@ async function saveAssessment() {
         forecastData.biweekly_contribution = biweeklyContrib;
     }
 
-    if (currentStockData) {
-        if (currentStockData.statistics) {
-            forecastData._statistics = currentStockData.statistics;
+    if (window.currentStockData) {
+        if (window.currentStockData.statistics) {
+            forecastData._statistics = window.currentStockData.statistics;
         }
-        if (currentStockData.external_factors) {
-            forecastData._external_factors = currentStockData.external_factors;
+        if (window.currentStockData.external_factors) {
+            forecastData._external_factors = window.currentStockData.external_factors;
         }
-        if (currentStockData.mean_reversion_params) {
-            forecastData._mean_reversion_params = currentStockData.mean_reversion_params;
+        if (window.currentStockData.mean_reversion_params) {
+            forecastData._mean_reversion_params = window.currentStockData.mean_reversion_params;
         }
-        if (currentStockData.equation_type) {
-            forecastData._equation_type = currentStockData.equation_type;
+        if (window.currentStockData.equation_type) {
+            forecastData._equation_type = window.currentStockData.equation_type;
         }
-        if (currentStockData.summary) {
-            forecastData._summary = currentStockData.summary;
+        if (window.currentStockData.summary) {
+            forecastData._summary = window.currentStockData.summary;
         }
     }
     if (!forecastData._equation_type) {
@@ -1156,7 +1763,6 @@ async function saveAssessment() {
         share_quantity: shares,
         current_price: currentPrice,
         forecast_data: forecastData,
-        notes: document.getElementById('notes').value,
     };
     
     try {
@@ -1208,38 +1814,776 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Fetch stock details function (from investment_retirement.js)
-async function fetchStockDetails() {
+// Progress tracking functions
+const PROGRESS_STAGES = [
+    { percent: 0, label: 'Initializing…' },
+    { percent: 10, label: 'Connecting to market data…' },
+    { percent: 20, label: 'Downloading fundamentals…' },
+    { percent: 60, label: 'Analyzing ratios…' },
+    { percent: 80, label: 'Calculating key metrics…' },
+    { percent: 90, label: 'Preparing navigation…' },
+    { percent: 100, label: 'Complete!' },
+];
+
+function estimateTimeRemaining(percent) {
+    const totalMs = 3000; // rough estimate for user feedback
+    const remaining = Math.max(0, 100 - percent);
+    const seconds = Math.ceil((remaining / 100) * (totalMs / 1000));
+    if (percent >= 100 || !isFinite(seconds)) {
+        return '';
+    }
+    return ` ~${seconds}s remaining`;
+}
+
+function updateProgress(percent, status, details) {
+    const progressBar = document.getElementById('populateProgress');
+    const statusLabel = document.getElementById('progressStatus');
+    const detailsLabel = document.getElementById('progressDetails');
+    const container = document.getElementById('populateProgressContainer');
+    
+    console.log('Updating progress:', percent, status, details); // Debug log
+    
+    if (progressBar) {
+        progressBar.value = percent;
+        progressBar.textContent = percent + '%';
+        // Force update for better browser compatibility
+        progressBar.setAttribute('value', percent);
+    }
+    
+    if (statusLabel) {
+        statusLabel.textContent = status + estimateTimeRemaining(percent);
+    }
+    
+    if (detailsLabel) {
+        detailsLabel.textContent = details;
+    }
+    
+    if (container) {
+        container.style.display = 'block';
+        // Force reflow to ensure display
+        container.offsetHeight;
+    }
+}
+
+function hideProgress() {
+    const container = document.getElementById('populateProgressContainer');
+    if (container) {
+        setTimeout(() => {
+            container.style.display = 'none';
+        }, 1000);
+    }
+}
+
+// Define populateInformation function immediately in global scope (before IIFE)
+window.populateInformation = async function populateInformation() {
     const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
     if (!symbol) {
         alert('Please enter a stock symbol first.');
         return;
     }
     
+    const btnPopulate = document.getElementById('btnPopulateInfo');
+    if (btnPopulate) {
+        btnPopulate.disabled = true;
+        btnPopulate.classList.add('is-loading');
+    }
+    
+    // Show progress container
+    if (typeof updateProgress === 'function') {
+        updateProgress(0, 'Initializing...', 'Preparing to fetch stock information for ' + symbol);
+    }
+    
     try {
-        const response = await fetch('/stock-analysis/api/stock-details/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-            body: JSON.stringify({ symbol: symbol }),
-        });
+        // Stage 1: Fetching stock data
+        if (typeof updateProgress === 'function') {
+            updateProgress(10, 'Fetching Stock Data...', 'Connecting to market data API (Polygon.io/Alpha Vantage)...');
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        const data = await response.json();
+        if (typeof updateProgress === 'function') {
+            updateProgress(20, 'Fetching Stock Data...', 'Downloading stock fundamentals...');
+        }
+        const stockData = await fetchStockDetails();
+        updateShareQuantityMax();
         
-        if (response.ok && data.success && data.key_metrics) {
-            const currentPrice = data.key_metrics.currentPrice;
-            if (currentPrice) {
-                document.getElementById('currentPrice').value = currentPrice.toFixed(2);
+        // Stage 2: Processing data
+        if (typeof updateProgress === 'function') {
+            updateProgress(60, 'Processing Data...', 'Analyzing financial ratios...');
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        if (typeof updateProgress === 'function') {
+            updateProgress(80, 'Processing Data...', 'Calculating key metrics...');
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Stage 3: Finalizing - ensure price is set before enabling buttons
+        if (typeof updateProgress === 'function') {
+            updateProgress(90, 'Finalizing...', 'Preparing navigation buttons...');
+        }
+        
+        // Wait and verify price is set before enabling buttons
+        let priceSet = false;
+        let attempts = 0;
+        const maxAttempts = 30; // Increased attempts to wait longer
+        
+        while (!priceSet && attempts < maxAttempts) {
+            const priceInput = document.getElementById('currentPrice');
+            const priceValue = priceInput && priceInput.value ? parseFloat(priceInput.value) : 0;
+            if (priceValue > 0) {
+                priceSet = true;
+                console.log('Price verified:', priceValue);
+                break;
+            }
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Force enable buttons if price is set
+        if (priceSet) {
+            if (typeof updateProgress === 'function') {
+                updateProgress(95, 'Finalizing...', 'Enabling navigation buttons...');
+            }
+            
+            // Force enable buttons with multiple attempts
+            for (let i = 0; i < 5; i++) {
+                if (typeof enableButtons === 'function') {
+                    enableButtons();
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
         } else {
-            alert('Could not fetch stock details. You can enter the price manually.');
+            console.warn('Price was not set after populateInformation. Attempts:', attempts);
+            // Try to get price from stockData if available
+            if (stockData && stockData.key_metrics && stockData.key_metrics.currentPrice) {
+                const priceInput = document.getElementById('currentPrice');
+                if (priceInput) {
+                    const price = parseFloat(stockData.key_metrics.currentPrice);
+                    if (price > 0) {
+                        priceInput.value = price.toFixed(2);
+                        priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        priceInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        updateShareQuantityMax();
+                        if (typeof enableButtons === 'function') {
+                            enableButtons();
+                        }
+                    }
+                }
+            }
         }
+        
+        if (typeof updateProgress === 'function') {
+            updateProgress(100, 'Complete!', 'Stock information populated successfully!');
+        }
+        
+        // Final enable check after a short delay - multiple attempts to ensure buttons are enabled
+        setTimeout(() => {
+            if (typeof enableButtons === 'function') {
+                enableButtons();
+            }
+        }, 500);
+        
+        // Additional check after longer delay to be absolutely sure
+        setTimeout(() => {
+            if (typeof enableButtons === 'function') {
+                enableButtons();
+                // Verify buttons are actually enabled
+                const btn = document.getElementById('btnDetailedReports');
+                if (btn) {
+                    const isDisabled = btn.style.pointerEvents === 'none' || 
+                                     btn.classList.contains('is-disabled') ||
+                                     btn.getAttribute('aria-disabled') === 'true';
+                    if (isDisabled) {
+                        console.warn('Buttons still disabled, forcing enable...');
+                        enableButtons();
+                    } else {
+                        console.log('Buttons successfully enabled');
+                    }
+                }
+            }
+        }, 1000);
+        
+        // Show success message
+        const notification = document.createElement('div');
+        notification.className = 'notification is-success';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = '<button class="delete" onclick="this.parentElement.remove()"></button><p>Stock information populated successfully! Navigation buttons are now enabled.</p>';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 3000);
+        
+        if (typeof hideProgress === 'function') {
+            setTimeout(() => {
+                hideProgress();
+            }, 2000);
+        }
+        
     } catch (error) {
-        console.error('Error fetching stock details:', error);
-        alert('Could not fetch stock details. You can enter the price manually.');
+        console.error('Error populating information:', error);
+        if (typeof updateProgress === 'function') {
+            updateProgress(0, 'Error!', 'Failed to populate stock information: ' + (error.message || 'Unknown error'));
+        }
+        
+        const errorNotification = document.createElement('div');
+        errorNotification.className = 'notification is-danger';
+        errorNotification.style.position = 'fixed';
+        errorNotification.style.top = '20px';
+        errorNotification.style.right = '20px';
+        errorNotification.style.zIndex = '9999';
+        errorNotification.innerHTML = '<button class="delete" onclick="this.parentElement.remove()"></button><p>Error: ' + (error.message || 'Unknown error') + '</p>';
+        document.body.appendChild(errorNotification);
+        
+        setTimeout(() => {
+            if (errorNotification.parentElement) {
+                errorNotification.remove();
+            }
+            if (typeof hideProgress === 'function') {
+                hideProgress();
+            }
+        }, 5000);
+    } finally {
+        const btnPopulate = document.getElementById('btnPopulateInfo');
+        if (btnPopulate) {
+            btnPopulate.disabled = false;
+            btnPopulate.classList.remove('is-loading');
+        }
+        if (typeof enableButtons === 'function') {
+            enableButtons();
+        }
     }
+};
+
+function enableButtons() {
+    const symbol = document.getElementById('stockSymbol');
+    const symbolValue = symbol ? symbol.value.trim().toUpperCase() : '';
+    const hasSymbol = symbolValue.length > 0;
+    
+    const priceInput = document.getElementById('currentPrice');
+    let priceValue = 0;
+    if (priceInput && priceInput.value) {
+        priceValue = parseFloat(priceInput.value);
+    }
+    const hasPrice = priceValue > 0;
+    
+    console.log('enableButtons called:', { 
+        symbol: symbolValue, 
+        hasSymbol, 
+        hasPrice, 
+        priceValue: priceValue || 'N/A',
+        priceInputValue: priceInput ? priceInput.value : 'N/A'
+    });
+    
+    // Get form values for building URLs
+    const period = document.getElementById('stockPeriod') ? document.getElementById('stockPeriod').value : '1y';
+    const interval = document.getElementById('stockInterval') ? document.getElementById('stockInterval').value : '1d';
+    const model = document.getElementById('forecastModel') ? encodeURIComponent(document.getElementById('forecastModel').value) : encodeURIComponent('Geometric Brownian Motion External Macroeconomic Factors');
+    const marketTicker = document.getElementById('marketTicker') ? document.getElementById('marketTicker').value : '^GSPC';
+    const vixTicker = document.getElementById('volatilityTicker') ? document.getElementById('volatilityTicker').value : '^VIX';
+    const tnxTicker = document.getElementById('interestRateTicker') ? document.getElementById('interestRateTicker').value : '^TNX';
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    
+    // Build URLs for each button
+    const buttonUrls = {
+        'btnDetailedReports': `/investment-savings/stocks-assessment/${symbolValue}/detailed-reports/?period=${period}&interval=${interval}&return_url=${returnUrl}`,
+        'btnAnalysisPredictions': `/investment-savings/stocks-assessment/${symbolValue}/analysis-predictions/?period=${period}&interval=${interval}&model=${model}&market=${marketTicker}&vix=${vixTicker}&tnx=${tnxTicker}&return_url=${returnUrl}`,
+        'btnMarketOverview': `/investment-savings/stocks-assessment/${symbolValue}/market-overview/?market=${marketTicker}&return_url=${returnUrl}`,
+        'btnRiskDashboard': `/investment-savings/stocks-assessment/${symbolValue}/risk-dashboard/?period=${period}&market=${marketTicker}&return_url=${returnUrl}`,
+        'btnDecisionSupport': `/investment-savings/stocks-assessment/${symbolValue}/decision-support/?return_url=${returnUrl}`,
+        'btnInvestmentPlannerAlerts': `/investment-savings/stocks-assessment/${symbolValue}/investment-planner-alerts/?return_url=${returnUrl}`
+    };
+    
+    // Enable/disable buttons based on whether we have a symbol and price
+    const buttons = [
+        'btnDetailedReports',
+        'btnAnalysisPredictions',
+        'btnMarketOverview',
+        'btnRiskDashboard',
+        'btnDecisionSupport',
+        'btnInvestmentPlannerAlerts'
+    ];
+    
+    const shouldEnable = hasSymbol && hasPrice;
+    
+    buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            if (shouldEnable) {
+                // Enable the button - remove all disabling styles and attributes
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.style.pointerEvents = 'auto';
+                btn.style.textDecoration = 'none';
+                btn.style.disabled = false;
+                btn.classList.remove('is-disabled');
+                btn.removeAttribute('disabled');
+                btn.removeAttribute('aria-disabled');
+                
+                // For anchor tags, set proper href URL
+                if (btn.tagName === 'A' || btn.tagName === 'a') {
+                    // Set the actual URL as href
+                    const url = buttonUrls[btnId];
+                    if (url) {
+                        btn.setAttribute('href', url);
+                    }
+                    // Ensure onclick passes event for proper handling
+                    const originalOnclick = btn.getAttribute('onclick');
+                    if (originalOnclick && !originalOnclick.includes('event')) {
+                        // Update onclick to pass event if not already present
+                        btn.setAttribute('onclick', originalOnclick.replace('()', '(event)'));
+                    }
+                    // Force pointer events to be enabled
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.cursor = 'pointer';
+                }
+                
+                console.log(`Enabled button: ${btnId} with URL: ${buttonUrls[btnId]}`);
+            } else {
+                // Disable the button
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                btn.style.pointerEvents = 'none';
+                btn.style.textDecoration = 'none';
+                btn.classList.add('is-disabled');
+                btn.setAttribute('aria-disabled', 'true');
+                
+                // For anchor tags, prevent navigation
+                if (btn.tagName === 'A' || btn.tagName === 'a') {
+                    btn.setAttribute('href', '#');
+                    btn.style.pointerEvents = 'none';
+                    btn.style.cursor = 'not-allowed';
+                }
+            }
+        } else {
+            console.warn(`Button not found: ${btnId}`);
+        }
+    });
+}
+
+function navigateToDetailedReports(event) {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    const priceInput = document.getElementById('currentPrice');
+    const hasPrice = priceInput && priceInput.value && parseFloat(priceInput.value) > 0;
+    if (!hasPrice) {
+        alert('Please click "Populate Information" first to fetch stock data.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    // If href is already set, allow it to work
+    if (event && event.currentTarget && event.currentTarget.href && event.currentTarget.href !== '#') {
+        return true; // Allow href navigation
+    }
+    // Otherwise, navigate programmatically
+    const period = document.getElementById('stockPeriod').value;
+    const interval = document.getElementById('stockInterval').value;
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/investment-savings/stocks-assessment/${symbol}/detailed-reports/?period=${period}&interval=${interval}&return_url=${returnUrl}`;
+    return false;
+}
+
+function navigateToAnalysisPredictions(event) {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    const priceInput = document.getElementById('currentPrice');
+    const hasPrice = priceInput && priceInput.value && parseFloat(priceInput.value) > 0;
+    if (!hasPrice) {
+        alert('Please click "Populate Information" first to fetch stock data.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    // If href is already set, allow it to work
+    if (event && event.currentTarget && event.currentTarget.href && event.currentTarget.href !== '#') {
+        return true; // Allow href navigation
+    }
+    // Otherwise, navigate programmatically
+    const period = document.getElementById('stockPeriod').value;
+    const interval = document.getElementById('stockInterval').value;
+    const model = encodeURIComponent(document.getElementById('forecastModel').value);
+    const marketTicker = document.getElementById('marketTicker').value;
+    const vixTicker = document.getElementById('volatilityTicker') ? document.getElementById('volatilityTicker').value : '^VIX';
+    const tnxTicker = document.getElementById('interestRateTicker') ? document.getElementById('interestRateTicker').value : '^TNX';
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/investment-savings/stocks-assessment/${symbol}/analysis-predictions/?period=${period}&interval=${interval}&model=${model}&market=${marketTicker}&vix=${vixTicker}&tnx=${tnxTicker}&return_url=${returnUrl}`;
+    return false;
+}
+
+function navigateToMarketOverview(event) {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    const priceInput = document.getElementById('currentPrice');
+    const hasPrice = priceInput && priceInput.value && parseFloat(priceInput.value) > 0;
+    if (!hasPrice) {
+        alert('Please click "Populate Information" first to fetch stock data.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    // If href is already set, allow it to work
+    if (event && event.currentTarget && event.currentTarget.href && event.currentTarget.href !== '#') {
+        return true; // Allow href navigation
+    }
+    // Otherwise, navigate programmatically
+    const marketTicker = document.getElementById('marketTicker').value;
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/investment-savings/stocks-assessment/${symbol}/market-overview/?market=${marketTicker}&return_url=${returnUrl}`;
+    return false;
+}
+
+function navigateToRiskDashboard(event) {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    const priceInput = document.getElementById('currentPrice');
+    const hasPrice = priceInput && priceInput.value && parseFloat(priceInput.value) > 0;
+    if (!hasPrice) {
+        alert('Please click "Populate Information" first to fetch stock data.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    // If href is already set, allow it to work
+    if (event && event.currentTarget && event.currentTarget.href && event.currentTarget.href !== '#') {
+        return true; // Allow href navigation
+    }
+    // Otherwise, navigate programmatically
+    const period = document.getElementById('stockPeriod').value;
+    const marketTicker = document.getElementById('marketTicker').value;
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/investment-savings/stocks-assessment/${symbol}/risk-dashboard/?period=${period}&market=${marketTicker}&return_url=${returnUrl}`;
+    return false;
+}
+
+function navigateToDecisionSupport(event) {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    const priceInput = document.getElementById('currentPrice');
+    const hasPrice = priceInput && priceInput.value && parseFloat(priceInput.value) > 0;
+    if (!hasPrice) {
+        alert('Please click "Populate Information" first to fetch stock data.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    // If href is already set, allow it to work
+    if (event && event.currentTarget && event.currentTarget.href && event.currentTarget.href !== '#') {
+        return true; // Allow href navigation
+    }
+    // Otherwise, navigate programmatically
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/investment-savings/stocks-assessment/${symbol}/decision-support/?return_url=${returnUrl}`;
+    return false;
+}
+
+function navigateToInvestmentPlannerAlerts(event) {
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        alert('Please enter a stock symbol first.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    const priceInput = document.getElementById('currentPrice');
+    const hasPrice = priceInput && priceInput.value && parseFloat(priceInput.value) > 0;
+    if (!hasPrice) {
+        alert('Please click "Populate Information" first to fetch stock data.');
+        if (event) event.preventDefault();
+        return false;
+    }
+    // If href is already set, allow it to work
+    if (event && event.currentTarget && event.currentTarget.href && event.currentTarget.href !== '#') {
+        return true; // Allow href navigation
+    }
+    // Otherwise, navigate programmatically
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/investment-savings/stocks-assessment/${symbol}/investment-planner-alerts/?return_url=${returnUrl}`;
+    return false;
+}
+
+function resetStock() {
+    if (confirm('Are you sure you want to reset all stock analysis fields?')) {
+        document.getElementById('stockSymbol').value = '';
+        document.getElementById('stockPeriod').value = '1y';
+        document.getElementById('stockInterval').value = '1d';
+        document.getElementById('forecastModel').value = 'Geometric Brownian Motion External Macroeconomic Factors';
+        document.getElementById('marketTicker').value = '^GSPC';
+        document.getElementById('volatilityTicker').value = '^VIX';
+        document.getElementById('interestRateTicker').value = '^TNX';
+        document.getElementById('investmentAmount').value = '';
+        document.getElementById('shareQuantity').value = '';
+        document.getElementById('currentPrice').value = '';
+        document.getElementById('biweeklyContribution').value = '300';
+        document.getElementById('forecastSection').style.display = 'none';
+        enableButtons();
+        updateShareQuantityMax();
+    }
+}
+
+// Initialize button states on page load and attach event listeners
+(function() {
+    'use strict';
+    
+    // Wait for DOM to be ready
+    function initButtons() {
+        if (typeof enableButtons === 'function') {
+            enableButtons();
+        }
+        const symbolInput = document.getElementById('stockSymbol');
+        if (symbolInput && typeof enableButtons === 'function') {
+            symbolInput.addEventListener('input', enableButtons);
+        }
+        
+        // Also listen for price changes to enable buttons
+        const priceInput = document.getElementById('currentPrice');
+        if (priceInput && typeof enableButtons === 'function') {
+            priceInput.addEventListener('input', enableButtons);
+            priceInput.addEventListener('change', enableButtons);
+        }
+        
+        // Attach populateInformation to button using event listener
+        const btnPopulate = document.getElementById('btnPopulateInfo');
+        if (btnPopulate) {
+            // Remove any existing onclick handlers
+            btnPopulate.removeAttribute('onclick');
+            btnPopulate.onclick = null;
+            
+            // Remove any existing event listeners by cloning the button
+            const newBtn = btnPopulate.cloneNode(true);
+            btnPopulate.parentNode.replaceChild(newBtn, btnPopulate);
+            
+            // Add event listener to the new button
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.populateInformation === 'function') {
+                    window.populateInformation();
+                } else {
+                    console.error('populateInformation function not found');
+                    alert('Error: populateInformation function not loaded. Please refresh the page.');
+                }
+            });
+        }
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initButtons);
+    } else {
+        initButtons();
+    }
+})();
+
+// Fetch stock details function
+async function fetchStockDetails(options = {}) {
+    const { silent = false } = options;
+    const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    if (!symbol) {
+        throw new Error('Please enter a stock symbol first.');
+    }
+    const shouldTrackProgress = !silent && typeof updateProgress === 'function';
+    
+    // Update progress during fetch
+    if (shouldTrackProgress) {
+        updateProgress(30, 'Fetching Stock Data...', 'Requesting stock information from API...');
+    }
+    
+    const response = await fetch('/stock-analysis/api/stock-details/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ symbol: symbol }),
+    });
+
+    if (shouldTrackProgress) {
+        updateProgress(40, 'Fetching Stock Data...', 'Receiving response from server...');
+    }
+
+    if (response.status === 401 || response.status === 403) {
+        const loginUrl = `/accounts/login/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        setTimeout(() => {
+            window.location.href = loginUrl;
+        }, 100);
+        throw new Error('Authentication required. Please log in and try again.');
+    }
+    
+    // Check if response is HTML (likely a redirect to login page)
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+        const loginUrl = `/accounts/login/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        setTimeout(() => {
+            window.location.href = loginUrl;
+        }, 100);
+        throw new Error('Authentication required. Please log in and try again.');
+    }
+    
+    const rawText = await response.text();
+    let responseData;
+    try {
+        responseData = rawText ? JSON.parse(rawText) : {};
+    } catch (jsonError) {
+        // Check if response looks like HTML (login page redirect)
+        if (rawText && (rawText.includes('<html') || rawText.includes('login') || rawText.includes('accounts/login'))) {
+            const loginUrl = `/accounts/login/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            setTimeout(() => {
+                window.location.href = loginUrl;
+            }, 100);
+            throw new Error('Authentication required. Please log in and try again.');
+        }
+        const preview = rawText ? rawText.slice(0, 200) : 'No response body';
+        throw new Error(`Server returned invalid response. Status: ${response.status}. Body preview: ${preview}`);
+    }
+    
+    if (!response.ok) {
+        const errorMsg = responseData.error || `HTTP error! status: ${response.status}`;
+        const suggestion = responseData.suggestion || '';
+        throw new Error(errorMsg + (suggestion ? ' ' + suggestion : ''));
+    }
+    
+    if (shouldTrackProgress) {
+        updateProgress(50, 'Processing Response...', 'Parsing stock data...');
+    }
+    
+    if (!responseData.success) {
+        const errorMsg = responseData.error || 'Could not fetch stock details';
+        const suggestion = responseData.suggestion || '';
+        throw new Error(errorMsg + (suggestion ? ' ' + suggestion : ''));
+    }
+    
+    const data = responseData;
+    
+    // Populate current price - try multiple sources
+    if (shouldTrackProgress) {
+        updateProgress(70, 'Updating Fields...', 'Populating current price...');
+    }
+    
+    const priceInput = document.getElementById('currentPrice');
+    let currentPrice = null;
+    
+    // Try to get price from multiple sources in priority order
+    // 1. key_metrics.currentPrice (highest priority - aggregated)
+    if (data.key_metrics && data.key_metrics.currentPrice) {
+        currentPrice = parseFloat(data.key_metrics.currentPrice);
+    }
+    
+    // 2. Yahoo Finance summary (comprehensive scraping)
+    if ((!currentPrice || currentPrice <= 0) && data.yahoo_finance && data.yahoo_finance.summary && data.yahoo_finance.summary.currentPrice) {
+        currentPrice = parseFloat(data.yahoo_finance.summary.currentPrice);
+    }
+    
+    // 3. stock_data.currentPrice (from API sources)
+    if ((!currentPrice || currentPrice <= 0) && data.stock_data && data.stock_data.currentPrice) {
+        currentPrice = parseFloat(data.stock_data.currentPrice);
+    }
+    
+    // 4. historical_data (latest close price - most reliable fallback)
+    if ((!currentPrice || currentPrice <= 0) && data.historical_data && data.historical_data.length > 0) {
+        // Try last entry first
+        const latestData = data.historical_data[data.historical_data.length - 1];
+        if (latestData && latestData.close && latestData.close > 0) {
+            currentPrice = parseFloat(latestData.close);
+        } else {
+            // Try second-to-last if last is invalid
+            if (data.historical_data.length > 1) {
+                const prevData = data.historical_data[data.historical_data.length - 2];
+                if (prevData && prevData.close && prevData.close > 0) {
+                    currentPrice = parseFloat(prevData.close);
+                }
+            }
+        }
+    }
+    
+    // 5. Check window.currentStockData cache (if available from previous fetch)
+    if ((!currentPrice || currentPrice <= 0) && window.currentStockData) {
+        if (window.currentStockData.current_price) {
+            currentPrice = parseFloat(window.currentStockData.current_price);
+        } else if (window.currentStockData.stock_data && window.currentStockData.stock_data.currentPrice) {
+            currentPrice = parseFloat(window.currentStockData.stock_data.currentPrice);
+        } else if (window.currentStockData.key_metrics && window.currentStockData.key_metrics.currentPrice) {
+            currentPrice = parseFloat(window.currentStockData.key_metrics.currentPrice);
+        }
+    }
+    
+    // Store in cache for future use
+    if (currentPrice && currentPrice > 0) {
+        if (!window.currentStockData) {
+            window.currentStockData = {};
+        }
+        window.currentStockData.current_price = currentPrice;
+        window.currentStockData.stock_data = window.currentStockData.stock_data || {};
+        window.currentStockData.stock_data.currentPrice = currentPrice;
+    }
+    
+    // Set the price if we found one
+    if (currentPrice && currentPrice > 0 && priceInput) {
+        priceInput.value = currentPrice.toFixed(2);
+        // Trigger input event to ensure all listeners are notified
+        priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+        priceInput.dispatchEvent(new Event('change', { bubbles: true }));
+        updateShareQuantityMax();
+        
+        // Force a reflow to ensure DOM is updated
+        priceInput.offsetHeight;
+        
+        // Enable buttons after price is set - use multiple attempts to ensure it works
+        if (typeof enableButtons === 'function') {
+            // Use requestAnimationFrame to ensure DOM updates are complete
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    enableButtons();
+                    // Call again after a short delay to ensure buttons are enabled
+                    setTimeout(() => {
+                        enableButtons();
+                        // Final check to ensure buttons are actually enabled
+                        setTimeout(() => {
+                            enableButtons();
+                        }, 200);
+                    }, 200);
+                }, 100);
+            });
+        }
+    } else if (priceInput && (!currentPrice || currentPrice <= 0)) {
+        console.warn('No valid price found in API response. Data:', data);
+    }
+    
+    // Log Yahoo Finance comprehensive data if available
+    if (data.yahoo_finance) {
+        console.log('Yahoo Finance comprehensive data available:', {
+            summary: data.yahoo_finance.summary,
+            chart_types: data.yahoo_finance.chart_details?.available_chart_types,
+            statistics_count: Object.keys(data.yahoo_finance.statistics || {}).length,
+            news_count: (data.yahoo_finance.news || []).length,
+            options_available: !!(data.yahoo_finance.options?.calls?.length || data.yahoo_finance.options?.puts?.length),
+            holders_available: !!(data.yahoo_finance.holders?.institutional_holders?.length || data.yahoo_finance.holders?.mutual_fund_holders?.length),
+        });
+        
+        // Store Yahoo Finance data globally for use by other functions
+        window.yahooFinanceData = data.yahoo_finance;
+    }
+    
+    return data;
 }
 </script>
 {% endblock %}

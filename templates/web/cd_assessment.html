@@ -219,13 +219,6 @@
             </div>
         </div>
         
-        <div class="field">
-            <label class="label">Notes</label>
-            <div class="control">
-                <textarea class="textarea" id="notes" placeholder="Optional notes about this CD"></textarea>
-            </div>
-        </div>
-        
         <div class="field is-grouped">
             <div class="control">
                 <button class="button is-primary" onclick="calculateAndSave()">
@@ -633,7 +626,6 @@ async function saveAssessment() {
         term_months: 36, // 3-year phases
         compounding_frequency: compoundingFreq,
         forecast_data: forecastData,
-        notes: document.getElementById('notes').value,
         id: currentAssessmentId
     };
     
@@ -742,4 +734,3 @@ if (plaidSelect) {
 }
 </script>
 {% endblock %}
-

@@ -600,6 +600,12 @@ if "test" in sys.argv:
 AI_CHAT_OPENAI_API_KEY = env("AI_CHAT_OPENAI_API_KEY", default="")
 AI_CHAT_OPENAI_MODEL = env("AI_CHAT_OPENAI_MODEL", default="gpt-4o")
 
+# Stock Market Data APIs (replaces yfinance)
+# Polygon.io is the primary provider (more reliable, free tier: 5 calls/min)
+# Alpha Vantage is the fallback (free tier: 5 calls/min, 500 calls/day)
+POLYGON_API_KEY = env("POLYGON_API_KEY", default="")
+ALPHA_VANTAGE_API_KEY = env("ALPHA_VANTAGE_API_KEY", default="")
+
 # Financial Data Aggregation (Plaid, Yodlee, etc.)
 PLAID_CLIENT_ID = env("PLAID_CLIENT_ID", default="")
 PLAID_SECRET = env("PLAID_SECRET", default="")

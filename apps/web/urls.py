@@ -28,6 +28,42 @@ urlpatterns = [
         views.stocks_assessment_detail,
         name = "stocks_assessment_detail",
     ),
+    # Financia-style stock analysis pages
+    path(
+        "investment-savings/stocks-assessment/<str:symbol>/detailed-reports/",
+        views.stocks_detailed_reports,
+        name = "stocks_detailed_reports",
+    ),
+    path(
+        "investment-savings/stocks-assessment/<str:symbol>/analysis-predictions/",
+        views.stocks_analysis_predictions,
+        name = "stocks_analysis_predictions",
+    ),
+    path(
+        "investment-savings/stocks-assessment/<str:symbol>/market-overview/",
+        views.stocks_market_overview,
+        name = "stocks_market_overview",
+    ),
+    path(
+        "investment-savings/stocks-assessment/<str:symbol>/risk-dashboard/",
+        views.stocks_risk_dashboard,
+        name = "stocks_risk_dashboard",
+    ),
+    path(
+        "investment-savings/stocks-assessment/<str:symbol>/decision-support/",
+        views.stocks_decision_support,
+        name = "stocks_decision_support",
+    ),
+    path(
+        "investment-savings/stocks-assessment/<str:symbol>/investment-planner-alerts/",
+        views.stocks_investment_planner_alerts,
+        name = "stocks_investment_planner_alerts",
+    ),
+    path(
+        "investment-savings/financial-definitions/",
+        views.financial_definitions,
+        name = "financial_definitions",
+    ),
     path("investment-savings/savings-assessment/", views.savings_assessment, name = "savings_assessment"),
     path("investment-savings/cd-assessment/", views.cd_assessment, name = "cd_assessment"),
     path("investment-savings/bond-assessment/", views.bond_assessment, name = "bond_assessment"),
