@@ -92,10 +92,10 @@
     <h1 class="title is-2">Stocks Assessment</h1>
     <p class="subtitle">Analyze and forecast your stock investments</p>
     
-    {% if account_defaults.total_investments or account_defaults.accounts %}
     <div class="box" style="margin-bottom: 30px;">
         <h2 class="title is-4">Linked Investment Overview (Plaid)</h2>
         <p class="subtitle is-6">Financia-style snapshot of your connected investment accounts</p>
+        {% if account_defaults and account_defaults.accounts and account_defaults.accounts|length > 0 %}
         <div class="columns is-multiline">
             <div class="column is-one-quarter">
                 <div class="card">
@@ -135,9 +135,13 @@
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="notification is-info">
+            <p>No linked investment accounts found. <a href="{% url 'records:link_account' %}">Link your accounts</a> to see account details here.</p>
+        </div>
+        {% endif %}
         <p class="help">Values refresh whenever you link/sync accounts. Use them to auto-fill your stock plans.</p>
     </div>
-    {% endif %}
 
     <!-- Plaid Integration -->
     {% if linked_accounts or account_defaults.accounts %}

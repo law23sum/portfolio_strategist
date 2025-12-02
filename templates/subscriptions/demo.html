@@ -1,63 +1,155 @@
 {% extends "web/app/app_base.html" %}
 {% load static %}
 {% load i18n %}
+
+{% block page_head %}
+<style>
+    .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    .resource-card {
+        background: white;
+        padding: 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+    }
+    .resource-card h3 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #3273dc;
+    }
+    .resource-card p {
+        color: #666;
+        line-height: 1.6;
+    }
+    .tip-list {
+        list-style: none;
+        padding: 0;
+    }
+    .tip-list li {
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-left: 3px solid #3273dc;
+        border-radius: 4px;
+    }
+    .tip-list li strong {
+        color: #3273dc;
+    }
+    .result-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+    }
+</style>
+{% endblock %}
+
 {% block app %}
 <section class="app-card">
   <h1 class="pg-title">Debt Consolidation</h1>
-  <h1 class="pg-subtitle">Basic examples to get you going with feature-gating based on subscriptions.</h1>
-  <p>Tip: the source of this page can be found at <code>templates/subscriptions/demo.html</code></p>
 </section>
+
+{% if plaid_credit_defaults %}
 <section class="app-card">
-  <h1 class="pg-subtitle">Changing Content Based on a Subscription</h1>
-  <p>The text and color below will change based on whether you have an active subscription.</p>
-  {% if subscription %}
-    <div class="my-2 pg-text-centered pg-text-success">
-      <p>You're subscribed to {{ subscription.display_name }}! Hooray!</p>
+  <h2 class="pg-subtitle">{% translate "Your Credit Information from Linked Accounts" %}</h2>
+  <div class="field">
+    <label class="checkbox">
+      <input type="checkbox" id="usePlaidCreditData" checked>
+      {% translate "Use data from linked accounts" %}
+    </label>
+  </div>
+  
+  <div id="plaidCreditData" style="display: none;">
+    <div class="resource-grid">
+      <div class="resource-card">
+        <h3>{% translate "Total Credit Limit" %}</h3>
+        <p class="result-value">$<span id="totalCreditLimitValue">{{ plaid_credit_defaults.total_credit_limit|floatformat:2 }}</span></p>
+      </div>
+      <div class="resource-card">
+        <h3>{% translate "Total Credit Used" %}</h3>
+        <p class="result-value">$<span id="totalCreditUsedValue">{{ plaid_credit_defaults.total_credit_used|floatformat:2 }}</span></p>
+      </div>
+      <div class="resource-card">
+        <h3>{% translate "Credit Utilization" %}</h3>
+        <p class="result-value"><span id="creditUtilizationValue">{{ plaid_credit_defaults.credit_utilization_percent|floatformat:1 }}</span>%</p>
+      </div>
     </div>
-  {% else %}
-    <div class="my-2 pg-text-centered pg-text-info">
-      <p>It doesn't look like you're subscribed. <a href="{{ subscription_urls.subscription_details }}"><strong>Upgrade Here!</strong></a></p>
+    
+    {% if plaid_credit_defaults.credit_accounts %}
+    <div style="margin-top: 20px;">
+      <h3 class="title is-5">{% translate "Credit Card Accounts" %}</h3>
+      <ul class="tip-list">
+        {% for account in plaid_credit_defaults.credit_accounts %}
+        <li>
+          <strong>{{ account.name }}:</strong> 
+          ${{ account.balance|floatformat:2 }} / 
+          ${{ account.limit|floatformat:2 }} 
+          ({{ account.utilization|floatformat:1 }}% utilization)
+          <br>
+          <small>{{ account.institution }}</small>
+        </li>
+        {% endfor %}
+      </ul>
     </div>
-  {% endif %}
-</section>
-<section class="app-card">
-  <h1 class="pg-subtitle">Viewing Subscription Details</h1>
-  <p class="pg-content">
-    If you're subscribed to a plan, go to
-    <a href="{{ subscription_urls.subscription_details }}">the subscription details page</a>
-    to see an example of showing information about the subscription.
-  </p>
-</section>
-<section class="app-card">
-  <h1 class="pg-subtitle">Restricting Access to a Page</h1>
-  <div class="pg-content">
-    <p>
-      <a href="{{ subscription_urls.subscription_gated_page }}">This page</a> is only available if you are subscribed to a plan.
-    </p>
-    <p>
-      The code for this page can be found in the <code>subscription_gated_page</code> view in
-      <code>apps/subscriptions/views.py</code>
-    </p>
+    {% endif %}
+    
+    {% if plaid_credit_defaults.loan_accounts %}
+    <div style="margin-top: 20px;">
+      <h3 class="title is-5">{% translate "Loan Accounts" %}</h3>
+      <ul class="tip-list">
+        {% for account in plaid_credit_defaults.loan_accounts %}
+        <li>
+          <strong>{{ account.name }}:</strong> ${{ account.balance|floatformat:2 }}
+          <br>
+          <small>{{ account.institution }}</small>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    
+    <div class="box" style="margin-top: 20px; background: #f8f9fa;">
+      <h4 class="title is-6">{% translate "Credit Utilization Analysis" %}</h4>
+      {% if plaid_credit_defaults.credit_utilization_percent %}
+        {% if plaid_credit_defaults.credit_utilization_percent < 30 %}
+          <p style="color: green;">
+            <strong>{% translate "Excellent!" %}</strong> 
+            {% translate "Your credit utilization is below 30%, which is ideal for maintaining a good credit score." %}
+          </p>
+        {% elif plaid_credit_defaults.credit_utilization_percent < 50 %}
+          <p style="color: orange;">
+            <strong>{% translate "Good" %}</strong> 
+            {% translate "Your credit utilization is between 30-50%. Consider reducing balances to improve your score." %}
+          </p>
+        {% else %}
+          <p style="color: red;">
+            <strong>{% translate "Needs Improvement" %}</strong> 
+            {% translate "Your credit utilization is above 50%. Focus on paying down balances to improve your credit score." %}
+          </p>
+        {% endif %}
+      {% endif %}
+    </div>
   </div>
 </section>
-<section class="app-card">
-  <h1 class="pg-subtitle">{% translate "Metered Billing" %}</h1>
-  <p class="pg-content">
-    {% if subscription.is_metered %}
-      {% with subscription_urls.metered_billing_demo as metered_billing_demo_url %}
-      {% blocktranslate %}
-        You're subscribed to a plan that supports metered usage.
-        You can update the amount this subscription has used from the <a href="{{ metered_billing_demo_url }}">metered billing demo page</a>.
-      {% endblocktranslate %}
-      {% endwith %}
-    {% else %}
-      {% blocktranslate %}
-        You aren't currently subscribed to a plan that supports metered usage.
-        To use the metered billing integration, first create and subscribe to a metered plan.
-        More details are available in
-        <a href="https://stripe.com/docs/products-prices/pricing-models#usage-based-pricing" target="_blank">the Stripe documentation</a>.
-      {% endblocktranslate %}
-    {% endif %}
-  </p>
-</section>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  {% if plaid_credit_defaults %}
+  const usePlaidCheckbox = document.getElementById('usePlaidCreditData');
+  const plaidDataDiv = document.getElementById('plaidCreditData');
+  
+  if (usePlaidCheckbox && plaidDataDiv) {
+    usePlaidCheckbox.addEventListener('change', function() {
+      plaidDataDiv.style.display = this.checked ? 'block' : 'none';
+    });
+    plaidDataDiv.style.display = usePlaidCheckbox.checked ? 'block' : 'none';
+  }
+  {% endif %}
+});
+</script>
 {% endblock %}

@@ -124,6 +124,98 @@
             <a href="{% url 'web:investment_savings' %}" class="button is-link">{% translate "View Investment & Savings" %}</a>
         </p>
     </div>
+    
+    {% if plaid_tax_defaults %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">{% translate "Your Financial Data from Linked Accounts" %}</h2>
+        <div class="field">
+            <label class="checkbox">
+                <input type="checkbox" id="usePlaidData" checked>
+                {% translate "Use data from linked accounts" %}
+            </label>
+        </div>
+        
+        <div id="plaidTaxData" style="display: none;">
+            <div class="resource-grid">
+                <div class="resource-card">
+                    <h3>{% translate "Annual Income" %}</h3>
+                    <p class="result-value" id="plaidAnnualIncome">$<span id="annualIncomeValue">0.00</span></p>
+                </div>
+                <div class="resource-card">
+                    <h3>{% translate "Retirement Contributions" %}</h3>
+                    <p class="result-value" id="plaidRetirementContrib">$<span id="retirementContribValue">0.00</span></p>
+                </div>
+                <div class="resource-card">
+                    <h3>{% translate "HSA Contributions" %}</h3>
+                    <p class="result-value" id="plaidHsaContrib">$<span id="hsaContribValue">0.00</span></p>
+                </div>
+            </div>
+            
+            {% if plaid_tax_defaults.retirement_accounts %}
+            <div style="margin-top: 20px;">
+                <h3 class="title is-5">{% translate "Retirement Accounts" %}</h3>
+                <ul class="tip-list">
+                    {% for account in plaid_tax_defaults.retirement_accounts %}
+                    <li>
+                        <strong>{{ account.name }}:</strong> ${{ account.balance|floatformat:2 }} 
+                        ({{ account.institution }})
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            {% if plaid_tax_defaults.investment_accounts %}
+            <div style="margin-top: 20px;">
+                <h3 class="title is-5">{% translate "Investment Accounts" %}</h3>
+                <ul class="tip-list">
+                    {% for account in plaid_tax_defaults.investment_accounts %}
+                    <li>
+                        <strong>{{ account.name }}:</strong> ${{ account.balance|floatformat:2 }} 
+                        ({{ account.institution }})
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if plaid_tax_defaults %}
+    const plaidData = {{ plaid_data|safe }};
+    const plaidDefaults = {{ plaid_tax_defaults|safe }};
+    const usePlaidCheckbox = document.getElementById('usePlaidData');
+    const plaidDataDiv = document.getElementById('plaidTaxData');
+    
+    if (usePlaidCheckbox && plaidDataDiv) {
+        // Show/hide Plaid data based on checkbox
+        usePlaidCheckbox.addEventListener('change', function() {
+            plaidDataDiv.style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Initialize display
+        plaidDataDiv.style.display = usePlaidCheckbox.checked ? 'block' : 'none';
+        
+        // Populate values
+        if (plaidDefaults.annual_income) {
+            document.getElementById('annualIncomeValue').textContent = 
+                parseFloat(plaidDefaults.annual_income).toFixed(2);
+        }
+        if (plaidDefaults.retirement_contributions) {
+            document.getElementById('retirementContribValue').textContent = 
+                parseFloat(plaidDefaults.retirement_contributions).toFixed(2);
+        }
+        if (plaidDefaults.hsa_contributions) {
+            document.getElementById('hsaContribValue').textContent = 
+                parseFloat(plaidDefaults.hsa_contributions).toFixed(2);
+        }
+    }
+    {% endif %}
+});
+</script>
 {% endblock %}
 

@@ -175,22 +175,54 @@ def ai_financial_services(request):
 def stocks_assessment(request):
     """Stocks Assessment page"""
     from apps.records.models import StocksAssessment, LinkedAccount
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     assessments = StocksAssessment.objects.filter(user=request.user).order_by('-updated_at')
+    # Include active, pending, and error accounts (error accounts might still have valid data)
     linked_accounts = LinkedAccount.objects.filter(
         user=request.user,
-        status='active',
+        status__in=['active', 'pending', 'error'],
         account_type__in=['investment', 'brokerage', 'retirement']
     ).prefetch_related('balances')
+    
+    # Get organized Plaid data
     plaid_data = PlaidDataDistributionService.get_organized_plaid_data(request.user)
     stocks_plaid_data = plaid_data.get('stocks_assessment', {}) or {}
     plaid_data_json = json.dumps(stocks_plaid_data)
     total_investments = float(stocks_plaid_data.get('investment_amount', 0) or 0)
+    
     account_defaults = {
         'total_investments': total_investments,
         'accounts': stocks_plaid_data.get('accounts', []) or [],
     }
+    
+    # If no stocks accounts found but we have investment accounts, include them
+    if not account_defaults['accounts'] and linked_accounts.exists():
+        logger.info(f"No stocks accounts identified, but found {linked_accounts.count()} investment accounts - adding them as potential stock accounts")
+        for account in linked_accounts:
+            latest_balance = account.balances.first()
+            if latest_balance:
+                account_defaults['accounts'].append({
+                    'id': str(account.id),
+                    'name': account.account_name,
+                    'balance': float(latest_balance.current_balance) if latest_balance.current_balance else 0.0,
+                    'institution': account.institution_name,
+                    'account_type': account.account_type,
+                    'subtype': account.account_subtype or '',
+                })
+        # Update total investments
+        if account_defaults['accounts']:
+            account_defaults['total_investments'] = sum(acc.get('balance', 0) for acc in account_defaults['accounts'])
+    
     account_defaults_json = json.dumps(account_defaults)
+    
+    # Debug logging
+    logger.info(f"Stocks assessment for user {request.user.id}: {len(account_defaults['accounts'])} accounts found, total: ${account_defaults['total_investments']}")
+    if account_defaults['accounts']:
+        for acc in account_defaults['accounts']:
+            logger.info(f"  Stock account: {acc.get('name', 'Unknown')} - ${acc.get('balance', 0)}")
     
     return render(
         request,
@@ -362,9 +394,17 @@ def savings_assessment(request):
         user=request.user,
         status='active',
         account_type='depository'
-    )
+    ).prefetch_related('balances')
     plaid_savings_data = PlaidDataDistributionService.get_organized_plaid_data(request.user).get('savings_assessment', {}) or {}
     plaid_savings_json = json.dumps(plaid_savings_data)
+    
+    # Prepare account defaults similar to stocks assessment
+    account_defaults = {
+        'initial_deposit': plaid_savings_data.get('initial_deposit', 0),
+        'account_name': plaid_savings_data.get('account_name', ''),
+        'accounts': plaid_savings_data.get('accounts', []) or [],
+    }
+    account_defaults_json = json.dumps(account_defaults)
     
     return render(
         request,
@@ -376,6 +416,8 @@ def savings_assessment(request):
             "linked_accounts": linked_accounts,
             "plaid_data": plaid_savings_json,
             "plaid_savings_defaults": plaid_savings_data,
+            "account_defaults": account_defaults,
+            "account_defaults_json": account_defaults_json,
         },
     )
 
@@ -390,9 +432,17 @@ def cd_assessment(request):
         user=request.user,
         status='active',
         account_type='depository'
-    )
+    ).prefetch_related('balances')
     plaid_cd_data = PlaidDataDistributionService.get_organized_plaid_data(request.user).get('cd_assessment', {}) or {}
     plaid_cd_json = json.dumps(plaid_cd_data)
+    
+    # Prepare account defaults
+    account_defaults = {
+        'cd_amount': plaid_cd_data.get('cd_amount', 0),
+        'account_name': plaid_cd_data.get('account_name', ''),
+        'accounts': plaid_cd_data.get('accounts', []) or [],
+    }
+    account_defaults_json = json.dumps(account_defaults)
     
     return render(
         request,
@@ -404,6 +454,8 @@ def cd_assessment(request):
             "linked_accounts": linked_accounts,
             "plaid_data": plaid_cd_json,
             "plaid_cd_defaults": plaid_cd_data,
+            "account_defaults": account_defaults,
+            "account_defaults_json": account_defaults_json,
         },
     )
 
@@ -414,13 +466,54 @@ def bond_assessment(request):
     from apps.records.models import BondAssessment, LinkedAccount
     
     assessments = BondAssessment.objects.filter(user=request.user).order_by('-updated_at')
+    # Include active, pending, and error accounts (error accounts might still have valid data)
     linked_accounts = LinkedAccount.objects.filter(
         user=request.user,
-        status='active',
+        status__in=['active', 'pending', 'error'],
         account_type__in=['investment', 'brokerage']
-    )
-    plaid_bond_data = PlaidDataDistributionService.get_organized_plaid_data(request.user).get('bond_assessment', {}) or {}
+    ).prefetch_related('balances')
+    
+    # Get organized Plaid data
+    plaid_organized = PlaidDataDistributionService.get_organized_plaid_data(request.user)
+    plaid_bond_data = plaid_organized.get('bond_assessment', {}) or {}
     plaid_bond_json = json.dumps(plaid_bond_data)
+    
+    # Prepare account defaults - ensure accounts list is always present
+    account_defaults = {
+        'face_value': plaid_bond_data.get('face_value', 0),
+        'purchase_price': plaid_bond_data.get('purchase_price', 0),
+        'account_name': plaid_bond_data.get('account_name', ''),
+        'accounts': plaid_bond_data.get('accounts', []) or [],
+    }
+    
+    # If no bond accounts found but we have investment accounts, include them as potential bond accounts
+    if not account_defaults['accounts'] and linked_accounts.exists():
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"No bond accounts identified, but found {linked_accounts.count()} investment accounts - adding them as potential bond accounts")
+        for account in linked_accounts:
+            latest_balance = account.balances.first()
+            if latest_balance:
+                account_defaults['accounts'].append({
+                    'id': str(account.id),
+                    'name': account.account_name,
+                    'balance': float(latest_balance.current_balance) if latest_balance.current_balance else 0.0,
+                    'institution': account.institution_name,
+                    'account_type': account.account_type,
+                    'subtype': account.account_subtype or '',
+                })
+    
+    account_defaults_json = json.dumps(account_defaults)
+    
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Bond assessment for user {request.user.id}: {len(account_defaults['accounts'])} accounts found")
+    if account_defaults['accounts']:
+        for acc in account_defaults['accounts']:
+            logger.info(f"  Bond account: {acc.get('name', 'Unknown')} - ${acc.get('balance', 0)}")
+    else:
+        logger.warning(f"No bond accounts found for user {request.user.id}")
     
     return render(
         request,
@@ -432,6 +525,8 @@ def bond_assessment(request):
             "linked_accounts": linked_accounts,
             "plaid_data": plaid_bond_json,
             "plaid_bond_defaults": plaid_bond_data,
+            "account_defaults": account_defaults,
+            "account_defaults_json": account_defaults_json,
         },
     )
 

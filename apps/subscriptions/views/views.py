@@ -12,6 +12,7 @@ from djstripe.settings import djstripe_settings
 from stripe.error import InvalidRequestError
 
 from apps.utils.billing import get_stripe_module
+from apps.records.plaid_data_distribution import PlaidDataDistributionService
 
 from ..decorators import active_subscription_required, redirect_subscription_errors
 from ..forms import UsageRecordForm
@@ -117,6 +118,10 @@ def subscription_demo(request):
     subscription_holder = request.user
     subscription = subscription_holder.active_stripe_subscription
     wrapped_subscription = SubscriptionWrapper(subscription) if subscription else None
+    
+    # Get credit data from Plaid for the credit information section
+    plaid_credit_data = PlaidDataDistributionService.get_organized_plaid_data(request.user).get('credit_score', {}) or {}
+    
     return render(
         request,
         "subscriptions/demo.html",
@@ -125,6 +130,7 @@ def subscription_demo(request):
             "subscription": wrapped_subscription,
             "subscription_urls": get_subscription_urls(subscription_holder),
             "page_title": _("Debt Consolidation"),
+            "plaid_credit_defaults": plaid_credit_data,
         },
     )
 

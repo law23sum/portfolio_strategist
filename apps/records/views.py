@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from .forms import FinancialDocumentForm
 from .models import ExtractedField, FinancialDocument
 from .services import build_document_library, get_document_metrics
+from .plaid_data_distribution import PlaidDataDistributionService
 
 
 def upload_view(request):
@@ -149,8 +150,13 @@ def personal_details(request, pk):
 
 def personal_sensitive_view(request):
     documents = FinancialDocument.objects.filter(record_type="government").prefetch_related("fields")
+    plaid_personal_data = PlaidDataDistributionService.get_organized_plaid_data(request.user).get('personal_sensitive', {}) or {}
+    plaid_personal_json = json.dumps(plaid_personal_data)
+    
     context = {
         "active_tab": "records_personal_sensitive",
         "documents": documents,
+        "plaid_data": plaid_personal_json,
+        "plaid_personal_defaults": plaid_personal_data,
     }
     return render(request, "records/personal_sensitive_information.html", context)

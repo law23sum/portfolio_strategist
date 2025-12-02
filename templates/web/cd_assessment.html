@@ -61,26 +61,109 @@
     <h1 class="title is-2">CD Assessment</h1>
     <p class="subtitle">Forecast your Certificate of Deposit growth across multiple time periods</p>
     
-    <!-- Plaid Integration -->
     <div class="box" style="margin-bottom: 30px;">
-        <h2 class="title is-4">Link Account from Plaid (Optional)</h2>
+        <h2 class="title is-4">Linked CD Accounts Overview (Plaid)</h2>
+        <p class="subtitle is-6">Financia-style snapshot of your connected CD accounts</p>
         <div class="field">
-            <label class="label">Import from Linked Account</label>
+            <label class="checkbox">
+                <input type="checkbox" id="usePlaidCdData" checked>
+                Use data from linked accounts
+            </label>
+        </div>
+        
+        <div id="plaidCdOverview" style="display: block;">
+            {% if account_defaults and account_defaults.accounts %}
+            <div class="columns is-multiline">
+                <div class="column is-one-quarter">
+                    <div class="card">
+                        <div class="card-content">
+                            <p class="heading">Total CD Balance</p>
+                            <p class="title is-3">${{ account_defaults.cd_amount|floatformat:2|default:"0.00" }}</p>
+                            <p class="subtitle is-7">Auto-filled from Plaid</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-three-quarters">
+                    <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+                        <table class="table is-fullwidth is-striped">
+                            <thead>
+                                <tr>
+                                    <th>Institution</th>
+                                    <th>Account Name</th>
+                                    <th>Type</th>
+                                    <th class="has-text-right">Balance</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for acct in account_defaults.accounts %}
+                                <tr>
+                                    <td>{{ acct.name|truncatewords:2 }}</td>
+                                    <td>{{ acct.name }}</td>
+                                    <td>CD</td>
+                                    <td class="has-text-right">${{ acct.balance|floatformat:2 }}</td>
+                                    <td>
+                                        <button class="button is-small is-primary" onclick="selectCdAccount('{{ acct.id }}', {{ acct.balance }}, '{{ acct.name|escapejs }}')">
+                                            Use This Account
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="has-text-centered has-text-grey">No Plaid CD accounts detected yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="notification is-info">
+                <p>No linked CD accounts found. <a href="{% url 'records:link_account' %}">Link your accounts</a> to see account details here.</p>
+            </div>
+            {% endif %}
+            <p class="help">Values refresh whenever you link/sync accounts. Click "Use This Account" to auto-fill your CD assessment.</p>
+        </div>
+    </div>
+    
+    <!-- Plaid Integration -->
+    {% if linked_accounts or account_defaults.accounts %}
+    <div class="box" style="margin-bottom: 30px;">
+        <h2 class="title is-4">Import from Linked Account</h2>
+        <div class="field">
+            <label class="label">Select Plaid CD Account</label>
             <div class="control">
                 <div class="select is-fullwidth">
                     <select id="plaidAccountSelect">
                         <option value="">Select a linked account (optional)</option>
-                        {% for account in linked_accounts %}
-                        <option value="{{ account.id }}" data-balance="{{ account.current_balance|default:0 }}">
-                            {{ account.institution_name }} - {{ account.account_name }}
-                        </option>
-                        {% endfor %}
+                        {% if account_defaults.accounts %}
+                        <optgroup label="Plaid CD Accounts">
+                            {% for acct in account_defaults.accounts %}
+                            <option value="{{ acct.id }}" data-balance="{{ acct.balance|floatformat:2 }}" data-name="{{ acct.name }}">
+                                {{ acct.name }} - ${{ acct.balance|floatformat:2 }}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                        {% if linked_accounts %}
+                        <optgroup label="Linked Accounts (Database)">
+                            {% for account in linked_accounts %}
+                            {% with latest_balance=account.balances.first %}
+                            <option value="{{ account.id }}" data-balance="{% if latest_balance %}{{ latest_balance.current_balance|floatformat:2 }}{% else %}0{% endif %}" data-name="{{ account.account_name }}">
+                                {{ account.institution_name }} - {{ account.account_name }}
+                            </option>
+                            {% endwith %}
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
                     </select>
                 </div>
             </div>
-            <p class="help">Select a linked CD account to auto-fill account details</p>
+            <p class="help">Choose an account to auto-fill your CD assessment with live Plaid balances.</p>
         </div>
     </div>
+    {% endif %}
     
     <!-- CD Input Form -->
     <div class="box">
@@ -603,13 +686,60 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Auto-fill from Plaid account
-document.getElementById('plaidAccountSelect').addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    if (selectedOption.value && selectedOption.dataset.balance) {
-        document.getElementById('cdAmount').value = parseFloat(selectedOption.dataset.balance) || 0;
+// Toggle Plaid data display
+document.addEventListener('DOMContentLoaded', function() {
+    const usePlaidCheckbox = document.getElementById('usePlaidCdData');
+    const plaidOverview = document.getElementById('plaidCdOverview');
+    
+    if (usePlaidCheckbox && plaidOverview) {
+        usePlaidCheckbox.addEventListener('change', function() {
+            plaidOverview.style.display = this.checked ? 'block' : 'none';
+        });
     }
+    
+    // Auto-populate from account defaults
+    {% if account_defaults_json %}
+    const accountDefaults = {{ account_defaults_json|safe }};
+    if (accountDefaults && accountDefaults.cd_amount) {
+        const cdAmountInput = document.getElementById('cdAmount');
+        if (cdAmountInput && !cdAmountInput.value) {
+            cdAmountInput.value = parseFloat(accountDefaults.cd_amount).toFixed(2);
+        }
+        if (accountDefaults.account_name) {
+            const accountNameInput = document.getElementById('accountName');
+            if (accountNameInput) {
+                accountNameInput.value = accountDefaults.account_name;
+            }
+        }
+    }
+    {% endif %}
 });
+
+// Function to select account from table
+function selectCdAccount(accountId, balance, accountName) {
+    document.getElementById('cdAmount').value = parseFloat(balance).toFixed(2);
+    document.getElementById('accountName').value = accountName;
+    // Also update the select dropdown
+    const select = document.getElementById('plaidAccountSelect');
+    if (select) {
+        select.value = accountId;
+    }
+}
+
+// Auto-fill from Plaid account dropdown
+const plaidSelect = document.getElementById('plaidAccountSelect');
+if (plaidSelect) {
+    plaidSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value && selectedOption.dataset.balance) {
+            const balance = parseFloat(selectedOption.dataset.balance) || 0;
+            document.getElementById('cdAmount').value = balance.toFixed(2);
+            if (selectedOption.dataset.name) {
+                document.getElementById('accountName').value = selectedOption.dataset.name;
+            }
+        }
+    });
+}
 </script>
 {% endblock %}
 
