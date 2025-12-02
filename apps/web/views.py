@@ -115,6 +115,8 @@ def investment_savings(request):
 @login_required
 def budget_planner(request):
     """Budget Planner page with tax, expense, and debt calculations"""
+    from apps.records.account_data_service import AccountDataService
+    
     # Get budget data from aggregated accounts
     budget_data = BudgetAggregationService.get_user_budget_data(
         user=request.user,
@@ -124,6 +126,9 @@ def budget_planner(request):
     # Get debt data
     debt_data = DebtAggregationService.get_user_debt_data(user=request.user)
     
+    # Get default values from Plaid accounts
+    account_defaults = AccountDataService.get_budget_defaults(request.user)
+    
     return render(
         request,
         "web/budget_planner.html",
@@ -132,6 +137,7 @@ def budget_planner(request):
             "page_title": _("Budget Planner"),
             "budget_data": budget_data,
             "debt_data": debt_data,
+            "account_defaults": account_defaults,
         },
     )
 
@@ -168,6 +174,7 @@ def ai_financial_services(request):
 def stocks_assessment(request):
     """Stocks Assessment page"""
     from apps.records.models import StocksAssessment, LinkedAccount
+    from apps.records.account_data_service import AccountDataService
     
     assessments = StocksAssessment.objects.filter(user=request.user).order_by('-updated_at')
     linked_accounts = LinkedAccount.objects.filter(
@@ -175,6 +182,9 @@ def stocks_assessment(request):
         status='active',
         account_type__in=['investment', 'brokerage', 'retirement']
     )
+    
+    # Get default values from Plaid accounts
+    account_defaults = AccountDataService.get_investment_defaults(request.user)
     
     return render(
         request,
@@ -184,6 +194,7 @@ def stocks_assessment(request):
             "page_title": _("Stocks Assessment"),
             "assessments": assessments,
             "linked_accounts": linked_accounts,
+            "account_defaults": account_defaults,
         },
     )
 

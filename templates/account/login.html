@@ -14,6 +14,10 @@
             <input class="button is-primary is-fullwidth" type="submit" value="{% translate "Sign In" %}">
         </form>
         {% include 'account/components/social/social_buttons.html' %}
+        <p class="pg-text-centered mt-2">{% translate "or" %}</p>
+        <button id="plaid-login-btn" class="button is-fullwidth" style="background-color: #00D9FF; color: white; border: none;">
+            <span style="font-weight: 600;">{% translate "Continue with" %} Plaid</span>
+        </button>
         {% if LOGIN_BY_CODE_ENABLED %}
         <p class="pg-text-centered pg-text-muted">
           <a class="is-size-7 muted-link" href="{{ request_login_code_url }}">
@@ -23,4 +27,102 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Plaid Link script -->
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<script>
+let plaidLinkHandler = null;
+
+// Auto-initialize Plaid Link if this is an OAuth redirect
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const oauthStateId = urlParams.get('oauth_state_id');
+    if (oauthStateId) {
+        // Automatically trigger Plaid Link initialization for OAuth callback
+        document.getElementById('plaid-login-btn').click();
+    }
+});
+
+document.getElementById('plaid-login-btn').addEventListener('click', async function() {
+    try {
+        // Get link token from backend
+        const response = await fetch('{% url "authentication:plaid_auth_link_token" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        // Initialize Plaid Link
+        if (plaidLinkHandler) {
+            plaidLinkHandler.destroy();
+        }
+
+        // Check if this is an OAuth redirect (for banks that require OAuth)
+        const urlParams = new URLSearchParams(window.location.search);
+        const oauthStateId = urlParams.get('oauth_state_id');
+        
+        const plaidConfig = {
+            token: data.link_token,
+            onSuccess: async (publicToken, metadata) => {
+                // Exchange public token and authenticate
+                await exchangePlaidAuthToken(publicToken);
+            },
+            onExit: (err, metadata) => {
+                if (err) {
+                    console.error('Plaid Link error:', err);
+                    alert('Error connecting to bank account. Please try again.');
+                }
+            },
+        };
+        
+        // If OAuth redirect, include receivedRedirectUri
+        if (oauthStateId) {
+            plaidConfig.receivedRedirectUri = window.location.href;
+        }
+
+        plaidLinkHandler = Plaid.create(plaidConfig);
+        plaidLinkHandler.open();
+    } catch (error) {
+        console.error('Error initiating Plaid login:', error);
+        alert('Error connecting to bank account. Please try again.');
+    }
+});
+
+async function exchangePlaidAuthToken(publicToken) {
+    try {
+        const response = await fetch('{% url "authentication:plaid_auth_exchange" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                public_token: publicToken
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else if (data.access && data.refresh) {
+            // User is authenticated via Django session (created by backend)
+            // Redirect to dashboard
+            window.location.href = '/dashboard/';
+        } else {
+            alert('Unexpected response from server. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error exchanging Plaid token:', error);
+        alert('Error completing authentication. Please try again.');
+    }
+}
+</script>
 {% endblock %}

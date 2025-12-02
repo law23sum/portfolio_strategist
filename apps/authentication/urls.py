@@ -20,4 +20,8 @@ urlpatterns = [
     path("token/refresh/", get_refresh_view().as_view(), name="token_refresh"),
     path('api/token/', TokenObtainPairView.as_view(), name = 'token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name = 'token_refresh'),
+    # Plaid authentication endpoints
+    path("plaid/link-token/", api_views.PlaidAuthLinkTokenView.as_view(), name="plaid_auth_link_token"),
+    path("plaid/exchange/", api_views.PlaidAuthExchangeView.as_view(), name="plaid_auth_exchange"),
+    path("plaid/oauth-callback/", api_views.PlaidAuthOAuthCallbackView.as_view(), name="plaid_auth_oauth_callback"),
 ]

@@ -24,6 +24,7 @@ from .models import (
 from .aggregation_service import PlaidAggregationService, AggregationServiceFactory, categorize_and_connect_account
 from .encryption import encrypt_token
 from .tasks import sync_linked_account
+from apps.web.meta import absolute_url
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +112,13 @@ def create_link_token(request):
             }, status=400)
         
         service = PlaidAggregationService(provider)
+        # Don't include redirect_uri in initial link token creation
+        # OAuth redirects will be handled via receivedRedirectUri in the frontend
+        # redirect_uri must be whitelisted in Plaid dashboard, so we omit it here
         link_token_data = service.create_link_token(
             user_id=str(request.user.id),
-            user_email=request.user.email
+            user_email=request.user.email,
+            redirect_uri=None  # Omit redirect_uri to avoid 400 error
         )
         
         return JsonResponse(link_token_data)
@@ -363,4 +368,22 @@ def plaid_webhook(request):
     except Exception as e:
         logger.error(f"Error processing Plaid webhook: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def plaid_oauth_callback(request):
+    """
+    OAuth callback endpoint for Plaid Link.
+    This handles the redirect from banks that use OAuth flow.
+    """
+    oauth_state_id = request.GET.get('oauth_state_id')
+    
+    if not oauth_state_id:
+        return JsonResponse({'error': 'Missing oauth_state_id'}, status=400)
+    
+    # Return the OAuth state ID to the frontend so Plaid Link can complete the flow
+    return JsonResponse({
+        'oauth_state_id': oauth_state_id,
+        'status': 'oauth_callback_received'
+    })
 
