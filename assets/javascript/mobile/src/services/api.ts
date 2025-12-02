@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { API_BASE_URL, API_ENDPOINTS, setApiBaseUrl } from '../config/api';
 
 const TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -9,6 +9,26 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   status: number;
+}
+
+export interface StockDetailsResponse {
+  success?: boolean;
+  symbol: string;
+  stock_data?: Record<string, any>;
+  key_metrics?: Record<string, any>;
+  historical_data?: Array<Record<string, any>>;
+  ratios?: Array<Record<string, any>>;
+  news_html?: string;
+  yahoo_finance?: {
+    summary?: Record<string, any>;
+    news?: Array<Record<string, any>>;
+    chart_details?: Record<string, any>;
+    statistics?: Record<string, any>;
+    options?: Record<string, any>;
+    holders?: Record<string, any>;
+    profile?: Record<string, any>;
+  };
+  sources_used?: string[];
 }
 
 class ApiService {
@@ -23,6 +43,21 @@ class ApiService {
     console.log(`[API] Platform: ${Platform.OS}`);
     if (__DEV__) {
       console.log(`[API] Development mode - using ${this.baseURL}`);
+      console.log(`[API] To change URL: import { setApiBaseUrl } from '../config/api' and call setApiBaseUrl('http://YOUR_IP:8000')`);
+    }
+  }
+
+  /**
+   * Update the base URL at runtime (useful for switching between simulator and physical device)
+   * @param url - The new base URL (e.g., 'http://192.168.1.100:8000')
+   */
+  updateBaseURL(url: string): void {
+    if (typeof url === 'string' && url.trim().length > 0) {
+      setApiBaseUrl(url);
+      this.baseURL = url.replace(/\/+$/, '').trim();
+      console.log(`[API] Base URL updated to: ${this.baseURL}`);
+    } else {
+      console.warn(`[API] Invalid URL provided: ${url}`);
     }
   }
 
@@ -170,7 +205,11 @@ class ApiService {
               fetchError.message.includes('network request failed') ||
               fetchError.message.includes('NetworkError') ||
               fetchError.message.toLowerCase().includes('network')) {
-            errorMessage = `Network request failed to ${this.baseURL}.\n\nTroubleshooting:\n1. Is the Django server running? (python manage.py runserver)\n2. For iOS Simulator: Try http://localhost:8000\n3. For physical device: Update IP in src/config/api.ts\n4. Check firewall settings\n5. Verify device is on same network\n\nCurrent URL: ${this.baseURL}`;
+            const isLocalhost = this.baseURL.includes('localhost') || this.baseURL.includes('127.0.0.1');
+            const deviceHint = isLocalhost 
+              ? '\n⚠️ If you\'re on a physical iOS device, localhost won\'t work!\n   Use your Mac\'s IP address instead (e.g., http://192.168.1.100:8000)\n   Find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1\n   Then update: import api from \'../services/api\'; api.updateBaseURL(\'http://YOUR_IP:8000\');'
+              : '';
+            errorMessage = `Network request failed to ${this.baseURL}.\n\nTroubleshooting:\n1. Is the Django server running? (python manage.py runserver 0.0.0.0:8000)\n2. For iOS Simulator: Use http://localhost:8000\n3. For physical device: Use your Mac's IP address${deviceHint}\n4. Check firewall settings\n5. Verify device is on same network\n\nCurrent URL: ${this.baseURL}`;
           } else if (fetchError.message.includes('timeout') || fetchError.message.includes('timed out')) {
             errorMessage = 'Request timed out. The server may be slow or unreachable.';
           } else if (fetchError.message.includes('Failed to fetch') || 
@@ -302,7 +341,8 @@ class ApiService {
           }
         } else {
           // No token - this endpoint requires authentication
-          console.error('[API] No token present - endpoint requires authentication');
+          // Log as warning since this might be expected in some cases (e.g., token expired)
+          console.warn('[API] No token present - endpoint requires authentication');
           return {
             status: 403,
             error: errorData.detail || errorData.message || 'Authentication required. Please login.',
@@ -613,6 +653,13 @@ class ApiService {
     });
   }
 
+  async getStockDetails(symbol: string): Promise<ApiResponse<StockDetailsResponse>> {
+    return this.makeRequest(API_ENDPOINTS.STOCK_ANALYSIS.DETAILS, {
+      method: 'POST',
+      body: JSON.stringify({ symbol }),
+    });
+  }
+
   async getAnalysisResults(id: number): Promise<ApiResponse<any>> {
     return this.makeRequest(API_ENDPOINTS.STOCK_ANALYSIS.RESULTS(id));
   }
@@ -636,7 +683,13 @@ class ApiService {
     return this.makeRequest(API_ENDPOINTS.USERS.PROFILE);
   }
 
-  async updateProfile(data: any): Promise<ApiResponse<any>> {
+  async updateProfile(data: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    language?: string;
+    timezone?: string;
+  }): Promise<ApiResponse<any>> {
     return this.makeRequest(API_ENDPOINTS.USERS.PROFILE, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -711,7 +764,123 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  // Watchlist Methods
+  async getWatchlist(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.WATCHLIST);
+  }
+
+  async addToWatchlist(symbol: string, nickname?: string, notes?: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.WATCHLIST_ADD, {
+      method: 'POST',
+      body: JSON.stringify({ symbol, nickname, notes }),
+    });
+  }
+
+  async removeFromWatchlist(entryId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.WATCHLIST_REMOVE(entryId), {
+      method: 'POST',
+    });
+  }
+
+  async refreshWatchlist(entryId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.WATCHLIST_REFRESH(entryId), {
+      method: 'POST',
+    });
+  }
+
+  // Investment & Savings Assessment Methods
+  async getInvestmentSavingsSummary(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SUMMARY);
+  }
+
+  async getStocksAssessments(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.STOCKS_ASSESSMENT);
+  }
+
+  async getSavingsAssessments(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVINGS_ASSESSMENT);
+  }
+
+  async getCDAssessments(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.CD_ASSESSMENT);
+  }
+
+  async getBondAssessments(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.BOND_ASSESSMENT);
+  }
+
+  async saveStocksAssessment(data: {
+    symbol: string;
+    investment_amount?: number;
+    share_quantity?: number;
+    current_price: number;
+    forecast_data?: any;
+    notes?: string;
+    linked_account_id?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_STOCKS, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async saveSavingsAssessment(data: {
+    account_name?: string;
+    initial_deposit: number;
+    annual_interest_rate: number;
+    monthly_contribution?: number;
+    biweekly_contribution?: number;
+    compounding_frequency?: number;
+    forecast_data?: any;
+    notes?: string;
+    linked_account_id?: number;
+    id?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_SAVINGS, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async saveCDAssessment(data: {
+    account_name?: string;
+    amount: number;
+    annual_interest_rate: number;
+    term_months: number;
+    compounding_frequency?: number;
+    forecast_data?: any;
+    notes?: string;
+    linked_account_id?: number;
+    id?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_CD, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async saveBondAssessment(data: {
+    account_name?: string;
+    face_value: number;
+    coupon_rate: number;
+    purchase_price: number;
+    years_to_maturity: number;
+    payment_frequency?: number;
+    forecast_data?: any;
+    notes?: string;
+    linked_account_id?: number;
+    id?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_BOND, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getStocksAssessmentDetail(pk: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`${API_ENDPOINTS.INVESTMENT_SAVINGS.STOCKS_ASSESSMENT}${pk}/`);
+  }
 }
 
 export default new ApiService();
-

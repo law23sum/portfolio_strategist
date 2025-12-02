@@ -1,0 +1,124 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Watchlist News" %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="columns">
+        <div class="column is-12">
+            <div class="level">
+                <div>
+                    <h1 class="title">{% trans "Watchlist News" %}</h1>
+                    <p class="subtitle">Latest news articles for your watchlist stocks</p>
+                </div>
+                <div>
+                    <a href="{% url 'web:investment_savings' %}" class="button is-light">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Back to Watchlist</span>
+                    </a>
+                </div>
+            </div>
+
+            {% if symbol_filter %}
+                <div class="notification is-info is-light">
+                    <button class="delete" onclick="window.location.href='{% url 'web:watchlist_news' %}'"></button>
+                    Showing news for: <strong>{{ symbol_filter }}</strong>
+                </div>
+            {% endif %}
+
+            {% if all_news %}
+                <div class="box">
+                    <div class="tabs is-boxed">
+                        <ul>
+                            <li class="{% if not symbol_filter %}is-active{% endif %}">
+                                <a href="{% url 'web:watchlist_news' %}">All Stocks</a>
+                            </li>
+                            {% for entry in entries %}
+                                <li class="{% if symbol_filter == entry.symbol %}is-active{% endif %}">
+                                    <a href="{% url 'web:watchlist_news' %}?symbol={{ entry.symbol }}">
+                                        {{ entry.symbol }}{% if entry.nickname %} ({{ entry.nickname }}){% endif %}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="news-list" style="margin-top: 20px;">
+                        {% for news in all_news %}
+                            <article class="media news-item" style="border-bottom: 1px solid #eee; padding: 15px 0;">
+                                <div class="media-content">
+                                    <div class="content">
+                                        <p>
+                                            <strong>
+                                                <a href="{{ news.link }}" target="_blank" rel="noopener noreferrer">
+                                                    {{ news.title }}
+                                                </a>
+                                            </strong>
+                                            <br>
+                                            <small class="has-text-grey">
+                                                <span class="tag is-light">{{ news.symbol }}</span>
+                                                {% if news.nickname %}
+                                                    <span class="has-text-grey">({{ news.nickname }})</span>
+                                                {% endif %}
+                                                • {{ news.publisher }}
+                                                {% if news.published %}
+                                                    • {{ news.published }}
+                                                {% endif %}
+                                            </small>
+                                            {% if news.summary %}
+                                                <br>
+                                                <span class="has-text-grey-dark">{{ news.summary|truncatewords:30 }}</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="media-right">
+                                    <a href="{{ news.link }}" target="_blank" rel="noopener noreferrer" class="button is-small is-light">
+                                        <span class="icon"><i class="fas fa-external-link-alt"></i></span>
+                                    </a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+
+                    <div class="notification is-info is-light" style="margin-top: 20px;">
+                        <p>
+                            <strong>Total:</strong> {{ all_news|length }} news article{{ all_news|length|pluralize }}
+                            {% if symbol_filter %}for {{ symbol_filter }}{% else %}across all watchlist stocks{% endif %}
+                        </p>
+                        <p class="is-size-7">
+                            News is automatically updated via Yahoo Finance scraping. Last refresh times vary by symbol.
+                        </p>
+                    </div>
+                </div>
+            {% else %}
+                <div class="box">
+                    <p class="has-text-grey">
+                        {% if symbol_filter %}
+                            No news articles found for {{ symbol_filter }}. 
+                            News will appear here after the next background scrape.
+                        {% else %}
+                            No news articles found for your watchlist stocks. 
+                            Add symbols to your watchlist and wait for the next background scrape.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'web:investment_savings' %}" class="button is-primary" style="margin-top: 10px;">
+                        Manage Watchlist
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .news-item:hover {
+        background-color: #f9f9f9;
+    }
+    .news-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+

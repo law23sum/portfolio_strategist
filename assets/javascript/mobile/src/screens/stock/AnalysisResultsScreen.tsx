@@ -43,7 +43,11 @@ export default function AnalysisResultsScreen({ route, navigation }: any) {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.content}>
         {analysisData ? (
           <>
@@ -112,6 +116,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   centered: {
     flex: 1,
@@ -192,7 +199,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 });
-
 
 
 

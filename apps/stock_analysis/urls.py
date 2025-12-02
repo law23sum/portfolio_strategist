@@ -15,5 +15,6 @@ urlpatterns = [
     path('api/analyze/', views.analyze_stock_api, name='analyze_stock_api'),
     path('api/investment-forecast/', views.investment_forecast_api, name='investment_forecast_api'),
     path('api/stock-details/', views.stock_details_api, name='stock_details_api'),
+    path('api/stock-analysis-forecast/', views.get_stock_analysis_forecast, name='get_stock_analysis_forecast'),
 ]
 

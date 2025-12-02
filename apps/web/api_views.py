@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
 
 from apps.records.models import StocksAssessment, SavingsAssessment, CDAssessment, BondAssessment, LinkedAccount
+from apps.stock_analysis.models import StockWatchlistEntry
 
 
 @login_required
@@ -212,6 +213,178 @@ def save_bond_assessment(request):
             'id': assessment.id,
         })
         
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_watchlist(request):
+    """Get user's watchlist entries with latest news and links"""
+    try:
+        entries = StockWatchlistEntry.objects.filter(user=request.user).select_related('snapshot').order_by('symbol')
+        entries_data = []
+        for entry in entries:
+            entry_data = {
+                'id': entry.id,
+                'symbol': entry.symbol,
+                'nickname': entry.nickname,
+                'notes': entry.notes,
+                'created_at': entry.created_at.isoformat() if entry.created_at else None,
+                'last_refreshed': entry.last_refreshed.isoformat() if entry.last_refreshed else None,
+                'latest_news': [],
+            }
+            if entry.snapshot:
+                entry_data['snapshot'] = {
+                    'current_price': float(entry.snapshot.current_price) if entry.snapshot.current_price else None,
+                    'change_percent': float(entry.snapshot.change_percent) if entry.snapshot.change_percent else None,
+                    'payload': entry.snapshot.payload,
+                }
+                # Include latest news items with links
+                if entry.snapshot.news_items:
+                    # Get latest 5 news items
+                    latest_news = entry.snapshot.news_items[:5]
+                    entry_data['latest_news'] = [
+                        {
+                            'title': item.get('title', ''),
+                            'link': item.get('link') or item.get('url', ''),
+                            'publisher': item.get('publisher', 'Yahoo Finance'),
+                            'summary': item.get('summary', ''),
+                            'published': item.get('published', ''),
+                        }
+                        for item in latest_news
+                        if item.get('title') and (item.get('link') or item.get('url'))
+                    ]
+            entries_data.append(entry_data)
+        
+        return JsonResponse({
+            'success': True,
+            'entries': entries_data,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def watchlist_add_api(request):
+    """Add symbol to watchlist"""
+    try:
+        data = json.loads(request.body)
+        symbol = data.get('symbol', '').upper().strip()
+        nickname = data.get('nickname', '').strip()
+        notes = data.get('notes', '').strip()
+        
+        if not symbol:
+            return JsonResponse({'error': 'Stock symbol is required'}, status=400)
+        
+        entry, created = StockWatchlistEntry.objects.get_or_create(
+            user=request.user,
+            symbol=symbol,
+            defaults={'nickname': nickname, 'notes': notes},
+        )
+        
+        if not created:
+            if nickname:
+                entry.nickname = nickname
+            if notes:
+                entry.notes = notes
+            entry.save()
+        
+        # Try to queue refresh
+        try:
+            from apps.stock_analysis.tasks import refresh_watchlist_symbol
+            refresh_watchlist_symbol.delay(symbol)
+        except Exception:
+            pass  # Celery might not be running
+        
+        return JsonResponse({
+            'success': True,
+            'created': created,
+            'id': entry.id,
+            'symbol': entry.symbol,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def watchlist_remove_api(request, entry_id: int):
+    """Remove symbol from watchlist"""
+    try:
+        entry = StockWatchlistEntry.objects.get(id=entry_id, user=request.user)
+        symbol = entry.symbol
+        entry.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Removed {symbol} from watchlist',
+        })
+    except StockWatchlistEntry.DoesNotExist:
+        return JsonResponse({'error': 'Watchlist entry not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_watchlist_news(request):
+    """Get latest news for all watchlist stocks with links"""
+    try:
+        entries = StockWatchlistEntry.objects.filter(user=request.user).select_related('snapshot').order_by('symbol')
+        all_news = []
+        
+        for entry in entries:
+            if entry.snapshot and entry.snapshot.news_items:
+                for news_item in entry.snapshot.news_items:
+                    link = news_item.get('link') or news_item.get('url', '')
+                    if link and news_item.get('title'):
+                        all_news.append({
+                            'symbol': entry.symbol,
+                            'nickname': entry.nickname,
+                            'title': news_item.get('title', ''),
+                            'link': link,
+                            'publisher': news_item.get('publisher', 'Yahoo Finance'),
+                            'summary': news_item.get('summary', ''),
+                            'published': news_item.get('published', ''),
+                            'fetched_at': entry.snapshot.fetched_at.isoformat() if entry.snapshot.fetched_at else None,
+                        })
+        
+        # Sort by fetched_at (most recent first)
+        all_news.sort(key=lambda x: x.get('fetched_at') or '', reverse=True)
+        
+        return JsonResponse({
+            'success': True,
+            'news': all_news[:50],  # Limit to 50 most recent items
+            'total': len(all_news),
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def watchlist_refresh_api(request, entry_id: int):
+    """Refresh watchlist symbol"""
+    try:
+        entry = StockWatchlistEntry.objects.get(id=entry_id, user=request.user)
+        try:
+            from apps.stock_analysis.tasks import refresh_watchlist_symbol
+            refresh_watchlist_symbol.delay(entry.symbol)
+            return JsonResponse({
+                'success': True,
+                'message': f'Queued refresh for {entry.symbol}',
+            })
+        except Exception as exc:
+            return JsonResponse({'error': f'Unable to queue refresh: {exc}'}, status=500)
+    except StockWatchlistEntry.DoesNotExist:
+        return JsonResponse({'error': 'Watchlist entry not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

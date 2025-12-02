@@ -91,6 +91,70 @@ class InvestmentPlan(models.Model):
         return f"Plan for {self.stock_analysis.symbol} - {self.user.email}"
 
 
+class StockWatchSnapshot(models.Model):
+    """
+    Cached fundamentals/news scraped for a stock symbol.
+    
+    IMPORTANT: This model stores PUBLIC stock data that is accessible to ALL users.
+    Stock data is shared across the entire application - any user can access any stock's data.
+    There is no user field because stock market data is inherently public information.
+    
+    This data is populated by Celery tasks that scrape Yahoo Finance and other sources.
+    Multiple users can benefit from the same cached stock data, improving performance
+    and reducing redundant API calls.
+    """
+
+    symbol = models.CharField(max_length=12, unique=True)
+    current_price = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    change_percent = models.DecimalField(max_digits=7, decimal_places=4, null=True, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+    news_items = models.JSONField(default=list, blank=True)
+    fetched_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['symbol']
+        verbose_name = 'Stock Watch Snapshot (Public)'
+        verbose_name_plural = 'Stock Watch Snapshots (Public)'
+
+    def __str__(self):
+        return f"Snapshot for {self.symbol}"
+
+
+class StockWatchlistEntry(models.Model):
+    """User maintained watchlist for stocks that should be refreshed via scraping."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stock_watchlist')
+    symbol = models.CharField(max_length=12, db_index=True)
+    nickname = models.CharField(max_length=64, blank=True)
+    notes = models.TextField(blank=True)
+    snapshot = models.ForeignKey(
+        StockWatchSnapshot,
+        on_delete=models.SET_NULL,
+        related_name='entries',
+        null=True,
+        blank=True,
+    )
+    last_refreshed = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['symbol']
+        unique_together = [['user', 'symbol']]
+
+    def save(self, *args, **kwargs):
+        if self.symbol:
+            self.symbol = self.symbol.upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        label = self.nickname or self.symbol
+        return f"{label} ({self.user.email})"
+
+
 class PersonalLoanAnalysis(models.Model):
     """Store personal loan analysis results"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='loan_analyses')

@@ -15,13 +15,21 @@ The Stock Data Aggregation System fetches stock data from multiple sources, remo
    - Provides page-specific data methods
 
 2. **Data Sources**
+   - **Yahoo Finance** (Priority: 1) - Web scraping via headless Chrome
+   - **Cached Celery/DB** (Priority: 1b) - StockWatchSnapshot cached data (checked after web scraping fails)
    - **Polygon.io** (Priority: 2) - API-based financial data
-   - **Alpha Vantage** (Priority: 1) - API-based financial data
-   - **Yahoo Finance** (Priority: 3) - Web scraping via headless Chrome
+   - **Alpha Vantage** (Priority: 3) - API-based financial data
 
 ### Source Priority
 
-Higher priority sources take precedence when merging data:
+Data fetching follows this priority order:
+1. **Yahoo Finance Web Scraping** - Headless Chrome scraping (tried first)
+2. **Cached Celery/DB Data** - StockWatchSnapshot from database (checked if web scraping fails)
+3. **Polygon.io API** - Reliable API data (fallback)
+4. **Alpha Vantage API** - Fallback API data
+5. **Offline Cache** - Local cached files (last resort)
+
+When merging data from multiple sources, higher priority sources take precedence:
 - Yahoo Finance (Priority 3) - Most comprehensive, includes scraping
 - Polygon.io (Priority 2) - Reliable API data
 - Alpha Vantage (Priority 1) - Fallback API data
@@ -33,10 +41,11 @@ User Request
     ↓
 StockDataAggregator.aggregate_all()
     ↓
-Fetch from all available sources:
-    ├─ Polygon.io (if API key available)
-    ├─ Alpha Vantage (if API key available)
-    └─ Yahoo Finance (always attempted)
+Fetch from sources in priority order:
+    1. Yahoo Finance Web Scraping (headless Chrome)
+       └─ If fails → Check Cached Celery/DB (StockWatchSnapshot)
+    2. Polygon.io API (if API key available and web scraping failed)
+    3. Alpha Vantage API (if API key available and previous sources failed)
     ↓
 Merge and Deduplicate:
     ├─ Fundamentals (by field, prefer higher priority)

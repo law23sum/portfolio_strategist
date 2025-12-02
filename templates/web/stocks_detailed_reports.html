@@ -107,7 +107,7 @@
                         </td>
                         <td>
                             {% if ratio.performance %}
-                                <span class="tag {% if ratio.performance == 'Good' %}is-success{% elif ratio.performance == 'Fair' %}is-warning{% else %}is-danger{% endif %}">
+                                <span class="tag {% if ratio.performance == 'Perfect' %}is-success{% elif ratio.performance == 'Excellent' %}is-info{% elif ratio.performance == 'Mediocre' %}is-warning{% elif ratio.performance == 'Poor' %}is-danger{% else %}is-light{% endif %}">
                                     {{ ratio.performance }}
                                 </span>
                             {% else %}
@@ -132,6 +132,167 @@
         <h2 class="title is-4">Latest News</h2>
         <div class="content">
             {{ news_html|safe }}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Valuation Metrics (Intrinsic/Extrinsic Value) -->
+    {% if valuation_data %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Valuation Analysis</h2>
+        <p class="subtitle is-6">Intrinsic vs Extrinsic Value Analysis</p>
+        
+        {% if valuation_data.intrinsic_value %}
+        <div class="columns is-multiline">
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-content">
+                        <p class="heading">Intrinsic Value (Fair Value)</p>
+                        <p class="title is-4">${{ valuation_data.intrinsic_value|floatformat:2 }}</p>
+                        <p class="subtitle is-6">Average of multiple valuation methods</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-content">
+                        <p class="heading">Current Market Price</p>
+                        <p class="title is-4">${{ valuation_data.current_price|floatformat:2 }}</p>
+                        <p class="subtitle is-6">Extrinsic Value (Market Price)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-content">
+                        <p class="heading">Valuation Status</p>
+                        <p class="title is-4">
+                            {% if valuation_data.over_under_valued == 'Overvalued' %}
+                                <span class="tag is-danger is-large">Overvalued</span>
+                            {% elif valuation_data.over_under_valued == 'Undervalued' %}
+                                <span class="tag is-success is-large">Undervalued</span>
+                            {% elif valuation_data.over_under_valued == 'Slightly Overvalued' %}
+                                <span class="tag is-warning is-large">Slightly Overvalued</span>
+                            {% elif valuation_data.over_under_valued == 'Slightly Undervalued' %}
+                                <span class="tag is-info is-large">Slightly Undervalued</span>
+                            {% else %}
+                                <span class="tag is-success is-large">Fairly Valued</span>
+                            {% endif %}
+                        </p>
+                        <p class="subtitle is-6">
+                            {% if valuation_data.price_vs_intrinsic_pct %}
+                                {{ valuation_data.price_vs_intrinsic_pct|floatformat:1 }}% vs Fair Value
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if valuation_data.fair_value_range %}
+        <div class="notification is-info is-light" style="margin-top: 20px;">
+            <p><strong>Fair Value Range:</strong> 
+                ${{ valuation_data.fair_value_range.min|floatformat:2 }} - 
+                ${{ valuation_data.fair_value_range.max|floatformat:2 }} 
+                (Average: ${{ valuation_data.fair_value_range.average|floatformat:2 }})
+            </p>
+        </div>
+        {% endif %}
+        
+        {% if valuation_data.valuation_methods %}
+        <div class="table-container" style="margin-top: 20px;">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Valuation Method</th>
+                        <th>Intrinsic Value</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for method_name, method_data in valuation_data.valuation_methods.items %}
+                    <tr>
+                        <td><strong>{{ method_data.method }}</strong></td>
+                        <td>${{ method_data.intrinsic_value|floatformat:2 }}</td>
+                        <td>
+                            {% if method_data.current_pe %}
+                                Current P/E: {{ method_data.current_pe|floatformat:2 }}, 
+                                Fair P/E: {{ method_data.fair_pe|floatformat:2 }}
+                            {% elif method_data.book_value %}
+                                Book Value: ${{ method_data.book_value|floatformat:2 }}
+                            {% elif method_data.fcf_per_share %}
+                                FCF/Share: ${{ method_data.fcf_per_share|floatformat:2 }}, 
+                                Growth: {{ method_data.growth_rate|floatformat:1 }}%
+                            {% elif method_data.revenue_per_share %}
+                                Revenue/Share: ${{ method_data.revenue_per_share|floatformat:2 }}, 
+                                Fair P/S: {{ method_data.fair_ps|floatformat:2 }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Performance Thresholds and Buy/Sell Indicators -->
+    {% if performance_thresholds %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Performance Thresholds & Investment Indicators</h2>
+        <p class="subtitle is-6">Based on financia analysis equations and performance ratings</p>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Ratio Name</th>
+                        <th>Poor</th>
+                        <th>Mediocre</th>
+                        <th>Excellent</th>
+                        <th>Perfect</th>
+                        <th>Direction</th>
+                        <th>Buy Indicator</th>
+                        <th>Sell Indicator</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for threshold in performance_thresholds %}
+                    <tr>
+                        <td><strong>{{ threshold.ratio_name }}</strong></td>
+                        <td>
+                            <span class="tag is-danger">{{ threshold.poor }}</span>
+                        </td>
+                        <td>
+                            <span class="tag is-warning">{{ threshold.mediocre }}</span>
+                        </td>
+                        <td>
+                            <span class="tag is-info">{{ threshold.excellent }}</span>
+                        </td>
+                        <td>
+                            <span class="tag is-success">{{ threshold.perfect }}</span>
+                        </td>
+                        <td><small>{{ threshold.direction }}</small></td>
+                        <td>
+                            <span class="tag is-success is-light">{{ threshold.buy_indicator }}</span>
+                        </td>
+                        <td>
+                            <span class="tag is-danger is-light">{{ threshold.sell_indicator }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="notification is-info is-light" style="margin-top: 20px;">
+            <p><strong>How to use this table:</strong></p>
+            <ul>
+                <li><strong>Buy Indicators:</strong> When a ratio falls in the "Perfect" or "Excellent" range, it may indicate a good buying opportunity.</li>
+                <li><strong>Sell Indicators:</strong> When a ratio falls in the "Poor" range, it may indicate potential risks or overvaluation.</li>
+                <li><strong>Direction:</strong> Shows whether higher or lower values are better for each ratio.</li>
+                <li><strong>Note:</strong> These thresholds are based on financia analysis equations and should be used in conjunction with other analysis methods.</li>
+            </ul>
         </div>
     </div>
     {% endif %}

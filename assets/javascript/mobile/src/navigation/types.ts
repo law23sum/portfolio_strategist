@@ -4,8 +4,7 @@ export type RootStackParamList = {
   Register: undefined;
   Dashboard: undefined;
   Records: undefined;
-  StockAnalysis: undefined;
-  Solutions: undefined;
+  InvestmentSavings: undefined;
   Profile: undefined;
 };
 
@@ -15,15 +14,22 @@ export type RecordsStackParamList = {
   Explorer: undefined;
   Upload: undefined;
   LinkedAccounts: undefined;
+  AccountDetail: {accountId: string};
 };
 
 export type StockStackParamList = {
-  StockMain: undefined;
-  Analyze: undefined;
-  Results: { analysisId?: number; data?: any };
-  Loan: undefined;
+  InvestmentSavings: undefined;
+  StocksAssessment: undefined;
+  AnalysisResults: { analysisId?: number; data?: any };
+  SavingsAssessment?: undefined;
+  CDAssessment?: undefined;
+  BondAssessment?: undefined;
 };
 
-
-
+export type MainStackParamList = {
+  MainTabs: undefined;
+  Chat: undefined;
+  Solutions: undefined;
+  BudgetPlanner: undefined;
+};
 

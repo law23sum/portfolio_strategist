@@ -247,6 +247,7 @@
         font-style: italic;
     }
 </style>
+{% include "web/includes/watchlist_styles.html" %}
 {% endblock %}
 
 {% block app %}
@@ -368,6 +369,12 @@
         </div>
     </section>
     {% endif %}
+    
+    <div class="functionality-divider">
+        <span class="icon"><i class="fa fa-eye"></i></span>
+        Stock Watchlist
+    </div>
+    {% include "web/includes/watchlist_section.html" %}
     
     <div class="functionality-divider">
         <span class="icon"><i class="fa fa-sliders"></i></span>
@@ -594,6 +601,7 @@
             </a>
         </div>
     </section>
+
     <!-- Forecast Charts -->
     <div class="functionality-divider">
         <span class="icon"><i class="fa fa-area-chart"></i></span>
@@ -782,6 +790,74 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Handle watchlist "Use for Analysis" button clicks
+    const watchlistButtons = document.querySelectorAll('.watchlist-use-btn');
+    watchlistButtons.forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const symbol = this.getAttribute('data-symbol');
+            const currentPrice = this.getAttribute('data-current-price');
+            
+            if (!symbol) {
+                console.error('No symbol found in watchlist button');
+                return;
+            }
+            
+            // Populate the Stock Symbol field
+            const symbolInput = document.getElementById('stockSymbol');
+            if (symbolInput) {
+                symbolInput.value = symbol.toUpperCase();
+                // Trigger input event to ensure all listeners are notified
+                symbolInput.dispatchEvent(new Event('input', { bubbles: true }));
+                symbolInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            
+            // Populate the Current Price field if available
+            if (currentPrice && currentPrice.trim() !== '') {
+                const priceInput = document.getElementById('currentPrice');
+                if (priceInput) {
+                    const priceValue = parseFloat(currentPrice);
+                    if (!isNaN(priceValue) && priceValue > 0) {
+                        priceInput.value = priceValue.toFixed(2);
+                        // Trigger input event to ensure all listeners are notified
+                        priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        priceInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        updateShareQuantityMax();
+                    }
+                }
+            }
+            
+            // Scroll to the Stock Analysis Configuration section
+            const configDividers = document.querySelectorAll('.functionality-divider');
+            let configSection = null;
+            for (let i = 0; i < configDividers.length; i++) {
+                const icon = configDividers[i].querySelector('.fa-sliders');
+                if (icon) {
+                    configSection = configDividers[i];
+                    break;
+                }
+            }
+            if (configSection) {
+                configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Fallback: scroll to the stock symbol input
+                if (symbolInput) {
+                    symbolInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    symbolInput.focus();
+                }
+            }
+            
+            // Enable buttons if they exist
+            if (typeof enableButtons === 'function') {
+                setTimeout(function() {
+                    enableButtons();
+                }, 100);
+            }
+        });
+    });
 });
 
 // Global variables for forecast chart (check if already declared in investment_retirement.js)
@@ -1015,31 +1091,56 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
     const biweeklyContrib = parseFloat(document.getElementById('biweeklyContribution').value) || 0;
     const forecastModel = document.getElementById('forecastModel').value || 'Geometric Brownian Motion External Macroeconomic Factors';
     
-    // Use the financia backend API with full advanced forecasting
-    const response = await fetch('/stock-analysis/api/investment-forecast/', {
+    // First, try to fetch forecast data from StockAnalysis (existing predictions)
+    let data = null;
+    try {
+        const analysisResponse = await fetch(`/stock-analysis/api/stock-analysis-forecast/?symbol=${symbol}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        });
+        
+        if (analysisResponse.ok) {
+            const analysisData = await analysisResponse.json();
+            if (analysisData.success && analysisData.summary && analysisData.summary.length > 0) {
+                // Use existing StockAnalysis forecast data
+                console.log('Using forecast data from StockAnalysis/predictions');
+                data = analysisData;
+            }
+        }
+    } catch (error) {
+        console.log('Could not fetch StockAnalysis forecast data, will calculate new:', error);
+    }
+    
+    // If no StockAnalysis data available, calculate new forecast
+    if (!data) {
+        // Use the financia backend API with full advanced forecasting
+        const response = await fetch('/stock-analysis/api/investment-forecast/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({
-            symbol: symbol,
-            investment_amount: investment,
-            share_quantity: shares,
-            forecast_days: 10950, // 30 years in days
-            equation_type: forecastModel,
-            biweekly_contribution: biweeklyContrib
-        }),
-    });
-    
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'API request failed');
-    }
-    
-    const data = await response.json();
-    if (!data.success) {
-        throw new Error(data.error || 'Forecast failed');
+            body: JSON.stringify({
+                symbol: symbol,
+                investment_amount: investment,
+                share_quantity: shares,
+                forecast_days: 10950, // 30 years in days
+                equation_type: forecastModel,
+                biweekly_contribution: biweeklyContrib
+            }),
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'API request failed');
+        }
+        
+        data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Forecast failed');
+        }
     }
     
     window.currentStockData = data;
@@ -1093,6 +1194,7 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
                 forecasts[period] = {
                     years: years,
                     forecastPrice: forecastPrice,
+                    predictionPrice: forecastPrice, // Stock Analysis/Prediction price (base)
                     investmentValue: investmentValue,
                     profitLoss: profitLoss,
                     growthPercent: growthPercent,
@@ -1130,6 +1232,7 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
                 forecasts[period] = {
                     years: years,
                     forecastPrice: forecastPrice,
+                    predictionPrice: forecastPrice, // Stock Analysis/Prediction price (base)
                     investmentValue: investmentValue,
                     profitLoss: profitLoss,
                     growthPercent: growthPercent,
@@ -1159,6 +1262,7 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
                 forecasts[period] = {
                     years: years,
                     forecastPrice: forecastPrice,
+                    predictionPrice: forecastPrice, // Stock Analysis/Prediction price (base)
                     investmentValue: investmentValue,
                     profitLoss: profitLoss,
                     growthPercent: growthPercent,
@@ -1200,6 +1304,7 @@ function calculateForecastSimplified(symbol, investment, shares, currentPrice) {
         forecasts[period] = {
             years: years,
             forecastPrice: forecastPrice,
+            predictionPrice: forecastPrice, // In simplified mode, forecastPrice is the prediction
             investmentValue: investmentValue,
             profitLoss: profitLoss,
             growthPercent: growthPercent,
@@ -1410,15 +1515,24 @@ function updateForecastChart(forecasts, apiData = null) {
     const ctx = document.getElementById('forecastChart');
     const legendEl = document.getElementById('confidenceLegend');
     if (!ctx) return;
+    
+    console.log('updateForecastChart called - using Investment Value as center');
 
-    if (window.forecastChart) {
-        window.forecastChart.destroy();
+    // Safely destroy existing chart if it's a Chart.js instance
+    if (window.forecastChart && typeof window.forecastChart.destroy === 'function') {
+        try {
+            window.forecastChart.destroy();
+        } catch (e) {
+            console.warn('Error destroying forecast chart:', e);
+        }
     }
+    window.forecastChart = null;
 
     const orderedPeriods = getOrderedForecastPeriods(forecasts);
     const labels = [];
-    const priceSeries = [];
-    const valueSeries = [];
+    const valueSeries = []; // Investment Value (center)
+    const predictionUpperBound = []; // Stock Analysis/Prediction upper boundary
+    const predictionLowerBound = []; // Stock Analysis/Prediction lower boundary
     const sigmaBands = {
         1: { upper: [], lower: [] },
         2: { upper: [], lower: [] },
@@ -1430,23 +1544,48 @@ function updateForecastChart(forecasts, apiData = null) {
     orderedPeriods.forEach((period) => {
         const data = forecasts[period];
         if (!data) return;
-        const price = Number(data.forecastPrice) || 0;
+        
+        // Investment Value is the CENTER
         const investmentValue = Number(data.investmentValue) || 0;
+        const predictionPrice = Number(data.predictionPrice || data.forecastPrice) || 0;
+        const shares = Number(data.shares) || 1;
+        
         labels.push(formatPeriodLabel(period));
-        priceSeries.push(price);
-        valueSeries.push(investmentValue);
 
+        // Calculate Stock Analysis/Prediction investment value
+        const predictionInvestmentValue = shares * predictionPrice;
+        
+        // Calculate difference from center (Investment Value)
+        const predictionDifference = predictionInvestmentValue - investmentValue;
+        
+        // Stock Analysis/Prediction boundaries relative to center
+        // Show symmetric boundaries: if prediction is $51k and center is $50k, show $51k above and $49k below
+        const predictionUpper = investmentValue + Math.abs(predictionDifference);
+        const predictionLower = Math.max(investmentValue - Math.abs(predictionDifference), 0);
+        
+        // Calculate sigma ranges relative to Investment Value center
         const years = data.years || TIME_PERIODS[period] || 0;
         const days = Math.max(1, years * 365);
         const sigmaFraction = sigmaDaily * Math.sqrt(days);
-        const sigmaDistance = price * sigmaFraction;
-
-        [1, 2, 3].forEach((level) => {
-            const upper = price + (sigmaDistance * level);
-            const lower = Math.max(price - (sigmaDistance * level), 0);
-            sigmaBands[level].upper.push(upper);
-            sigmaBands[level].lower.push(lower);
-        });
+        
+        // Use prediction price to calculate sigma distance, then convert to investment value offset
+        const sigmaDistancePrice = predictionPrice * sigmaFraction;
+        const sigmaDistanceValue = shares * sigmaDistancePrice; // Convert price sigma to value sigma
+        
+        // Calculate sigma boundaries relative to Investment Value center
+        const sigma1Lower = Math.max(investmentValue - (sigmaDistanceValue * 1), 0);
+        const sigma3Upper = investmentValue + (sigmaDistanceValue * 3);
+        
+        // Store center value
+        valueSeries.push(investmentValue);
+        
+        // Store Stock Analysis/Prediction boundaries (symmetric around center)
+        predictionUpperBound.push(predictionUpper);
+        predictionLowerBound.push(predictionLower);
+        
+        // Store sigma bands relative to center
+        sigmaBands[1].lower.push(sigma1Lower);   // 1σ below center
+        sigmaBands[3].upper.push(sigma3Upper);   // 3σ above center
     });
 
     if (!labels.length) {
@@ -1459,23 +1598,15 @@ function updateForecastChart(forecasts, apiData = null) {
 
     const datasets = [
         {
-            label: 'Forecast Price',
-            data: priceSeries,
+            label: 'Investment Value (Center)',
+            data: valueSeries,
             borderColor: '#3273dc',
             backgroundColor: 'transparent',
-            pointRadius: 3,
+            borderWidth: 3,
+            pointRadius: 4,
             tension: 0.3,
             fill: false,
-        },
-        {
-            label: 'Investment Value',
-            data: valueSeries,
-            borderColor: '#48c78e',
-            backgroundColor: 'transparent',
-            borderDash: [6, 4],
-            pointRadius: 3,
-            tension: 0.3,
-            fill: false,
+            order: 3, // Show on top
         },
     ];
 
@@ -1490,33 +1621,66 @@ function updateForecastChart(forecasts, apiData = null) {
         3: 'rgba(255, 193, 7, 0.7)'
     };
 
-    [1, 2, 3].forEach((level) => {
-        if (!sigmaBands[level].upper.length) {
-            return;
-        }
+    // Add Stock Analysis/Prediction boundaries (relative to Investment Value center)
+    if (predictionUpperBound.length > 0 && predictionLowerBound.length > 0) {
+        // Hidden dataset for lower boundary (used for fill target)
         datasets.push({
-            label: `_sigma_lower_${level}`,
-            data: sigmaBands[level].lower,
+            label: '_prediction_lower_bound',
+            data: predictionLowerBound,
             pointRadius: 0,
             borderWidth: 0,
             borderColor: 'rgba(0,0,0,0)',
             fill: false,
+            order: 2,
         });
+        // Upper boundary line that fills to lower boundary
         datasets.push({
-            label: `±${level}σ`,
-            data: sigmaBands[level].upper,
-            borderColor: lineColors[level],
-            backgroundColor: bandColors[level],
+            label: 'Stock Analysis/Prediction',
+            data: predictionUpperBound,
+            borderColor: 'rgb(231, 76, 60)',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0.3,
+            fill: {
+                target: '-1',
+                above: 'rgba(231, 76, 60, 0.1)',
+                below: 'rgba(231, 76, 60, 0.1)',
+            },
+            order: 2,
+        });
+    }
+    
+    // Add sigma bands: one continuous band from 1σ below center to 3σ above center
+    if (sigmaBands[1].lower.length > 0 && sigmaBands[3].upper.length > 0) {
+        // Hidden dataset for low limit (used for fill target)
+        datasets.push({
+            label: '_sigma_low_limit',
+            data: sigmaBands[1].lower,
+            pointRadius: 0,
+            borderWidth: 0,
+            borderColor: 'rgba(0,0,0,0)',
+            fill: false,
+            order: 1,
+        });
+        // High limit line that fills to low limit
+        datasets.push({
+            label: 'Sigma Range (1σ to 3σ)',
+            data: sigmaBands[3].upper,
+            borderColor: lineColors[3],
+            backgroundColor: 'rgba(50, 115, 220, 0.15)',
             borderDash: [4, 4],
             pointRadius: 0,
             tension: 0.3,
             fill: {
                 target: '-1',
-                above: bandColors[level],
-                below: bandColors[level],
+                above: 'rgba(50, 115, 220, 0.15)',
+                below: 'rgba(50, 115, 220, 0.15)',
             },
+            order: 1,
         });
-    });
+    }
 
     window.forecastChart = new Chart(ctx, {
         type: 'line',
@@ -1546,7 +1710,7 @@ function updateForecastChart(forecasts, apiData = null) {
                     position: 'top',
                     labels: {
                         filter: function(item) {
-                            return !item.text.startsWith('_sigma_');
+                            return !item.text.startsWith('_sigma_') && !item.text.startsWith('_prediction_');
                         }
                     }
                 },
@@ -1567,16 +1731,22 @@ function updateForecastChart(forecasts, apiData = null) {
 
     if (legendEl) {
         const legendItems = [];
-        [1, 2, 3].forEach((level) => {
-            if (sigmaBands[level].upper.length) {
-                legendItems.push(`
-                    <div class="confidence-pill">
-                        <span style="background:${bandColors[level]};"></span>
-                        ±${level}σ variance band
-                    </div>
-                `);
-            }
-        });
+        if (predictionUpperBound.length && predictionLowerBound.length) {
+            legendItems.push(`
+                <div class="confidence-pill">
+                    <span style="background:rgba(231, 76, 60, 0.1);"></span>
+                    Stock Analysis/Prediction Boundaries (relative to Investment Value center)
+                </div>
+            `);
+        }
+        if (sigmaBands[1].lower.length && sigmaBands[3].upper.length) {
+            legendItems.push(`
+                <div class="confidence-pill">
+                    <span style="background:rgba(50, 115, 220, 0.15);"></span>
+                    Sigma Range: 1σ below to 3σ above Investment Value center
+                </div>
+            `);
+        }
         if (legendItems.length) {
             legendEl.innerHTML = legendItems.join('');
             legendEl.style.display = 'flex';
@@ -2483,12 +2653,13 @@ async function fetchStockDetails(options = {}) {
     let currentPrice = null;
     
     // Try to get price from multiple sources in priority order
-    // 1. key_metrics.currentPrice (highest priority - aggregated)
+    // 1. key_metrics.currentPrice (highest priority - from web-scraped snapshot via headless Chrome)
+    //    This is the most accurate current price fetched from Yahoo Finance web scraping
     if (data.key_metrics && data.key_metrics.currentPrice) {
         currentPrice = parseFloat(data.key_metrics.currentPrice);
     }
     
-    // 2. Yahoo Finance summary (comprehensive scraping)
+    // 2. Yahoo Finance summary (comprehensive scraping - web-scraped data)
     if ((!currentPrice || currentPrice <= 0) && data.yahoo_finance && data.yahoo_finance.summary && data.yahoo_finance.summary.currentPrice) {
         currentPrice = parseFloat(data.yahoo_finance.summary.currentPrice);
     }

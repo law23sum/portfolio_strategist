@@ -1,0 +1,36 @@
+<style>
+    .watchlist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .watchlist-card {
+        background: white;
+        border-radius: 6px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border-top: 4px solid #209cee;
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .watchlist-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+    }
+    .watchlist-use-btn {
+        font-weight: 600;
+    }
+    .watchlist-use-btn:hover {
+        background-color: #48c78e !important;
+        border-color: #48c78e !important;
+        color: white !important;
+    }
+    .watchlist-news {
+        margin-top: 15px;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+    .watchlist-news ul {
+        margin-left: 1rem;
+    }
+</style>

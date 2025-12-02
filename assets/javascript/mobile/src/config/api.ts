@@ -8,6 +8,22 @@ const IOS_PHYSICAL_DEVICE_HOST = 'http://192.168.254.64:8000'; // Use Mac's IP f
 const ANDROID_EMULATOR_HOST = 'http://10.0.2.2:8000';
 const DEFAULT_LAN_HOST = 'http://192.168.254.64:8000'; // replace with your Mac/PC IP when using a physical device
 
+// Detect if running on iOS Simulator vs physical device
+// Note: Platform.OS returns 'ios' for both, so we try to detect via other means
+const isIOSSimulator = (): boolean => {
+  if (Platform.OS !== 'ios') return false;
+  
+  // Check if we can detect simulator via environment or other means
+  // In React Native, we can't directly detect, so we default to simulator
+  // Users can override via setApiBaseUrl() if on physical device
+  try {
+    // Try to detect via native module if available, otherwise default to simulator
+    return true; // Default to simulator - user can override if needed
+  } catch {
+    return true;
+  }
+};
+
 const runtimeOverride =
   (typeof globalThis !== 'undefined' && (globalThis as any).__API_URL__) ||
   (typeof process !== 'undefined' && process.env.API_BASE_URL);
@@ -15,7 +31,7 @@ const runtimeOverride =
 const resolvedDevHost = runtimeOverride
   ? runtimeOverride
   : Platform.select({
-      ios: IOS_SIMULATOR_HOST,
+      ios: isIOSSimulator() ? IOS_SIMULATOR_HOST : IOS_PHYSICAL_DEVICE_HOST,
       android: ANDROID_EMULATOR_HOST,
       default: DEFAULT_LAN_HOST,
     }) ?? IOS_SIMULATOR_HOST;
@@ -29,14 +45,22 @@ export const API_BASE_URL = sanitizeBaseUrl(
 export const setApiBaseUrl = (url: string) => {
   if (typeof url === 'string' && url.trim().length > 0) {
     (globalThis as any).__API_URL__ = sanitizeBaseUrl(url);
+    // Log the change for debugging
+    if (__DEV__) {
+      console.log('[API Config] Base URL updated to:', sanitizeBaseUrl(url));
+    }
   }
 };
 
 if (__DEV__) {
   console.log('[API Config] Platform:', Platform.OS);
+  console.log('[API Config] Is iOS Simulator:', isIOSSimulator());
   console.log('[API Config] Base URL:', API_BASE_URL);
   console.log(
-    '[API Config] Override via process.env.API_BASE_URL or calling setApiBaseUrl("http://YOUR_IP:8000")',
+    '[API Config] To override: setApiBaseUrl("http://YOUR_IP:8000") or set process.env.API_BASE_URL',
+  );
+  console.log(
+    '[API Config] For physical iOS device, use your Mac IP: ifconfig | grep "inet " | grep -v 127.0.0.1',
   );
 }
 
@@ -57,6 +81,12 @@ export const API_ENDPOINTS = {
     STATS: '/dashboard/api/signups/',
     SUMMARY: '/api/dashboard/summary/',
   },
+  FINANCIAL: {
+    DASHBOARD_SUMMARY: '/records/api/dashboard-summary/',
+    BUDGET_DATA: '/records/api/budget-data/',
+    INVESTMENT_DATA: '/records/api/investment-data/',
+    DEBT_DATA: '/records/api/debt-data/',
+  },
   RECORDS: {
     INSIGHTS: '/records/insights/',
     EXPLORER: '/records/explorer/',
@@ -75,6 +105,7 @@ export const API_ENDPOINTS = {
   STOCK_ANALYSIS: {
     HOME: '/stock-analysis/',
     ANALYZE: '/stock-analysis/api/analyze/', // API endpoint (CSRF exempt)
+    DETAILS: '/stock-analysis/api/stock-details/',
     RESULTS: (id: number) => `/stock-analysis/results/${id}/`,
     DOWNLOAD_PDF: (id: number) => `/stock-analysis/download-pdf/${id}/`,
     LOAN: '/stock-analysis/loan/',
@@ -92,6 +123,10 @@ export const API_ENDPOINTS = {
     SAVE_SAVINGS: '/api/investment-savings/save-savings/',
     SAVE_CD: '/api/investment-savings/save-cd/',
     SAVE_BOND: '/api/investment-savings/save-bond/',
+    WATCHLIST: '/api/investment-savings/watchlist/',
+    WATCHLIST_ADD: '/api/investment-savings/watchlist/add/',
+    WATCHLIST_REMOVE: (entryId: number) => `/api/investment-savings/watchlist/${entryId}/remove/`,
+    WATCHLIST_REFRESH: (entryId: number) => `/api/investment-savings/watchlist/${entryId}/refresh/`,
   },
   BUDGET_PLANNER: '/budget-planner/',
   SUBSCRIPTIONS: {

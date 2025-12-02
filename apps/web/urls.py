@@ -28,6 +28,26 @@ urlpatterns = [
         views.stocks_assessment_detail,
         name = "stocks_assessment_detail",
     ),
+    path(
+        "investment-savings/watchlist/add/",
+        views.watchlist_add,
+        name="watchlist_add",
+    ),
+    path(
+        "investment-savings/watchlist/<int:entry_id>/remove/",
+        views.watchlist_remove,
+        name="watchlist_remove",
+    ),
+    path(
+        "investment-savings/watchlist/<int:entry_id>/refresh/",
+        views.watchlist_refresh,
+        name="watchlist_refresh",
+    ),
+    path(
+        "investment-savings/watchlist/news/",
+        views.watchlist_news,
+        name="watchlist_news",
+    ),
     # Financia-style stock analysis pages
     path(
         "investment-savings/stocks-assessment/<str:symbol>/detailed-reports/",
@@ -72,6 +92,12 @@ urlpatterns = [
     path("api/investment-savings/save-savings/", api_views.save_savings_assessment, name = "save_savings_assessment"),
     path("api/investment-savings/save-cd/", api_views.save_cd_assessment, name = "save_cd_assessment"),
     path("api/investment-savings/save-bond/", api_views.save_bond_assessment, name = "save_bond_assessment"),
+    # API endpoints for watchlist
+    path("api/investment-savings/watchlist/", api_views.get_watchlist, name = "get_watchlist"),
+    path("api/investment-savings/watchlist/add/", api_views.watchlist_add_api, name = "watchlist_add_api"),
+    path("api/investment-savings/watchlist/<int:entry_id>/remove/", api_views.watchlist_remove_api, name = "watchlist_remove_api"),
+    path("api/investment-savings/watchlist/<int:entry_id>/refresh/", api_views.watchlist_refresh_api, name = "watchlist_refresh_api"),
+    path("api/investment-savings/watchlist/news/", api_views.get_watchlist_news, name = "get_watchlist_news"),
     # Legacy URL for backwards compatibility
     path("investment-retirement/", views.investment_savings, name = "investment_retirement"),
     path("budget-planner/", views.budget_planner, name = "budget_planner"),

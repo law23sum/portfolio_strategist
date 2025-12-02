@@ -1,0 +1,110 @@
+<div class="box">
+    <div class="level">
+        <div>
+            <h2 class="title is-4">Watchlist</h2>
+            <p class="subtitle is-6">Symbols here are refreshed via Yahoo Finance scraping in the background.</p>
+        </div>
+    </div>
+    <form action="{% url 'web:watchlist_add' %}" method="post" class="columns is-multiline">
+        {% csrf_token %}
+        <div class="column is-4">
+            <label class="label is-small">Symbol</label>
+            <input class="input" name="symbol" placeholder="e.g. JPM" required>
+        </div>
+        <div class="column is-3">
+            <label class="label is-small">Nickname (optional)</label>
+            <input class="input" name="nickname" placeholder="Banking exposure">
+        </div>
+        <div class="column is-3">
+            <label class="label is-small">Notes (optional)</label>
+            <input class="input" name="notes" placeholder="Why you're tracking it">
+        </div>
+        <div class="column is-2 is-flex is-align-items-flex-end">
+            <button class="button is-primary is-fullwidth" type="submit">Add to Watchlist</button>
+        </div>
+    </form>
+
+    {% if watchlist_entries %}
+        <div class="watchlist-grid">
+            {% for entry in watchlist_entries %}
+            <div class="watchlist-card" data-symbol="{{ entry.symbol }}" data-current-price="{% if entry.snapshot and entry.snapshot.current_price %}{{ entry.snapshot.current_price|floatformat:2 }}{% endif %}">
+                <div class="level">
+                    <div>
+                        <h3 class="title is-5">{{ entry.symbol }}{% if entry.nickname %} <small class="has-text-grey">({{ entry.nickname }})</small>{% endif %}</h3>
+                        <p class="has-text-weight-semibold">
+                            Price:
+                            {% if entry.snapshot and entry.snapshot.current_price %}
+                                ${{ entry.snapshot.current_price|floatformat:2 }}
+                                {% if entry.snapshot.change_percent %}
+                                    <span class="tag is-light {% if entry.snapshot.change_percent > 0 %}is-success{% elif entry.snapshot.change_percent < 0 %}is-danger{% endif %}">
+                                        {{ entry.snapshot.change_percent|floatformat:2 }}%
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="has-text-grey">Waiting for refresh</span>
+                            {% endif %}
+                        </p>
+                        <p class="is-size-7 has-text-grey">
+                            Updated: {% if entry.snapshot and entry.snapshot.fetched_at %}{{ entry.snapshot.fetched_at|date:"M j, Y H:i" }}{% else %}--{% endif %}
+                        </p>
+                    </div>
+                    <div class="buttons are-small">
+                        <button class="button is-success is-light watchlist-use-btn" type="button" 
+                                data-symbol="{{ entry.symbol }}" 
+                                data-current-price="{% if entry.snapshot and entry.snapshot.current_price %}{{ entry.snapshot.current_price|floatformat:2 }}{% endif %}"
+                                title="Use this symbol for Stock Analysis Configuration">
+                            Use for Analysis
+                        </button>
+                        <form action="{% url 'web:watchlist_refresh' entry.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button class="button is-info is-light" type="submit">Refresh</button>
+                        </form>
+                        <form action="{% url 'web:watchlist_remove' entry.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button class="button is-danger is-light" type="submit">Remove</button>
+                        </form>
+                    </div>
+                </div>
+                {% if entry.notes %}
+                    <p class="mb-2">{{ entry.notes }}</p>
+                {% endif %}
+                <div class="watchlist-news">
+                    <h4 class="title is-6">Latest News</h4>
+                    <ul>
+                        {% if entry.snapshot and entry.snapshot.news_items %}
+                            {% for news in entry.snapshot.news_items|slice:":3" %}
+                                <li>
+                                    {% comment %}News items are normalized in the view to flat structure{% endcomment %}
+                                    {% with news_link=news.link|default:news.url %}
+                                        {% if news_link %}
+                                            <a href="{{ news_link }}" target="_blank" rel="noopener noreferrer">{{ news.title|default:"No title" }}</a>
+                                        {% else %}
+                                            <span>{{ news.title|default:"No title" }}</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                    <br>
+                                    <small class="has-text-grey">
+                                        {% if news.publisher %}{{ news.publisher }}{% else %}Yahoo Finance{% endif %}
+                                        {% if news.published %} • {{ news.published }}{% endif %}
+                                    </small>
+                                </li>
+                            {% endfor %}
+                            {% if entry.snapshot.news_items|length > 3 %}
+                                <li>
+                                    <a href="{% url 'web:watchlist_news' %}?symbol={{ entry.symbol }}" class="has-text-link">
+                                        View all {{ entry.snapshot.news_items|length }} news articles →
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="has-text-grey">News will appear here after the next background scrape.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="has-text-grey">Start tracking a symbol to see automated Yahoo Finance updates.</p>
+    {% endif %}
+</div>

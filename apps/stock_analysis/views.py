@@ -1,4 +1,5 @@
 import json
+import logging
 
 import numpy as np
 import pandas as pd
@@ -9,7 +10,10 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.conf import settings
+from django.utils import timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from .models import StockAnalysis, InvestmentPlan, PersonalLoanAnalysis
 from .services import StockAnalysisService
@@ -250,9 +254,15 @@ def loan_results(request, pk):
 
 
 @login_required
+@csrf_exempt
 @require_http_methods(["POST"])
 def investment_forecast_api(request):
-    """API endpoint for investment forecasting using Financia logic."""
+    """
+    API endpoint for investment forecasting using Financia logic.
+    
+    CSRF exempt to support both web (session auth) and mobile (token auth) clients.
+    Authentication is still enforced via @login_required decorator.
+    """
     try:
         import json
         from .lib.investment_utils import (
@@ -428,6 +438,30 @@ def investment_forecast_api(request):
                 }
             )
 
+        # Ensure t_forecast and forecast_prices are proper 1D arrays
+        t_forecast = np.asarray(t_forecast, dtype=float)
+        forecast_prices = np.asarray(forecast_prices, dtype=float)
+        
+        # Flatten to 1D if needed (handle 0-d arrays or multi-dimensional arrays)
+        if t_forecast.ndim == 0:
+            t_forecast = np.array([float(t_forecast)])
+        elif t_forecast.ndim > 1:
+            t_forecast = t_forecast.flatten()
+        
+        if forecast_prices.ndim == 0:
+            forecast_prices = np.array([float(forecast_prices)])
+        elif forecast_prices.ndim > 1:
+            forecast_prices = forecast_prices.flatten()
+        
+        # Ensure arrays have at least one element
+        if len(t_forecast) == 0 or len(forecast_prices) == 0:
+            raise ValueError("Forecast arrays are empty; cannot generate summary.")
+        
+        # Ensure arrays have the same length
+        min_len = min(len(t_forecast), len(forecast_prices))
+        t_forecast = t_forecast[:min_len]
+        forecast_prices = forecast_prices[:min_len]
+
         last_hist_date = pd.to_datetime(history_df['Date'].iloc[-1]) if 'Date' in history_df.columns else None
         extended_horizons = {
             "Biweekly": 14,
@@ -443,8 +477,8 @@ def investment_forecast_api(request):
         }
 
         summary = summarize_forecast(
-            t_values=np.asarray(t_forecast, dtype=float),
-            forecast_prices=np.asarray(forecast_prices, dtype=float),
+            t_values=t_forecast,
+            forecast_prices=forecast_prices,
             current_price=current_price,
             share_quantity=plan['shares'],
             total_cost=plan['total_cost'],
@@ -561,6 +595,53 @@ def investment_forecast_api(request):
                 '52WeekLow': stock_data.get('fiftyTwoWeekLow', None),
             }
 
+        # Save forecast data to StockAnalysis for future use
+        forecast_data_dict = {
+            'forecast_data': forecast_data,
+            'summary': formatted_summary,
+            'statistics': statistics,
+            'external_factors': external_factors,
+            'mean_reversion_params': mean_reversion_params,
+            'risk_metrics': {k: float(v) if np.isfinite(v) else None for k, v in risk_metrics.items()},
+            'risk_insights': risk_insights,
+            'market_overview': market_overview,
+            'decision_support': decision_support,
+            'forecast_errors': forecast_errors,
+            'historical_data': historical_data,
+            'purchase_plan': {
+                'shares': float(plan['shares']),
+                'total_cost': float(plan['total_cost']),
+                'current_price': float(current_price),
+            },
+        }
+        
+        # Update or create StockAnalysis with forecast data
+        try:
+            stock_data_dict = stock_data if stock_data else {}
+            ratios_dict = ratios_table.to_dict('records') if not ratios_table.empty else []
+            
+            StockAnalysis.objects.update_or_create(
+                user=request.user,
+                symbol=symbol,
+                defaults={
+                    'stock_data': stock_data_dict,
+                    'ratios_table': ratios_dict,
+                    'forecast_data': forecast_data_dict,
+                    'forecast_days': forecast_days,
+                    'equation_type': equation_type,
+                    'forecast_errors': forecast_errors,
+                    'risk_metrics': {k: float(v) if np.isfinite(v) else None for k, v in risk_metrics.items()},
+                    'risk_insights': risk_insights,
+                    'market_overview': market_overview,
+                    'decision_support': decision_support,
+                    'history_data': historical_data,
+                }
+            )
+            logger.info(f"Saved forecast data to StockAnalysis for {symbol}")
+        except Exception as save_error:
+            logger.warning(f"Failed to save forecast data to StockAnalysis: {save_error}")
+            # Continue even if save fails
+        
         return JsonResponse(
             {
                 'success': True,
@@ -596,15 +677,15 @@ def investment_forecast_api(request):
 
 
 @login_required
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
-def stock_details_api(request):
+def get_stock_analysis_forecast(request):
     """
-    API endpoint to fetch comprehensive stock details from multiple sources:
-    - Polygon.io (if API key available)
-    - Alpha Vantage (if API key available)
-    - Yahoo Finance (via web scraping)
+    API endpoint to fetch forecast data from StockAnalysis model.
+    This allows Preview Forecast to use existing analysis/predictions data.
     
-    Data is aggregated, deduplicated, and merged intelligently.
+    CSRF exempt to support both web (session auth) and mobile (token auth) clients.
+    Authentication is still enforced via @login_required decorator.
     """
     try:
         import json
@@ -616,6 +697,291 @@ def stock_details_api(request):
         symbol = data.get('symbol', '').upper().strip()
         if not symbol:
             return JsonResponse({'error': 'Stock symbol is required'}, status=400)
+        
+        # Get the most recent StockAnalysis for this symbol and user
+        analysis = StockAnalysis.objects.filter(
+            user=request.user,
+            symbol=symbol
+        ).order_by('-analysis_date').first()
+        
+        if not analysis or not analysis.forecast_data:
+            return JsonResponse({
+                'success': False,
+                'error': f'No forecast data found for {symbol}. Please run analysis first.',
+                'symbol': symbol
+            }, status=404)
+        
+        forecast_data_dict = analysis.forecast_data
+        
+        # Get current price from stock_data if available, or from purchase_plan
+        current_price = None
+        if analysis.stock_data and isinstance(analysis.stock_data, dict):
+            current_price = analysis.stock_data.get('currentPrice') or analysis.stock_data.get('regularMarketPrice')
+        
+        if not current_price and forecast_data_dict.get('purchase_plan'):
+            current_price = forecast_data_dict.get('purchase_plan', {}).get('current_price')
+        
+        # Extract data in the format expected by the frontend
+        purchase_plan = forecast_data_dict.get('purchase_plan', {})
+        if current_price and not purchase_plan.get('current_price'):
+            purchase_plan['current_price'] = current_price
+        
+        response_data = {
+            'success': True,
+            'symbol': symbol,
+            'current_price': float(current_price) if current_price else None,
+            'purchase_plan': purchase_plan,
+            'forecast_data': forecast_data_dict.get('forecast_data', []),
+            'summary': forecast_data_dict.get('summary', []),
+            'equation_type': analysis.equation_type,
+            'statistics': forecast_data_dict.get('statistics', {}),
+            'external_factors': forecast_data_dict.get('external_factors', {}),
+            'mean_reversion_params': forecast_data_dict.get('mean_reversion_params', {}),
+            'ratios': analysis.ratios_table if isinstance(analysis.ratios_table, list) else [],
+            'risk_metrics': forecast_data_dict.get('risk_metrics', {}),
+            'risk_insights': forecast_data_dict.get('risk_insights', []),
+            'market_overview': forecast_data_dict.get('market_overview', {}),
+            'decision_support': forecast_data_dict.get('decision_support', {}),
+            'forecast_errors': forecast_data_dict.get('forecast_errors', []),
+            'historical_data': forecast_data_dict.get('historical_data', []),
+            'analysis_date': analysis.analysis_date.isoformat() if analysis.analysis_date else None,
+        }
+        
+        return JsonResponse(response_data)
+        
+    except Exception as exc:
+        import traceback
+        logger.exception(f"Error fetching StockAnalysis forecast: {exc}")
+        return JsonResponse({'error': str(exc), 'traceback': traceback.format_exc()}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def stock_details_api(request):
+    """
+    API endpoint to fetch comprehensive stock details from multiple sources:
+    - Polygon.io (if API key available)
+    - Alpha Vantage (if API key available)
+    - Yahoo Finance (via web scraping)
+    
+    Data is aggregated, deduplicated, and merged intelligently.
+    
+    NOTE: Stock data is PUBLIC and shared across all users. Any authenticated user
+    can access stock data for any symbol. StockWatchSnapshot stores public stock
+    data that is accessible to all users.
+    
+    CSRF exempt to support both web (session auth) and mobile (token auth) clients.
+    Authentication is still enforced via @login_required decorator.
+    """
+    try:
+        import json
+        if request.method == 'POST':
+            data = json.loads(request.body)
+        else:
+            data = request.GET
+        
+        symbol = data.get('symbol', '').upper().strip()
+        if not symbol:
+            return JsonResponse({'error': 'Stock symbol is required'}, status=400)
+        
+        # PRIORITY 1: ALWAYS fetch Yahoo Finance scraping FIRST (web scraping via headless Chrome)
+        # This ensures fresh data is always being populated from web scraping
+        # When populating information, we wait for scraping to complete to get accurate current price
+        from .tasks import scrape_yahoo_finance_comprehensive
+        from .models import StockWatchSnapshot
+        from datetime import timedelta
+        
+        # Check if we have recent snapshot to determine if we should force refresh
+        snapshot = None
+        force_refresh = True
+        try:
+            snapshot = StockWatchSnapshot.objects.filter(symbol=symbol).first()
+            if snapshot and snapshot.fetched_at:
+                age = timezone.now() - snapshot.fetched_at
+                # Force refresh if data is older than 1 hour
+                force_refresh = age > timedelta(hours=1)
+        except Exception:
+            pass
+        
+        # When populating information, we need fresh data, so run scraping synchronously
+        # This ensures we get the correct current price from web scraping
+        scraping_completed = False
+        try:
+            # Try to run synchronously first to get fresh data immediately
+            # This is important for getting accurate current price when populating information
+            logger.info(f"Running synchronous Yahoo Finance web scraping for {symbol} to get fresh current price (force_refresh={force_refresh})")
+            result = scrape_yahoo_finance_comprehensive(symbol, force_refresh=force_refresh)
+            scraping_completed = result.get('success', False)
+            logger.info(f"Synchronous Yahoo Finance scraping completed for {symbol}: {scraping_completed}")
+        except Exception as sync_error:
+            # If synchronous fails, try async via Celery as fallback
+            try:
+                logger.warning(f"Synchronous scraping failed, trying async Celery task: {sync_error}")
+                scrape_yahoo_finance_comprehensive.delay(symbol, force_refresh=force_refresh)
+                logger.info(f"Triggered async comprehensive Yahoo Finance web scraping task for {symbol} (force_refresh={force_refresh})")
+            except Exception as async_error:
+                logger.error(f"Could not trigger Yahoo Finance scraping: {async_error}")
+        
+        # Refresh snapshot from database after scraping (may have been just updated)
+        snapshot = None
+        try:
+            snapshot = StockWatchSnapshot.objects.filter(symbol=symbol).first()
+            # If we just completed scraping, use the fresh data even if it's slightly old
+            # Otherwise, check if snapshot is stale (older than 1 hour)
+            if snapshot and snapshot.fetched_at:
+                age = timezone.now() - snapshot.fetched_at
+                if not scraping_completed and age > timedelta(hours=1):
+                    snapshot = None  # Consider stale only if scraping didn't complete
+        except Exception:
+            pass
+        
+        # If we have a snapshot with price data, use it immediately
+        if snapshot and snapshot.current_price and snapshot.payload:
+            try:
+                # Extract data from snapshot payload
+                payload = snapshot.payload or {}
+                yahoo_data = payload.get('yahoo_comprehensive', {})
+                
+                # Build response from snapshot
+                summary = payload.get('summary', {})
+                statistics = payload.get('statistics', {})
+                
+                # Get current price from snapshot - prioritize web-scraped price
+                # Try multiple sources in order: snapshot.current_price (from web scraping) > summary.currentPrice > statistics
+                current_price = None
+                if snapshot.current_price:
+                    try:
+                        current_price = float(snapshot.current_price)
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Fallback to summary if snapshot price is not available
+                if not current_price or current_price <= 0:
+                    price_candidates = [
+                        summary.get('currentPrice'),
+                        summary.get('regularMarketPrice'),
+                        statistics.get('Current Price'),
+                        statistics.get('Previous Close'),
+                    ]
+                    for candidate in price_candidates:
+                        if candidate is not None:
+                            try:
+                                # Clean price string (remove $, commas, etc.)
+                                if isinstance(candidate, str):
+                                    candidate = candidate.replace('$', '').replace(',', '').strip()
+                                current_price = float(candidate)
+                                if current_price and current_price > 0:
+                                    break
+                            except (ValueError, TypeError):
+                                continue
+                
+                # Build key metrics from snapshot
+                key_metrics = {
+                    'sector': summary.get('sector') or statistics.get('Sector', 'N/A'),
+                    'industry': summary.get('industry') or statistics.get('Industry', 'N/A'),
+                    'marketCap': summary.get('marketCap') or statistics.get('Market Cap'),
+                    'currentPrice': current_price,
+                    'beta': summary.get('beta') or statistics.get('Beta (5Y Monthly)'),
+                    'peRatio': summary.get('peRatio') or statistics.get('Trailing P/E'),
+                    'forwardPE': summary.get('forwardPE') or statistics.get('Forward P/E'),
+                    'dividendYield': summary.get('dividendYield') or statistics.get('Dividend Yield'),
+                    '52WeekHigh': summary.get('52WeekHigh') or statistics.get('52 Week High'),
+                    '52WeekLow': summary.get('52WeekLow') or statistics.get('52 Week Low'),
+                }
+                
+                # Prepare news from snapshot
+                news_items = snapshot.news_items or []
+                news_html_parts = []
+                for item in news_items:
+                    # Handle nested structure where data is inside 'summary' object
+                    if item.get('summary') and isinstance(item.get('summary'), dict):
+                        summary = item.get('summary', {})
+                        title = summary.get('title') or item.get("title", "")
+                        link = (
+                            summary.get('canonicalUrl', {}).get('url') or
+                            summary.get('clickThroughUrl', {}).get('url') or
+                            summary.get('previewUrl') or
+                            item.get("link", "") or
+                            item.get("url", "")
+                        )
+                        publisher = (
+                            summary.get('provider', {}).get('displayName') or
+                            summary.get('provider', {}).get('name') or
+                            item.get("publisher", "")
+                        )
+                        summary_text = summary.get('summary') or summary.get('description') or item.get("summary", "")
+                    else:
+                        # Handle flat structure (normalized format)
+                        title = item.get("title", "")
+                        link = item.get("link", "") or item.get("url", "")
+                        publisher = item.get("publisher", "")
+                        summary_text = item.get("summary", "")
+                    
+                    if title and link:
+                        article_html = f'<article><h2>{title}</h2>'
+                        if publisher:
+                            article_html += f'<p><em>{publisher}</em></p>'
+                        if summary_text:
+                            article_html += f'<p>{summary_text}</p>'
+                        article_html += f'<p><a href="{link}">Read more</a></p></article>'
+                        news_html_parts.append(article_html)
+                
+                news_html = "\n".join(news_html_parts) if news_html_parts else ""
+                
+                # Fetch historical data for charts
+                history_df = service.stock_app.fetch_stock_history(symbol, period="1y", interval="1d")
+                historical_data = []
+                if not history_df.empty:
+                    for _, row in history_df.iterrows():
+                        historical_data.append({
+                            'date': str(row.get('Date', '')),
+                            'open': float(row.get('Open', 0)) if pd.notna(row.get('Open')) else None,
+                            'high': float(row.get('High', 0)) if pd.notna(row.get('High')) else None,
+                            'low': float(row.get('Low', 0)) if pd.notna(row.get('Low')) else None,
+                            'close': float(row.get('Close', 0)) if pd.notna(row.get('Close')) else None,
+                            'volume': int(row.get('Volume', 0)) if pd.notna(row.get('Volume')) else None,
+                        })
+                
+                # Analyze ratios
+                stock_data = payload.get('summary', {})
+                ratios_table = service.stock_app.analyze_stock(stock_data)
+                ratios_data = []
+                if not ratios_table.empty:
+                    ratios_data = ratios_table.to_dict('records')
+                
+                # Build comprehensive response from snapshot
+                response_data = {
+                    'success': True,
+                    'symbol': symbol,
+                    'stock_data': stock_data,
+                    'key_metrics': key_metrics,
+                    'historical_data': historical_data,
+                    'ratios': ratios_data,
+                    'news_html': news_html,
+                    'sources_used': ['yahoo_finance_snapshot'],
+                    'fetched_at': snapshot.fetched_at.isoformat() if snapshot.fetched_at else None,
+                }
+                
+                # Add comprehensive Yahoo Finance data if available
+                if yahoo_data:
+                    response_data['yahoo_finance'] = {
+                        'summary': yahoo_data.get('summary', summary),
+                        'news': yahoo_data.get('news', news_items),
+                        'chart_details': yahoo_data.get('chart_details', {}),
+                        'statistics': yahoo_data.get('statistics', statistics),
+                        'options': yahoo_data.get('options', {}),
+                        'holders': yahoo_data.get('holders', {}),
+                        'profile': yahoo_data.get('profile', {}),
+                        'financials': yahoo_data.get('financials', {}),
+                        'analysis': yahoo_data.get('analysis', {}),
+                        'sustainability': yahoo_data.get('sustainability', {}),
+                    }
+                
+                return JsonResponse(response_data)
+            except Exception as snapshot_error:
+                logger.warning(f"Error using snapshot data, falling back to API: {snapshot_error}")
+                # Fall through to API-based fetching
         
         # Use data aggregator to fetch from all sources
         from .lib.data_aggregator import StockDataAggregator
@@ -719,8 +1085,22 @@ def stock_details_api(request):
         if not ratios_table.empty:
             ratios_data = ratios_table.to_dict('records')
         
-        # Get current price from aggregated fundamentals
-        current_price = fundamentals.get('currentPrice', None)
+        # Get current price - prioritize web-scraped snapshot data
+        current_price = None
+        
+        # First, try to get price from snapshot (web-scraped data)
+        try:
+            snapshot = StockWatchSnapshot.objects.filter(symbol=symbol).first()
+            if snapshot and snapshot.current_price:
+                current_price = float(snapshot.current_price)
+        except Exception:
+            pass
+        
+        # Fallback to aggregated fundamentals if snapshot price not available
+        if not current_price or current_price <= 0:
+            current_price = fundamentals.get('currentPrice', None)
+        
+        # Fallback to historical data if still no price
         if (current_price is None or current_price <= 0) and not history_df.empty:
             try:
                 from .lib.investment_utils import get_current_price
@@ -750,10 +1130,29 @@ def stock_details_api(request):
         news_items = comprehensive_data.get('news', [])
         news_html_parts = []
         for item in news_items:
-            title = item.get("title", "")
-            url = item.get("url", "")
-            publisher = item.get("publisher", item.get("source", ""))
-            description = item.get("description", "")
+            # Handle nested structure where data is inside 'summary' object
+            if item.get('summary') and isinstance(item.get('summary'), dict):
+                summary = item.get('summary', {})
+                title = summary.get('title') or item.get("title", "")
+                url = (
+                    summary.get('canonicalUrl', {}).get('url') or
+                    summary.get('clickThroughUrl', {}).get('url') or
+                    summary.get('previewUrl') or
+                    item.get("url", "") or
+                    item.get("link", "")
+                )
+                publisher = (
+                    summary.get('provider', {}).get('displayName') or
+                    summary.get('provider', {}).get('name') or
+                    item.get("publisher", item.get("source", ""))
+                )
+                description = summary.get('summary') or summary.get('description') or item.get("description", "")
+            else:
+                # Handle flat structure (normalized format)
+                title = item.get("title", "")
+                url = item.get("url", "") or item.get("link", "")
+                publisher = item.get("publisher", item.get("source", ""))
+                description = item.get("description", "") or item.get("summary", "")
             
             if title and url:
                 article_html = f'<article><h2>{title}</h2>'

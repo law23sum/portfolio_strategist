@@ -12,7 +12,6 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import DashboardScreen from '../screens/main/DashboardScreen';
 import RecordsScreen from '../screens/main/RecordsScreen';
 import StockAnalysisScreen from '../screens/main/StockAnalysisScreen';
-import SolutionsScreen from '../screens/main/SolutionsScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
 // Records Sub-screens
@@ -22,13 +21,17 @@ import UploadScreen from '../screens/records/UploadScreen';
 import LinkedAccountsScreen from '../screens/records/LinkedAccountsScreen';
 import AccountDetailScreen from '../screens/records/AccountDetailScreen';
 
-// Stock Analysis Sub-screens
+// Investment & Savings Sub-screens (matching web pages)
 import AnalyzeStockScreen from '../screens/stock/AnalyzeStockScreen';
 import AnalysisResultsScreen from '../screens/stock/AnalysisResultsScreen';
-import LoanAnalysisScreen from '../screens/stock/LoanAnalysisScreen';
+import SavingsAssessmentScreen from '../screens/investment/SavingsAssessmentScreen';
+import CDAssessmentScreen from '../screens/investment/CDAssessmentScreen';
+import BondAssessmentScreen from '../screens/investment/BondAssessmentScreen';
 
-// Chat Screen
+// Other screens
 import ChatScreen from '../screens/chat/ChatScreen';
+import SolutionsScreen from '../screens/main/SolutionsScreen';
+import BudgetPlannerScreen from '../screens/budget/BudgetPlannerScreen';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, View } from 'react-native';
@@ -38,6 +41,7 @@ const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
 const RecordsStack = createStackNavigator();
 const StockStack = createStackNavigator();
+const MainStack = createStackNavigator();
 
 function RecordsNavigator() {
   return (
@@ -80,24 +84,34 @@ function StockNavigator() {
   return (
     <StockStack.Navigator>
       <StockStack.Screen 
-        name="StockMain" 
+        name="InvestmentSavings" 
         component={StockAnalysisScreen}
         options={{ headerShown: false }}
       />
       <StockStack.Screen 
-        name="Analyze" 
+        name="StocksAssessment" 
         component={AnalyzeStockScreen}
-        options={{ title: 'Analyze Stock' }}
+        options={{ title: 'Stocks Assessment' }}
       />
       <StockStack.Screen 
-        name="Results" 
+        name="AnalysisResults" 
         component={AnalysisResultsScreen}
         options={{ title: 'Analysis Results' }}
       />
       <StockStack.Screen 
-        name="Loan" 
-        component={LoanAnalysisScreen}
-        options={{ title: 'Loan Analysis' }}
+        name="SavingsAssessment" 
+        component={SavingsAssessmentScreen}
+        options={{ title: 'Savings Assessment' }}
+      />
+      <StockStack.Screen 
+        name="CDAssessment" 
+        component={CDAssessmentScreen}
+        options={{ title: 'CD Assessment' }}
+      />
+      <StockStack.Screen 
+        name="BondAssessment" 
+        component={BondAssessmentScreen}
+        options={{ title: 'Bond Assessment' }}
       />
     </StockStack.Navigator>
   );
@@ -133,34 +147,14 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
         }}
       />
       <Tab.Screen
-        name="StockAnalysis"
+        name="InvestmentSavings"
         component={StockNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon name="trending-up" size={size} color={color} />
+            <Icon name="account-balance" size={size} color={color} />
           ),
           headerShown: false,
-          tabBarLabel: 'Stocks',
-        }}
-      />
-      <Tab.Screen
-        name="Solutions"
-        component={SolutionsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="lightbulb" size={size} color={color} />
-          ),
-          headerTitle: 'Solutions',
-        }}
-      />
-      <Tab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="chat" size={size} color={color} />
-          ),
-          headerTitle: 'Chat Assistant',
+          tabBarLabel: 'Investments',
         }}
       />
       <Tab.Screen
@@ -175,6 +169,34 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
         {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
+  );
+}
+
+function MainStackNavigator({ onLogout }: { onLogout: () => void }) {
+  return (
+    <MainStack.Navigator>
+      <MainStack.Screen
+        name="MainTabs"
+        options={{ headerShown: false }}
+      >
+        {(props) => <MainTabs {...props} onLogout={onLogout} />}
+      </MainStack.Screen>
+      <MainStack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{ title: 'AI Chat' }}
+      />
+      <MainStack.Screen
+        name="Solutions"
+        component={SolutionsScreen}
+        options={{ title: 'Solutions' }}
+      />
+      <MainStack.Screen
+        name="BudgetPlanner"
+        component={BudgetPlannerScreen}
+        options={{ title: 'Budget Planner' }}
+      />
+    </MainStack.Navigator>
   );
 }
 
@@ -235,7 +257,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       {userToken ? (
-        <MainTabs onLogout={handleLogout} />
+        <MainStackNavigator onLogout={handleLogout} />
       ) : (
         <AuthNavigator onLoginSuccess={handleLoginSuccess} />
       )}

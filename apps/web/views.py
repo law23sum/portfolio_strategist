@@ -1,10 +1,15 @@
 import json
+import logging
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_POST
 from health_check.views import MainView
 
 from apps.records.financial_aggregation import (
@@ -14,6 +19,7 @@ from apps.records.financial_aggregation import (
     DashboardAggregationService,
 )
 from apps.records.plaid_data_distribution import PlaidDataDistributionService
+from apps.stock_analysis.models import StockWatchlistEntry
 
 
 def home(request):
@@ -61,6 +67,12 @@ def investment_savings(request):
         user=request.user,
         status='active'
     ).select_related('provider')
+    
+    watchlist_entries = (
+        StockWatchlistEntry.objects.filter(user=request.user)
+        .select_related('snapshot')
+        .order_by('symbol', 'created_at')
+    )
     
     # Calculate summary totals
     summary = {
@@ -111,6 +123,144 @@ def investment_savings(request):
             "bond_assessments": bond_assessments,
             "linked_accounts": linked_accounts,
             "summary": summary,
+            "watchlist_entries": watchlist_entries,
+        },
+    )
+
+
+@login_required
+@require_POST
+def watchlist_add(request):
+    symbol = request.POST.get('symbol', '').upper().strip()
+    nickname = request.POST.get('nickname', '').strip()
+    notes = request.POST.get('notes', '').strip()
+
+    if not symbol:
+        messages.error(request, "Please provide a stock symbol to watch.")
+        return redirect('web:investment_savings')
+
+    entry, created = StockWatchlistEntry.objects.get_or_create(
+        user=request.user,
+        symbol=symbol,
+        defaults={'nickname': nickname, 'notes': notes},
+    )
+
+    if not created:
+        if nickname:
+            entry.nickname = nickname
+        if notes:
+            entry.notes = notes
+        entry.save()
+        messages.info(request, f"Updated your watchlist entry for {symbol}.")
+    else:
+        messages.success(request, f"Added {symbol} to your watchlist.")
+
+    try:
+        from apps.stock_analysis.tasks import refresh_watchlist_symbol
+
+        refresh_watchlist_symbol.delay(symbol)
+    except Exception as exc:  # pragma: no cover - Celery not running
+        messages.warning(
+            request,
+            f"Watchlist entry saved, but background refresh could not be queued ({exc}).",
+        )
+
+    return redirect('web:investment_savings')
+
+
+@login_required
+@require_POST
+def watchlist_remove(request, entry_id: int):
+    entry = get_object_or_404(StockWatchlistEntry, id=entry_id, user=request.user)
+    entry.delete()
+    messages.success(request, f"Removed {entry.symbol} from your watchlist.")
+    return redirect('web:investment_savings')
+
+
+@login_required
+@require_POST
+def watchlist_refresh(request, entry_id: int):
+    entry = get_object_or_404(StockWatchlistEntry, id=entry_id, user=request.user)
+    try:
+        from apps.stock_analysis.tasks import refresh_watchlist_symbol
+
+        refresh_watchlist_symbol.delay(entry.symbol)
+        messages.success(request, f"Queued a refresh for {entry.symbol}.")
+    except Exception as exc:  # pragma: no cover
+        messages.error(request, f"Unable to queue refresh: {exc}")
+    return redirect('web:investment_savings')
+
+
+@login_required
+def watchlist_news(request):
+    """View all news for watchlist stocks"""
+    from apps.stock_analysis.models import StockWatchlistEntry
+    
+    symbol_filter = request.GET.get('symbol', '').upper().strip()
+    
+    entries = StockWatchlistEntry.objects.filter(user=request.user).select_related('snapshot').order_by('symbol')
+    
+    if symbol_filter:
+        entries = entries.filter(symbol=symbol_filter)
+    
+    all_news = []
+    for entry in entries:
+        if entry.snapshot and entry.snapshot.news_items:
+            for news_item in entry.snapshot.news_items:
+                # Handle nested structure where data is inside 'summary' object
+                if news_item.get('summary') and isinstance(news_item.get('summary'), dict):
+                    summary = news_item.get('summary', {})
+                    title = summary.get('title') or news_item.get('title', '')
+                    link = (
+                        summary.get('canonicalUrl', {}).get('url') or
+                        summary.get('clickThroughUrl', {}).get('url') or
+                        summary.get('previewUrl') or
+                        news_item.get('link') or
+                        news_item.get('url', '')
+                    )
+                    publisher = (
+                        summary.get('provider', {}).get('displayName') or
+                        summary.get('provider', {}).get('name') or
+                        news_item.get('publisher', 'Yahoo Finance')
+                    )
+                    summary_text = summary.get('summary') or summary.get('description') or news_item.get('summary', '')
+                    published = (
+                        summary.get('pubDate') or
+                        summary.get('displayTime') or
+                        news_item.get('published', '')
+                    )
+                else:
+                    # Handle flat structure (normalized format)
+                    title = news_item.get('title', '')
+                    link = news_item.get('link') or news_item.get('url', '')
+                    publisher = news_item.get('publisher', 'Yahoo Finance')
+                    summary_text = news_item.get('summary', '')
+                    published = news_item.get('published', '')
+                
+                if link and title:
+                    all_news.append({
+                        'symbol': entry.symbol,
+                        'nickname': entry.nickname,
+                        'title': title,
+                        'link': link,
+                        'publisher': publisher,
+                        'summary': summary_text,
+                        'published': published,
+                        'fetched_at': entry.snapshot.fetched_at,
+                    })
+    
+    # Sort by fetched_at (most recent first)
+    all_news.sort(key=lambda x: x.get('fetched_at') or '', reverse=True)
+    
+    return render(
+        request,
+        "web/watchlist_news.html",
+        context={
+            "active_tab": "investment_savings",
+            "page_title": "Watchlist News",
+            "all_news": all_news,
+            "symbol_filter": symbol_filter,
+            "entries": entries,
         },
     )
 
@@ -176,9 +326,9 @@ def stocks_assessment(request):
     """Stocks Assessment page"""
     from apps.records.models import StocksAssessment, LinkedAccount
     import logging
-    
+
     logger = logging.getLogger(__name__)
-    
+
     assessments = StocksAssessment.objects.filter(user=request.user).order_by('-updated_at')
     # Include active, pending, and error accounts (error accounts might still have valid data)
     linked_accounts = LinkedAccount.objects.filter(
@@ -217,6 +367,67 @@ def stocks_assessment(request):
             account_defaults['total_investments'] = sum(acc.get('balance', 0) for acc in account_defaults['accounts'])
     
     account_defaults_json = json.dumps(account_defaults)
+
+    watchlist_entries = (
+        StockWatchlistEntry.objects.filter(user=request.user)
+        .select_related('snapshot')
+        .order_by('symbol', 'created_at')
+    )
+    
+    # Normalize news items in snapshots to handle nested structure
+    def normalize_news_item(item):
+        """Normalize a news item to flat structure, handling nested 'summary' object."""
+        if item.get('summary') and isinstance(item.get('summary'), dict):
+            summary = item.get('summary', {})
+            title = summary.get('title') or item.get('title')
+            # Try multiple URL sources from nested structure
+            link = None
+            if summary.get('canonicalUrl') and isinstance(summary.get('canonicalUrl'), dict):
+                link = summary.get('canonicalUrl', {}).get('url')
+            if not link and summary.get('clickThroughUrl') and isinstance(summary.get('clickThroughUrl'), dict):
+                link = summary.get('clickThroughUrl', {}).get('url')
+            if not link:
+                link = summary.get('previewUrl') or item.get('link') or item.get('url', '')
+            
+            publisher = 'Yahoo Finance'
+            if summary.get('provider') and isinstance(summary.get('provider'), dict):
+                publisher = summary.get('provider', {}).get('displayName') or summary.get('provider', {}).get('name') or publisher
+            if publisher == 'Yahoo Finance':
+                publisher = item.get('publisher', 'Yahoo Finance')
+            
+            summary_text = summary.get('summary') or summary.get('description') or item.get('summary', '')
+            published = summary.get('pubDate') or summary.get('displayTime') or item.get('published', '')
+            
+            return {
+                'title': title,
+                'link': link,
+                'url': link,  # Include both for compatibility
+                'publisher': publisher,
+                'summary': summary_text,
+                'published': published,
+            }
+        else:
+            # Already in flat structure
+            return {
+                'title': item.get('title'),
+                'link': item.get('link') or item.get('url', ''),
+                'url': item.get('link') or item.get('url', ''),
+                'publisher': item.get('publisher', 'Yahoo Finance'),
+                'summary': item.get('summary', ''),
+                'published': item.get('published', ''),
+            }
+    
+    # Normalize news items for each watchlist entry's snapshot
+    for entry in watchlist_entries:
+        if entry.snapshot and entry.snapshot.news_items:
+            normalized_news = []
+            for news_item in entry.snapshot.news_items:
+                normalized = normalize_news_item(news_item)
+                if normalized.get('title') and normalized.get('link'):
+                    normalized_news.append(normalized)
+            # Replace news_items with normalized version (modify in memory for template)
+            if normalized_news:
+                entry.snapshot.news_items = normalized_news
     
     # Debug logging
     logger.info(f"Stocks assessment for user {request.user.id}: {len(account_defaults['accounts'])} accounts found, total: ${account_defaults['total_investments']}")
@@ -231,11 +442,12 @@ def stocks_assessment(request):
             "active_tab": "investment_savings",
             "page_title": _("Stocks Assessment"),
             "assessments": assessments,
-            "linked_accounts": linked_accounts,
-            "plaid_data": plaid_data_json,
-            "account_defaults": account_defaults,
-            "account_defaults_json": account_defaults_json,
-        },
+        "linked_accounts": linked_accounts,
+        "plaid_data": plaid_data_json,
+        "account_defaults": account_defaults,
+        "account_defaults_json": account_defaults_json,
+        "watchlist_entries": watchlist_entries,
+    },
     )
 
 
@@ -536,6 +748,9 @@ def stocks_detailed_reports(request, symbol):
     """Stock Detailed Reports page - shows comprehensive stock analysis"""
     from apps.stock_analysis.services import StockAnalysisService
     from apps.stock_analysis.lib.data_aggregator import StockDataAggregator
+    from apps.stock_analysis.models import StockWatchSnapshot
+    from django.utils import timezone
+    from datetime import timedelta
     
     period = request.GET.get('period', '1y')
     interval = request.GET.get('interval', '1d')
@@ -543,23 +758,178 @@ def stocks_detailed_reports(request, symbol):
     service = StockAnalysisService()
     aggregator = StockDataAggregator(fetcher=service.stock_app.fetcher)
     
-    # Get aggregated data for detailed reports page
-    try:
-        page_data = aggregator.get_data_for_detailed_reports(symbol.upper())
-        stock_data = page_data.get('stock_data', {})
-        statistics = page_data.get('statistics', {})
-        yahoo_profile = page_data.get('yahoo_profile', {})
-        news_items = page_data.get('news', [])
-    except Exception as e:
-        # Fallback to original method
-        print(f"Aggregator failed, using fallback: {e}")
-        stock_data = service.stock_app.fetch_stock_data(symbol.upper())
-        statistics = {}
-        yahoo_profile = {}
-        news_items = []
+    # PRIORITY: Use web-scraped data from StockWatchSnapshot first
+    stock_data = {}
+    statistics = {}
+    yahoo_profile = {}
+    news_items = []
     
-    # Analyze ratios
+    # Trigger web scraping if needed (runs in background)
+    from apps.stock_analysis.tasks import scrape_yahoo_finance_comprehensive
+    try:
+        snapshot = StockWatchSnapshot.objects.filter(symbol=symbol.upper()).first()
+        should_refresh = True
+        if snapshot and snapshot.fetched_at:
+            age = timezone.now() - snapshot.fetched_at
+            should_refresh = age > timedelta(hours=1)  # Refresh if older than 1 hour
+        
+        if should_refresh:
+            # Trigger web scraping in background
+            try:
+                scrape_yahoo_finance_comprehensive.delay(symbol.upper(), force_refresh=True)
+                logger.info(f"Triggered web scraping for {symbol.upper()} for detailed reports")
+            except Exception:
+                # If Celery not available, try synchronous
+                try:
+                    scrape_yahoo_finance_comprehensive(symbol.upper(), force_refresh=True)
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning(f"Error triggering web scraping: {e}")
+    
+    try:
+        # Check for recent web-scraped snapshot
+        snapshot = StockWatchSnapshot.objects.filter(symbol=symbol.upper()).first()
+        if snapshot and snapshot.payload and snapshot.fetched_at:
+            age = timezone.now() - snapshot.fetched_at
+            if age < timedelta(hours=24):  # Use if less than 24 hours old
+                payload = snapshot.payload or {}
+                yahoo_comprehensive = payload.get('yahoo_comprehensive', {})
+                
+                # Extract stock_data from web-scraped snapshot
+                summary = payload.get('summary', {})
+                statistics_data = payload.get('statistics', {})
+                yahoo_comprehensive = payload.get('yahoo_comprehensive', {})
+                
+                # Get comprehensive data if available - prioritize yahoo_comprehensive
+                if yahoo_comprehensive:
+                    summary = yahoo_comprehensive.get('summary', summary)
+                    statistics_data = yahoo_comprehensive.get('statistics', statistics_data)
+                    financials = yahoo_comprehensive.get('financials', {})
+                    analysis = yahoo_comprehensive.get('analysis', {})
+                    valuation = yahoo_comprehensive.get('valuation', {})
+                    # Also get chart, options, holders, profile, etc.
+                    chart_details = yahoo_comprehensive.get('chart_details', {})
+                    options = yahoo_comprehensive.get('options', {})
+                    holders = yahoo_comprehensive.get('holders', {})
+                    yahoo_profile = yahoo_comprehensive.get('profile', payload.get('profile', {}))
+                    historical_data = yahoo_comprehensive.get('historical_data', [])
+                else:
+                    financials = payload.get('financials', {})
+                    analysis = payload.get('analysis', {})
+                    valuation = payload.get('valuation', {})
+                    chart_details = {}
+                    options = {}
+                    holders = {}
+                    yahoo_profile = payload.get('profile', {})
+                    historical_data = []
+                
+                # Extract additional metrics from financials pages (income statement, balance sheet, cash flow)
+                # This ensures we have all data needed for ratio calculations
+                income_statement = financials.get('income_statement', {})
+                balance_sheet = financials.get('balance_sheet', {})
+                cash_flow_statement = financials.get('cash_flow', {})
+                
+                # Extract key metrics from financial statements and add to stock_data
+                # Income Statement metrics
+                for key, values in income_statement.items():
+                    if values and len(values) > 0:
+                        # Use most recent period (first value)
+                        value = values[0] if isinstance(values, list) else values
+                        if 'Revenue' in key or 'Total Revenue' in key:
+                            stock_data['Revenue  (ttm)'] = value
+                        elif 'Net Income' in key or 'Net Earnings' in key:
+                            stock_data['Net Income Avi to Common  (ttm)'] = value
+                        elif 'Operating Income' in key or 'Operating Profit' in key:
+                            stock_data['Operating Income  (ttm)'] = value
+                        elif 'Gross Profit' in key:
+                            stock_data['Gross Profit  (ttm)'] = value
+                        elif 'EBITDA' in key:
+                            stock_data['EBITDA'] = value
+                
+                # Balance Sheet metrics
+                for key, values in balance_sheet.items():
+                    if values and len(values) > 0:
+                        value = values[0] if isinstance(values, list) else values
+                        if 'Total Assets' in key:
+                            stock_data['Total Assets  (mrq)'] = value
+                        elif 'Total Stockholder Equity' in key or 'Shareholders\' Equity' in key:
+                            stock_data['Total Equity'] = value
+                        elif 'Total Debt' in key or 'Total Liabilities' in key:
+                            stock_data['Total Debt  (mrq)'] = value
+                        elif 'Total Cash' in key or 'Cash and Cash Equivalents' in key:
+                            stock_data['Total Cash  (mrq)'] = value
+                        elif 'Current Assets' in key:
+                            stock_data['Current Assets  (mrq)'] = value
+                        elif 'Current Liabilities' in key:
+                            stock_data['Current Liabilities  (mrq)'] = value
+                        elif 'Shares Outstanding' in key:
+                            stock_data['Shares Outstanding 5'] = value
+                
+                # Cash Flow metrics
+                for key, values in cash_flow_statement.items():
+                    if values and len(values) > 0:
+                        value = values[0] if isinstance(values, list) else values
+                        if 'Operating Cash Flow' in key or 'Cash from Operations' in key:
+                            stock_data['Operating Cash Flow  (ttm)'] = value
+                        elif 'Free Cash Flow' in key or 'Levered Free Cash Flow' in key:
+                            stock_data['Levered Free Cash Flow  (ttm)'] = value
+                
+                # Merge summary and statistics into stock_data (prioritize statistics for detailed metrics)
+                # Statistics page has more comprehensive data
+                stock_data = {**summary, **statistics_data, **stock_data}
+                statistics = statistics_data
+                news_items = snapshot.news_items or []
+                
+                # Add current_price from snapshot (most reliable source)
+                if snapshot.current_price:
+                    stock_data['currentPrice'] = float(snapshot.current_price)
+                    stock_data['Current Price'] = float(snapshot.current_price)
+                
+                # Add market cap if available
+                if 'marketCap' in summary:
+                    stock_data['Market Cap'] = summary['marketCap']
+                elif 'Market Cap' in statistics_data:
+                    stock_data['Market Cap'] = statistics_data['Market Cap']
+                
+                logger.info(f"Using web-scraped snapshot data for {symbol.upper()} (age: {age})")
+                logger.info(f"Extracted {len(stock_data)} stock_data fields, {len(income_statement)} income items, {len(balance_sheet)} balance items, {len(cash_flow_statement)} cash flow items")
+    except Exception as e:
+        logger.warning(f"Error using snapshot data: {e}")
+    
+    # If no snapshot data, use aggregator
+    if not stock_data:
+        try:
+            page_data = aggregator.get_data_for_detailed_reports(symbol.upper())
+            stock_data = page_data.get('stock_data', {})
+            statistics = page_data.get('statistics', {})
+            yahoo_profile = page_data.get('yahoo_profile', {})
+            news_items = page_data.get('news', [])
+        except Exception as e:
+            # Fallback to original method
+            print(f"Aggregator failed, using fallback: {e}")
+            stock_data = service.stock_app.fetch_stock_data(symbol.upper())
+            statistics = {}
+            yahoo_profile = {}
+            news_items = []
+    
+    # Normalize stock_data keys to match what stock_ratio.py expects
+    # This maps Yahoo Finance keys to the expected metric keys
+    stock_data = _normalize_stock_data_for_ratios(stock_data, statistics)
+    
+    # Log available keys for debugging
+    if stock_data:
+        available_keys = [k for k, v in stock_data.items() if v is not None and v != '']
+        logger.debug(f"Available stock_data keys for {symbol.upper()}: {len(available_keys)} keys")
+        logger.debug(f"Sample keys: {available_keys[:10]}")
+    
+    # Analyze ratios using financia code - this calculates ratios and performance ratings
     ratios_table = service.stock_app.analyze_stock(stock_data) if stock_data else None
+    
+    if ratios_table is not None and not ratios_table.empty:
+        logger.info(f"Successfully calculated {len(ratios_table)} ratios for {symbol.upper()}")
+    else:
+        logger.warning(f"No ratios calculated for {symbol.upper()} - stock_data may be missing required fields")
     
     # Convert ratios_table to dict for template and normalize keys
     ratios_dict = []
@@ -621,6 +991,60 @@ def stocks_detailed_reports(request, symbol):
     if yahoo_profile:
         enhanced_stock_data['profile'] = yahoo_profile
     
+    # Generate performance thresholds table based on financia code
+    performance_thresholds = _get_performance_thresholds()
+    
+    # Get valuation, financials, and analysis data from snapshot if available
+    valuation_data = {}
+    financials_data = {}
+    analysis_data = {}
+    chart_details_data = {}
+    options_data = {}
+    holders_data = {}
+    historical_data_list = []
+    
+    try:
+        snapshot = StockWatchSnapshot.objects.filter(symbol=symbol.upper()).first()
+        if snapshot and snapshot.payload:
+            payload = snapshot.payload or {}
+            yahoo_comprehensive = payload.get('yahoo_comprehensive', {})
+            if yahoo_comprehensive:
+                valuation_data = yahoo_comprehensive.get('valuation', {})
+                financials_data = yahoo_comprehensive.get('financials', {})
+                analysis_data = yahoo_comprehensive.get('analysis', {})
+                chart_details_data = yahoo_comprehensive.get('chart_details', {})
+                options_data = yahoo_comprehensive.get('options', {})
+                holders_data = yahoo_comprehensive.get('holders', {})
+                historical_data_list = yahoo_comprehensive.get('historical_data', {}).get('price_history', [])
+            else:
+                valuation_data = payload.get('valuation', {})
+                financials_data = payload.get('financials', {})
+                analysis_data = payload.get('analysis', {})
+                chart_details_data = payload.get('chart_details', {})
+                options_data = payload.get('options', {})
+                holders_data = payload.get('holders', {})
+                historical_data_list = payload.get('historical_data', {}).get('price_history', []) if isinstance(payload.get('historical_data'), dict) else []
+            
+            # Ensure current_price is in valuation_data for template
+            if snapshot.current_price and not valuation_data.get('current_price'):
+                try:
+                    valuation_data['current_price'] = float(snapshot.current_price)
+                except (ValueError, TypeError):
+                    pass
+            
+            # If valuation_data exists but missing current_price, try to get from stock_data
+            if valuation_data and not valuation_data.get('current_price'):
+                current_price = enhanced_stock_data.get('currentPrice') or enhanced_stock_data.get('Current Price')
+                if current_price:
+                    try:
+                        if isinstance(current_price, str):
+                            current_price = float(current_price.replace('$', '').replace(',', ''))
+                        valuation_data['current_price'] = current_price
+                    except (ValueError, TypeError):
+                        pass
+    except Exception as e:
+        logger.warning(f"Error getting additional data: {e}")
+    
     return render(
         request,
         "web/stocks_detailed_reports.html",
@@ -631,10 +1055,374 @@ def stocks_detailed_reports(request, symbol):
             "stock_data": enhanced_stock_data,
             "ratios_table": ratios_dict,
             "news_html": news_html,
+            "performance_thresholds": performance_thresholds,
+            "valuation_data": valuation_data,
+            "financials_data": financials_data,
+            "analysis_data": analysis_data,
+            "chart_details": chart_details_data,
+            "options_data": options_data,
+            "holders_data": holders_data,
+            "historical_data": historical_data_list,
             "period": period,
             "interval": interval,
         },
     )
+
+
+def _normalize_stock_data_for_ratios(stock_data, statistics):
+    """
+    Normalize stock data keys to match what stock_ratio.py expects.
+    Maps Yahoo Finance web-scraped keys to expected metric keys.
+    """
+    if not stock_data:
+        return {}
+    
+    normalized = {}
+    
+    # Key mapping: Yahoo Finance key -> Expected metric key
+    # This handles variations from web scraping, API, and database sources
+    key_mappings = {
+        # Market Cap variations
+        'marketCap': 'Market Cap',
+        'market_cap': 'Market Cap',
+        'Market Cap': 'Market Cap',
+        
+        # Revenue variations
+        'revenue': 'Revenue  (ttm)',
+        'totalRevenue': 'Revenue  (ttm)',
+        'Revenue (ttm)': 'Revenue  (ttm)',
+        'Revenue  (ttm)': 'Revenue  (ttm)',
+        
+        # Net Income variations
+        'netIncome': 'Net Income Avi to Common  (ttm)',
+        'netIncomeToCommon': 'Net Income Avi to Common  (ttm)',
+        'Net Income Avi to Common  (ttm)': 'Net Income Avi to Common  (ttm)',
+        
+        # Debt variations
+        'totalDebt': 'Total Debt  (mrq)',
+        'Total Debt (mrq)': 'Total Debt  (mrq)',
+        'Total Debt  (mrq)': 'Total Debt  (mrq)',
+        
+        # Cash variations
+        'totalCash': 'Total Cash  (mrq)',
+        'Total Cash (mrq)': 'Total Cash  (mrq)',
+        'Total Cash  (mrq)': 'Total Cash  (mrq)',
+        
+        # Gross Profit variations
+        'grossProfit': 'Gross Profit  (ttm)',
+        'grossProfits': 'Gross Profit  (ttm)',
+        'Gross Profit (ttm)': 'Gross Profit  (ttm)',
+        'Gross Profit  (ttm)': 'Gross Profit  (ttm)',
+        
+        # Operating Cash Flow variations
+        'operatingCashFlow': 'Operating Cash Flow  (ttm)',
+        'operatingCashflow': 'Operating Cash Flow  (ttm)',
+        'Operating Cash Flow (ttm)': 'Operating Cash Flow  (ttm)',
+        'Operating Cash Flow  (ttm)': 'Operating Cash Flow  (ttm)',
+        
+        # EBITDA variations
+        'ebitda': 'EBITDA',
+        'EBITDA': 'EBITDA',
+        
+        # Assets variations
+        'totalAssets': 'Total Assets  (mrq)',
+        'Total Assets (mrq)': 'Total Assets  (mrq)',
+        'Total Assets  (mrq)': 'Total Assets  (mrq)',
+        
+        # Current Assets variations
+        'currentAssets': 'Current Assets  (mrq)',
+        'Current Assets (mrq)': 'Current Assets  (mrq)',
+        'Current Assets  (mrq)': 'Current Assets  (mrq)',
+        
+        # Current Liabilities variations
+        'currentLiabilities': 'Current Liabilities  (mrq)',
+        'Current Liabilities (mrq)': 'Current Liabilities  (mrq)',
+        'Current Liabilities  (mrq)': 'Current Liabilities  (mrq)',
+        
+        # Free Cash Flow variations
+        'freeCashFlow': 'Levered Free Cash Flow  (ttm)',
+        'freeCashflow': 'Levered Free Cash Flow  (ttm)',
+        'Levered Free Cash Flow (ttm)': 'Levered Free Cash Flow  (ttm)',
+        'Levered Free Cash Flow  (ttm)': 'Levered Free Cash Flow  (ttm)',
+        
+        # Shares Outstanding variations
+        'sharesOutstanding': 'Shares Outstanding 5',
+        'Shares Outstanding': 'Shares Outstanding 5',
+        'Shares Outstanding 5': 'Shares Outstanding 5',
+        
+        # Operating Income variations
+        'operatingIncome': 'Operating Income  (ttm)',
+        'Operating Income (ttm)': 'Operating Income  (ttm)',
+        'Operating Income  (ttm)': 'Operating Income  (ttm)',
+        
+        # Predefined ratios - map various formats
+        'trailingEps': 'Diluted EPS  (ttm)',
+        'dilutedEps': 'Diluted EPS  (ttm)',
+        'Diluted EPS  (ttm)': 'Diluted EPS  (ttm)',
+        
+        'trailingPE': 'PE Ratio (TTM)',
+        'peRatio': 'PE Ratio (TTM)',
+        'PE Ratio (TTM)': 'PE Ratio (TTM)',
+        'Trailing P/E': 'PE Ratio (TTM)',
+        
+        'dividendYield': 'Forward Annual Dividend Yield 4',
+        'Forward Annual Dividend Yield 4': 'Forward Annual Dividend Yield 4',
+        'Dividend Yield': 'Forward Annual Dividend Yield 4',
+        
+        'debtToEquity': 'Total Debt/Equity  (mrq)',
+        'Total Debt/Equity  (mrq)': 'Total Debt/Equity  (mrq)',
+        'Debt to Equity': 'Total Debt/Equity  (mrq)',
+        
+        'currentRatio': 'Current Ratio  (mrq)',
+        'Current Ratio (mrq)': 'Current Ratio  (mrq)',
+        'Current Ratio  (mrq)': 'Current Ratio  (mrq)',
+        
+        'operatingMargins': 'Operating Margin  (ttm)',
+        'operatingMargin': 'Operating Margin  (ttm)',
+        'Operating Margin (ttm)': 'Operating Margin  (ttm)',
+        'Operating Margin  (ttm)': 'Operating Margin  (ttm)',
+        
+        'profitMargins': 'Profit Margin',
+        'netProfitMargin': 'Profit Margin',
+        'Profit Margin': 'Profit Margin',
+        
+        'returnOnAssets': 'Return on Assets  (ttm)',
+        'Return on Assets (ttm)': 'Return on Assets  (ttm)',
+        'Return on Assets  (ttm)': 'Return on Assets  (ttm)',
+        
+        'returnOnEquity': 'Return on Equity  (ttm)',
+        'Return on Equity (ttm)': 'Return on Equity  (ttm)',
+        'Return on Equity  (ttm)': 'Return on Equity  (ttm)',
+        
+        'priceToSalesTrailing12Months': 'Price/Sales',
+        'priceToSales': 'Price/Sales',
+        'Price/Sales': 'Price/Sales',
+        'Price-to-Sales': 'Price/Sales',
+        
+        'priceToBook': 'Price/Book',
+        'Price/Book': 'Price/Book',
+        'Price-to-Book': 'Price/Book',
+        
+        'enterpriseToEbitda': 'Enterprise Value/EBITDA',
+        'Enterprise Value/EBITDA': 'Enterprise Value/EBITDA',
+        'EV/EBITDA': 'Enterprise Value/EBITDA',
+        
+        'revenuePerShare': 'Revenue Per Share  (ttm)',
+        'Revenue Per Share (ttm)': 'Revenue Per Share  (ttm)',
+        'Revenue Per Share  (ttm)': 'Revenue Per Share  (ttm)',
+        
+        'bookValue': 'Book Value Per Share  (mrq)',
+        'Book Value Per Share (mrq)': 'Book Value Per Share  (mrq)',
+        'Book Value Per Share  (mrq)': 'Book Value Per Share  (mrq)',
+    }
+    
+    # First, copy all original data
+    normalized.update(stock_data)
+    
+    # Add statistics data with normalized keys
+    if statistics:
+        for key, value in statistics.items():
+            # Try to map the key
+            mapped_key = key_mappings.get(key, key)
+            normalized[mapped_key] = value
+            # Also keep original key for fallback
+            if mapped_key != key:
+                normalized[key] = value
+    
+    # Map all keys in stock_data to expected format
+    for key, value in list(normalized.items()):
+        if key in key_mappings:
+            mapped_key = key_mappings[key]
+            if mapped_key != key:
+                normalized[mapped_key] = value
+                # Keep original for reference
+                if mapped_key not in normalized:
+                    normalized[mapped_key] = value
+    
+    # Handle special cases - extract from nested structures
+    # Market Cap might be in different formats
+    if 'Market Cap' not in normalized or not normalized.get('Market Cap'):
+        # Try to get from various sources
+        for key in ['marketCap', 'market_cap', 'Market Cap', 'MarketCap']:
+            if key in normalized and normalized[key]:
+                normalized['Market Cap'] = normalized[key]
+                break
+    
+    # Ensure we have all keys that might be needed, even if None
+    required_keys = [
+        'Market Cap', 'Revenue  (ttm)', 'Net Income Avi to Common  (ttm)',
+        'Total Debt  (mrq)', 'Total Cash  (mrq)', 'Gross Profit  (ttm)',
+        'Operating Cash Flow  (ttm)', 'EBITDA', 'Total Assets  (mrq)',
+        'Current Assets  (mrq)', 'Current Liabilities  (mrq)',
+        'Levered Free Cash Flow  (ttm)', 'Shares Outstanding 5',
+        'Operating Income  (ttm)'
+    ]
+    
+    for key in required_keys:
+        if key not in normalized:
+            normalized[key] = None
+    
+    return normalized
+
+
+def _get_performance_thresholds():
+    """
+    Generate performance thresholds table based on financia code.
+    Returns a list of dictionaries with ratio name, thresholds, and buy/sell indicators.
+    """
+    thresholds = [
+        {
+            'ratio_name': 'P/E Ratio',
+            'poor': '> 25',
+            'mediocre': '15 - 25',
+            'excellent': '10 - 15',
+            'perfect': '≤ 10',
+            'direction': 'Lower is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (overvalued)',
+        },
+        {
+            'ratio_name': 'Price-to-Sales',
+            'poor': '> 3',
+            'mediocre': '2.25 - 3',
+            'excellent': '1.5 - 2.25',
+            'perfect': '≤ 1.5',
+            'direction': 'Lower is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (overvalued)',
+        },
+        {
+            'ratio_name': 'Price-to-Book',
+            'poor': '> 5',
+            'mediocre': '3.6 - 5',
+            'excellent': '2.2 - 3.6',
+            'perfect': '≤ 2.2',
+            'direction': 'Lower is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (overvalued)',
+        },
+        {
+            'ratio_name': 'Debt to Equity',
+            'poor': '> 2',
+            'mediocre': '1 - 2',
+            'excellent': '0.5 - 1',
+            'perfect': '≤ 0.5',
+            'direction': 'Lower is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (high debt risk)',
+        },
+        {
+            'ratio_name': 'Dividend Yield',
+            'poor': '< 2%',
+            'mediocre': '2% - 3.33%',
+            'excellent': '3.33% - 4.67%',
+            'perfect': '≥ 4.67%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (low income)',
+        },
+        {
+            'ratio_name': 'Gross Margin',
+            'poor': '< 30%',
+            'mediocre': '30% - 50%',
+            'excellent': '50% - 70%',
+            'perfect': '≥ 70%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (low efficiency)',
+        },
+        {
+            'ratio_name': 'Net Profit Margin',
+            'poor': '< 5%',
+            'mediocre': '5% - 10%',
+            'excellent': '10% - 15%',
+            'perfect': '≥ 15%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (low profitability)',
+        },
+        {
+            'ratio_name': 'Operating Margin',
+            'poor': '< 5%',
+            'mediocre': '5% - 11.67%',
+            'excellent': '11.67% - 18.33%',
+            'perfect': '≥ 18.33%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (operational issues)',
+        },
+        {
+            'ratio_name': 'Return on Assets (ROA)',
+            'poor': '< 2.5%',
+            'mediocre': '2.5% - 10%',
+            'excellent': '10% - 17.5%',
+            'perfect': '≥ 17.5%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (inefficient asset use)',
+        },
+        {
+            'ratio_name': 'Return on Equity (ROE)',
+            'poor': '< 2.5%',
+            'mediocre': '2.5% - 10%',
+            'excellent': '10% - 17.5%',
+            'perfect': '≥ 17.5%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (low shareholder returns)',
+        },
+        {
+            'ratio_name': 'Current Ratio',
+            'poor': '< 0.5',
+            'mediocre': '0.5 - 1.33',
+            'excellent': '1.33 - 2.17',
+            'perfect': '≥ 2.17',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (liquidity risk)',
+        },
+        {
+            'ratio_name': 'Free Cash Flow Yield',
+            'poor': '< 3%',
+            'mediocre': '3% - 6%',
+            'excellent': '6% - 9%',
+            'perfect': '≥ 9%',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (cash generation issues)',
+        },
+        {
+            'ratio_name': 'EV/EBITDA',
+            'poor': '> 25',
+            'mediocre': '20 - 25',
+            'excellent': '15 - 20',
+            'perfect': '≤ 15',
+            'direction': 'Lower is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (overvalued)',
+        },
+        {
+            'ratio_name': 'Cash Flow to Debt',
+            'poor': '< 0.5',
+            'mediocre': '0.5 - 1',
+            'excellent': '1 - 1.5',
+            'perfect': '≥ 1.5',
+            'direction': 'Higher is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (debt servicing risk)',
+        },
+        {
+            'ratio_name': 'Debt to Assets',
+            'poor': '> 80%',
+            'mediocre': '60% - 80%',
+            'excellent': '40% - 60%',
+            'perfect': '≤ 40%',
+            'direction': 'Lower is better',
+            'buy_indicator': 'Perfect or Excellent',
+            'sell_indicator': 'Poor (high leverage)',
+        },
+    ]
+    return thresholds
 
 
 @login_required
@@ -923,6 +1711,7 @@ def stocks_market_overview(request, symbol):
 @login_required
 def stocks_risk_dashboard(request, symbol):
     """Risk Dashboard page - shows risk metrics and statistics"""
+    import pandas as pd
     from apps.stock_analysis.services import StockAnalysisService
     from apps.stock_analysis.lib.analysis_utils import calculate_risk_statistics, generate_risk_insights
     from apps.stock_analysis.lib.data_aggregator import StockDataAggregator
@@ -946,21 +1735,47 @@ def stocks_risk_dashboard(request, symbol):
         statistics = {}
         yahoo_statistics = {}
     
+    # Ensure history_df is a proper DataFrame with required columns
+    if history_df is not None and not isinstance(history_df, pd.DataFrame):
+        history_df = pd.DataFrame()
+    elif history_df is not None and isinstance(history_df, pd.DataFrame):
+        # Ensure required columns exist
+        if 'Close' not in history_df.columns or 'Date' not in history_df.columns:
+            history_df = pd.DataFrame()
+        elif not history_df.empty:
+            # Ensure Close column is numeric
+            try:
+                history_df = history_df.copy()
+                if 'Close' in history_df.columns:
+                    history_df['Close'] = pd.to_numeric(history_df['Close'], errors='coerce')
+                if 'Date' in history_df.columns:
+                    history_df['Date'] = pd.to_datetime(history_df['Date'], errors='coerce')
+                history_df = history_df.dropna(subset=['Date', 'Close'])
+            except Exception as e:
+                print(f"Error cleaning history_df: {e}")
+                history_df = pd.DataFrame()
+    
     risk_metrics = {}
     risk_insights = []
     benchmark_df = None
     
     if calculate_risk_statistics and history_df is not None and not history_df.empty:
-        risk_metrics, benchmark_df = calculate_risk_statistics(history_df, market_ticker)
-        if generate_risk_insights:
-            risk_insights = generate_risk_insights(risk_metrics)
-        
-        # Enhance risk metrics with Yahoo Finance statistics if available
-        if yahoo_statistics:
-            # Merge additional statistics that might not be in risk_metrics
-            for key, value in yahoo_statistics.items():
-                if key not in risk_metrics and value is not None:
-                    risk_metrics[f'yahoo_{key}'] = value
+        try:
+            risk_metrics, benchmark_df = calculate_risk_statistics(history_df, market_ticker)
+            if generate_risk_insights:
+                risk_insights = generate_risk_insights(risk_metrics)
+            
+            # Enhance risk metrics with Yahoo Finance statistics if available
+            if yahoo_statistics:
+                # Merge additional statistics that might not be in risk_metrics
+                for key, value in yahoo_statistics.items():
+                    if key not in risk_metrics and value is not None:
+                        risk_metrics[f'yahoo_{key}'] = value
+        except Exception as e:
+            import traceback
+            print(f"Error calculating risk statistics: {e}")
+            traceback.print_exc()
+            # Continue with empty risk_metrics
     
     return render(
         request,

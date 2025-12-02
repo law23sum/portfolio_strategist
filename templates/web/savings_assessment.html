@@ -137,23 +137,23 @@
                 <div class="select is-fullwidth">
                     <select id="plaidAccountSelect">
                         <option value="">Select a linked account (optional)</option>
-                        {% if account_defaults.accounts %}
-                        <optgroup label="Plaid Savings Accounts">
-                            {% for acct in account_defaults.accounts %}
-                            <option value="{{ acct.id }}" data-balance="{{ acct.balance|floatformat:2 }}" data-name="{{ acct.name }}">
-                                {{ acct.name }} - ${{ acct.balance|floatformat:2 }}
-                            </option>
-                            {% endfor %}
-                        </optgroup>
-                        {% endif %}
                         {% if linked_accounts %}
-                        <optgroup label="Linked Accounts (Database)">
+                        <optgroup label="Linked Accounts">
                             {% for account in linked_accounts %}
                             {% with latest_balance=account.balances.first %}
                             <option value="{{ account.id }}" data-balance="{% if latest_balance %}{{ latest_balance.current_balance|floatformat:2 }}{% else %}0{% endif %}" data-name="{{ account.account_name }}">
                                 {{ account.institution_name }} - {{ account.account_name }}
                             </option>
                             {% endwith %}
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                        {% if account_defaults.accounts %}
+                        <optgroup label="Plaid Accounts (Not Linked - Link First)">
+                            {% for acct in account_defaults.accounts %}
+                            <option value="" data-plaid-id="{{ acct.id }}" data-balance="{{ acct.balance|floatformat:2 }}" data-name="{{ acct.name }}" disabled title="Link this account first to use it">
+                                {{ acct.name }} - ${{ acct.balance|floatformat:2 }} (Not Linked)
+                            </option>
                             {% endfor %}
                         </optgroup>
                         {% endif %}
@@ -614,9 +614,22 @@ async function saveAssessment() {
         growth_percent: 0
     };
     
+    // Get selected account ID and validate it's a numeric LinkedAccount ID, not a Plaid account ID
+    const selectedAccountId = document.getElementById('plaidAccountSelect').value;
+    let linkedAccountId = null;
+    
+    // Only use numeric IDs (LinkedAccount database IDs), ignore Plaid account IDs (strings)
+    if (selectedAccountId) {
+        const accountIdNum = parseInt(selectedAccountId, 10);
+        if (!isNaN(accountIdNum) && accountIdNum > 0) {
+            linkedAccountId = accountIdNum;
+        }
+        // If it's not numeric (Plaid account ID), set to null since we can't link to Plaid accounts without LinkedAccount records
+    }
+    
     const data = {
         account_name: accountName,
-        linked_account_id: document.getElementById('plaidAccountSelect').value || null,
+        linked_account_id: linkedAccountId,
         initial_deposit: initialDeposit,
         annual_interest_rate: annualRate,
         biweekly_contribution: biweeklyContrib,
@@ -708,10 +721,18 @@ document.addEventListener('DOMContentLoaded', function() {
 function selectSavingsAccount(accountId, balance, accountName) {
     document.getElementById('initialDeposit').value = parseFloat(balance).toFixed(2);
     document.getElementById('accountName').value = accountName;
-    // Also update the select dropdown
+    // Also update the select dropdown - only if it's a numeric LinkedAccount ID
     const select = document.getElementById('plaidAccountSelect');
     if (select) {
-        select.value = accountId;
+        // Check if accountId is numeric (LinkedAccount ID) or string (Plaid account ID)
+        const accountIdNum = parseInt(accountId, 10);
+        if (!isNaN(accountIdNum) && accountIdNum > 0) {
+            select.value = accountIdNum;
+        } else {
+            // If it's a Plaid account ID, just fill the form fields but don't set the dropdown
+            // since Plaid accounts without LinkedAccount records can't be selected
+            select.value = '';
+        }
     }
 }
 
@@ -720,7 +741,8 @@ const plaidSelect = document.getElementById('plaidAccountSelect');
 if (plaidSelect) {
     plaidSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.value && selectedOption.dataset.balance) {
+        // Only auto-fill if a valid LinkedAccount is selected (not disabled Plaid accounts)
+        if (selectedOption.value && !selectedOption.disabled && selectedOption.dataset.balance) {
             document.getElementById('initialDeposit').value = parseFloat(selectedOption.dataset.balance) || 0;
             if (selectedOption.dataset.name) {
                 document.getElementById('accountName').value = selectedOption.dataset.name;
