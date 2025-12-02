@@ -4,183 +4,193 @@
 
 {% block body %}
 
-<!-- INTRODUCTORY DETAILS -->
-<section class="section container">
-  <div class="columns is-vcentered">
-    <div class="column is-half content">
-<div style="display: flex; flex-direction: column; gap: 20px;">
-  <h2 class="title is-size-4">The Portfolio Strategist</h2>
-  <p class="subtitle is-size-6">
-    Welcome to Financia, where money meets mischief. We take all those intimidating
-    financial details—like earnings, retirement, and even that pesky credit score—and
-    give them a charming new spin.
-  </p>
-</div>
-      <p class="is-size-6">
-        From breezy budgeting to playful predictions, our software is designed to keep you
-        in the loop (and maybe flirt a little) with every part of your financial life.
-      </p>
-    </div>
-    <div class="column is-half">
-      <figure class="image">
-        <img alt="Let's Explore Your Finances" src="{% static 'images/web/finance-illustration.jpeg' %}">
-      </figure>
-    </div>
-  </div>
-</section>
-
-<!-- HERO/INTRO SECTION (General Info) -->
-<section class="hero is-small is-info is-bold">
+<!-- HERO SECTION -->
+<section class="hero landing-hero is-info is-bold">
   <div class="hero-body">
-    <div class="container has-text-centered">
-      <h2 class="subtitle is-size-6">
+    <div class="container">
+      <h1 class="title is-size-2-mobile is-size-1-tablet is-size-1-desktop has-text-white">
+        The Portfolio Strategist
+      </h1>
+      <h2 class="subtitle is-size-5-mobile is-size-4-tablet has-text-white-bis">
         {{ project_meta.DESCRIPTION }}
       </h2>
-      <div class="buttons is-justify-content-center">
-        <a class="button is-primary" href="{% url 'account_signup' %}">
+      <div class="buttons is-justify-content-center mt-5">
+        <a class="button is-primary is-large" href="{% url 'account_signup' %}">
           {% translate "Get Started" %}
+        </a>
+        <a class="button is-light is-large" href="{% url 'web:features_page' %}">
+          {% translate "Learn More" %}
         </a>
       </div>
     </div>
   </div>
 </section>
 
-
-<!-- REPLACED FAQ SECTION WITH IN-DEPTH FUNCTIONALITY DETAILS -->
+<!-- INTRODUCTORY DETAILS -->
 <section class="section container">
-  <h3 class="title is-size-5">In-Depth Functionality Overview</h3>
-  <p class="subtitle is-size-6">
-    How do we make your finances glow up? Here’s a closer look:
-  </p>
-
-  <!-- Creating -->
-  <div class="columns question">
-    <div class="column is-one-third has-text-weight-bold is-size-6">
-      Creating Financial Profiles
-    </div>
-    <div class="column is-two-thirds content is-size-8">
-      <p>
-        Easily set up detailed records for each category—whether it’s a new earning stream,
-        insurance policy, or a fresh asset. We guide you through a quick, flirty quiz
-        to ensure everything’s captured just right.
+  <div class="columns is-vcentered is-variable is-8">
+    <div class="column is-half-desktop is-full-mobile content text-readable">
+      <h2 class="title is-size-3-mobile is-size-2-tablet">Welcome to Financia</h2>
+      <p class="subtitle is-size-5-mobile is-size-4-tablet">
+        Where money meets mischief. We take all those intimidating
+        financial details—like earnings, retirement, and even that pesky credit score—and
+        give them a charming new spin.
+      </p>
+      <p class="is-size-6">
+        From breezy budgeting to playful predictions, our software is designed to keep you
+        in the loop (and maybe flirt a little) with every part of your financial life.
       </p>
     </div>
-  </div>
-
-  <!-- Aggregating -->
-  <div class="columns question">
-    <div class="column is-one-third has-text-weight-bold is-size-6">
-      Aggregating Data Sources
-    </div>
-    <div class="column is-two-thirds content is-size-8">
-      <p>
-        Link all your accounts and policy details in one place. Our real-time sync keeps
-        you updated so you can spend less time juggling multiple logins and more time
-        daydreaming about your next big purchase.
-      </p>
+    <div class="column is-half-desktop is-full-mobile">
+      <figure class="image">
+        <img alt="Let's Explore Your Finances" src="{% static 'images/web/finance-illustration.jpeg' %}" style="border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);">
+      </figure>
     </div>
   </div>
+</section>
 
-  <!-- Reporting -->
-  <div class="columns question">
-    <div class="column is-one-third has-text-weight-bold is-size-6">
-      Reporting Made Easy
-    </div>
-    <div class="column is-two-thirds content is-size-8">
-      <p>
-        Generate stunning (and dare we say, seductive?) reports that break down your
-        spending, saving, and investment habits. With visuals this lovely, you’ll
-        actually want to read your financial statements.
-      </p>
-    </div>
+
+
+<!-- FUNCTIONALITY OVERVIEW -->
+<section class="section container feature-section">
+  <div class="has-text-centered mb-6">
+    <h3 class="title is-size-3-mobile is-size-2-tablet">In-Depth Functionality Overview</h3>
+    <p class="subtitle is-size-5-mobile is-size-4-tablet">
+      How do we make your finances glow up? Here's a closer look:
+    </p>
   </div>
 
-  <!-- Predicting -->
-  <div class="columns question">
-    <div class="column is-one-third has-text-weight-bold is-size-6">
-      Predicting Future Outcomes
+  <div class="columns is-multiline is-variable is-6">
+    <!-- Creating -->
+    <div class="column is-full-mobile is-half-tablet is-one-quarter-desktop">
+      <div class="feature-card has-text-centered">
+        <h4 class="title is-size-5 mb-4">Creating Financial Profiles</h4>
+        <p class="is-size-6">
+          Easily set up detailed records for each category—whether it's a new earning stream,
+          insurance policy, or a fresh asset. We guide you through a quick, flirty quiz
+          to ensure everything's captured just right.
+        </p>
+      </div>
     </div>
-    <div class="column is-two-thirds content is-size-8">
-      <p>
-        Our machine-learning algorithms scan market indicators, your income patterns,
-        and current debts to forecast what’s likely around the corner. Think of it
-        as a crystal ball, but with a lot more data and a little less incense.
-      </p>
+
+    <!-- Aggregating -->
+    <div class="column is-full-mobile is-half-tablet is-one-quarter-desktop">
+      <div class="feature-card has-text-centered">
+        <h4 class="title is-size-5 mb-4">Aggregating Data Sources</h4>
+        <p class="is-size-6">
+          Link all your accounts and policy details in one place. Our real-time sync keeps
+          you updated so you can spend less time juggling multiple logins and more time
+          daydreaming about your next big purchase.
+        </p>
+      </div>
+    </div>
+
+    <!-- Reporting -->
+    <div class="column is-full-mobile is-half-tablet is-one-quarter-desktop">
+      <div class="feature-card has-text-centered">
+        <h4 class="title is-size-5 mb-4">Reporting Made Easy</h4>
+        <p class="is-size-6">
+          Generate stunning (and dare we say, seductive?) reports that break down your
+          spending, saving, and investment habits. With visuals this lovely, you'll
+          actually want to read your financial statements.
+        </p>
+      </div>
+    </div>
+
+    <!-- Predicting -->
+    <div class="column is-full-mobile is-half-tablet is-one-quarter-desktop">
+      <div class="feature-card has-text-centered">
+        <h4 class="title is-size-5 mb-4">Predicting Future Outcomes</h4>
+        <p class="is-size-6">
+          Our machine-learning algorithms scan market indicators, your income patterns,
+          and current debts to forecast what's likely around the corner. Think of it
+          as a crystal ball, but with a lot more data and a little less incense.
+        </p>
+      </div>
     </div>
   </div>
-
 </section>
 
 <!-- FEATURE SECTION 1 (Moderately Detailed) -->
-<section class="section container">
-  <div class="columns is-vcentered">
-    <div class="column is-half">
+<section class="section container feature-section">
+  <div class="columns is-vcentered is-variable is-8">
+    <div class="column is-half-desktop is-full-mobile">
       <figure class="image">
-        <img alt="Financia's Features" src="{% static 'images/undraw/undraw_features_overview.svg' %}">
+        <img alt="Financia's Features" src="{% static 'images/undraw/undraw_features_overview.svg' %}" style="border-radius: 12px;">
       </figure>
     </div>
-    <div class="column is-half content">
-      <h3 class="title is-size-5">A Passion for Precision</h3>
-      <p class="subtitle is-size-6">
-        Because who says finances can’t be fun? Let’s sweep you off your feet with our
+    <div class="column is-half-desktop is-full-mobile content">
+      <h3 class="title is-size-3-mobile is-size-2-tablet">A Passion for Precision</h3>
+      <p class="subtitle is-size-5-mobile is-size-4-tablet">
+        Because who says finances can't be fun? Let's sweep you off your feet with our
         dashing blend of automation and analysis.
       </p>
-      <div class="columns">
-        <div class="column">
-          <strong>Earnings Insights</strong>
-          <p class="is-size-8">
-            Track salary, freelance gigs, and side hustles in one place—so you’ll always
-            know how your wallet’s flirting with fortune.
-          </p>
+      <div class="columns is-multiline is-variable is-4 mt-5">
+        <div class="column is-full-mobile is-half-tablet">
+          <div class="feature-card">
+            <h4 class="title is-size-6 mb-3">Earnings Insights</h4>
+            <p class="is-size-6">
+              Track salary, freelance gigs, and side hustles in one place—so you'll always
+              know how your wallet's flirting with fortune.
+            </p>
+          </div>
         </div>
-        <div class="column">
-          <strong>Retirement Readiness</strong>
-          <p class="is-size-8">
-            Keep tabs on your 401(k), IRA, or that secret retirement fund you’re saving
-            for a future getaway. We’ll handle the math; you plan the beach vacation.
-          </p>
+        <div class="column is-full-mobile is-half-tablet">
+          <div class="feature-card">
+            <h4 class="title is-size-6 mb-3">Retirement Readiness</h4>
+            <p class="is-size-6">
+              Keep tabs on your 401(k), IRA, or that secret retirement fund you're saving
+              for a future getaway. We'll handle the math; you plan the beach vacation.
+            </p>
+          </div>
         </div>
-        <div class="column">
-          <strong>Budget Brilliance</strong>
-          <p class="is-size-8">
-            A budgeting tool that’s more than just a nag—let us gently guide you to
-            spending bliss (and maybe a splurge or two).
-          </p>
+        <div class="column is-full-mobile is-half-tablet">
+          <div class="feature-card">
+            <h4 class="title is-size-6 mb-3">Budget Brilliance</h4>
+            <p class="is-size-6">
+              A budgeting tool that's more than just a nag—let us gently guide you to
+              spending bliss (and maybe a splurge or two).
+            </p>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURE SECTION 1 (More Complex Details) -->
-<section class="section container">
-  <div class="columns is-vcentered">
-    <div class="column is-half content">
-      <h3 class="title is-size-5">Your Finances in Real Time</h3>
-      <p class="subtitle is-size-6">
+<!-- FEATURE SECTION 2 (More Complex Details) -->
+<section class="section container feature-section">
+  <div class="columns is-vcentered is-variable is-8 columns-reversed">
+    <div class="column is-half-desktop is-full-mobile content">
+      <h3 class="title is-size-3-mobile is-size-2-tablet">Your Finances in Real Time</h3>
+      <p class="subtitle is-size-5-mobile is-size-4-tablet">
         No more second-guessing—let our daily updates and forecasting features show you
         exactly where you stand.
       </p>
-      <div class="columns">
-        <div class="column">
-          <strong>Smart Aggregation</strong>
-          <p class="is-size-8">
-            Automatic data sync with banks, brokers, and beyond. Your accounts will
-            practically beg to be consolidated.
-          </p>
+      <div class="columns is-multiline is-variable is-4 mt-5">
+        <div class="column is-full-mobile is-half-tablet">
+          <div class="feature-card">
+            <h4 class="title is-size-6 mb-3">Smart Aggregation</h4>
+            <p class="is-size-6">
+              Automatic data sync with banks, brokers, and beyond. Your accounts will
+              practically beg to be consolidated.
+            </p>
+          </div>
         </div>
-        <div class="column">
-          <strong>Alerts &amp; Actionable Tips</strong>
-          <p class="is-size-8">
-            Gentle nudges when it’s time to optimize, pivot, or just celebrate a
-            financial milestone. Think of us as your money’s personal wingman.
-          </p>
+        <div class="column is-full-mobile is-half-tablet">
+          <div class="feature-card">
+            <h4 class="title is-size-6 mb-3">Alerts &amp; Actionable Tips</h4>
+            <p class="is-size-6">
+              Gentle nudges when it's time to optimize, pivot, or just celebrate a
+              financial milestone. Think of us as your money's personal wingman.
+            </p>
+          </div>
         </div>
       </div>
     </div>
-    <div class="column is-half">
+    <div class="column is-half-desktop is-full-mobile">
       <figure class="image">
-        <img alt="Portfolio Update" src="{% static 'images/undraw/undraw_portfolio_update.svg' %}">
+        <img alt="Portfolio Update" src="{% static 'images/undraw/undraw_portfolio_update.svg' %}" style="border-radius: 12px;">
       </figure>
     </div>
   </div>

@@ -34,6 +34,13 @@
 		<!-- Exception domains for development server -->
 		<key>NSExceptionDomains</key>
 		<dict>
+			<key>192.168.254.64</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
 			<key>10.23.49.129</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>

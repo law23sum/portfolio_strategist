@@ -142,7 +142,7 @@ MIDDLEWARE = [
     "apps.web.middleware.locale.UserLocaleMiddleware",
     "apps.web.middleware.locale.UserTimezoneMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.web.middleware.xframe_options.CustomXFrameOptionsMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
     "hijack.middleware.HijackUserMiddleware",
     "waffle.middleware.WaffleMiddleware",
@@ -657,8 +657,9 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
     "http://127.0.0.1:8000",
     "http://10.0.2.2:8000",  # Android emulator
     "http://localhost:19006",  # React Native dev server
-    "http://10.23.49.129:8000",  # Current local IP for mobile app
-    "http://10.23.49.129:19006",  # Mobile device IP
+    "http://192.168.254.64:8000",  # Current local IP for mobile app (updated)
+    "http://10.23.49.129:8000",  # Previous local IP (kept for compatibility)
+    "http://10.37.129.2:8000",  # Previous local IP (kept for compatibility)
 ])
 
 # Allow credentials (if using authentication cookies)

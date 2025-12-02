@@ -1,0 +1,48 @@
+/**
+ * @format
+ */
+
+console.log('[index.js] Starting index.js execution...');
+console.log('[index.js] Timestamp:', new Date().toISOString());
+
+// IMPORTANT: react-native-gesture-handler must be imported first
+try {
+  console.log('[index.js] Importing react-native-gesture-handler...');
+  require('react-native-gesture-handler');
+  console.log('[index.js] ✓ react-native-gesture-handler loaded');
+} catch (e) {
+  console.error('[index.js] ✗ Error loading react-native-gesture-handler:', e);
+}
+
+try {
+  console.log('[index.js] Importing react-native-reanimated...');
+  require('react-native-reanimated');
+  console.log('[index.js] ✓ react-native-reanimated loaded');
+} catch (e) {
+  console.error('[index.js] ✗ Error loading react-native-reanimated:', e);
+}
+
+try {
+  console.log('[index.js] Importing react-native...');
+  const {AppRegistry} = require('react-native');
+  console.log('[index.js] ✓ react-native loaded');
+  
+  console.log('[index.js] Importing App component...');
+  const App = require('./App').default;
+  console.log('[index.js] ✓ App component loaded');
+  
+  console.log('[index.js] Loading app.json...');
+  const appJson = require('./app.json');
+  const appName = appJson.name;
+  console.log('[index.js] ✓ app.json loaded, appName:', appName);
+  
+  console.log('[index.js] Registering app component:', appName);
+  AppRegistry.registerComponent(appName, () => {
+    console.log('[index.js] App component factory called');
+    return App;
+  });
+  console.log('[index.js] ✓ App component registered successfully');
+} catch (e) {
+  console.error('[index.js] ✗ CRITICAL ERROR:', e);
+  console.error('[index.js] Error stack:', e.stack);
+}

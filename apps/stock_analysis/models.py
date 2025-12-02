@@ -15,6 +15,13 @@ class StockAnalysis(models.Model):
     ai_assessment = models.TextField(blank=True)
     forecast_data = models.JSONField(default=dict, null=True, blank=True)
     news_html = models.TextField(blank=True)
+    history_data = models.JSONField(default=list, blank=True)
+    forecast_errors = models.JSONField(default=list, blank=True)
+    risk_metrics = models.JSONField(default=dict, blank=True)
+    risk_insights = models.JSONField(default=list, blank=True)
+    market_overview = models.JSONField(default=dict, blank=True)
+    decision_support = models.JSONField(default=dict, blank=True)
+    benchmark_symbol = models.CharField(max_length=20, default='^GSPC')
     
     forecast_days = models.IntegerField(default=365)
     equation_type = models.CharField(max_length=100, default='Geometric Brownian Motion External Macroeconomic Factors')
@@ -71,4 +78,3 @@ class PersonalLoanAnalysis(models.Model):
     
     def __str__(self):
         return f"Loan Analysis - {self.user.email} - {self.analysis_date.date()}"
-

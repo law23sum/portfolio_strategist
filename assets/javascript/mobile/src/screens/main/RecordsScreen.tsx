@@ -1,67 +1,87 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-export default function RecordsScreen({ navigation }: any) {
-  const menuItems = [
-    {
-      title: 'Financial Insights',
-      description: 'View your financial insights and analytics',
-      icon: 'insights',
-      screen: 'Insights',
-      color: '#4CAF50',
-    },
-    {
-      title: 'Data Explorer',
-      description: 'Explore your financial data',
-      icon: 'explore',
-      screen: 'Explorer',
-      color: '#2196F3',
-    },
-    {
-      title: 'Upload Document',
-      description: 'Upload financial documents',
-      icon: 'cloud-upload',
-      screen: 'Upload',
-      color: '#FF9800',
-    },
-    {
-      title: 'Linked Accounts',
-      description: 'Manage your linked financial accounts',
-      icon: 'account-balance',
-      screen: 'LinkedAccounts',
-      color: '#9C27B0',
-    },
-  ];
+const DOCUMENT_TOOLS = [
+  {
+    title: 'Upload Documents',
+    description: 'PDF, images and statements sync with the Records module used on web.',
+    icon: 'cloud-upload',
+    route: {screen: 'Upload'},
+  },
+  {
+    title: 'Document Explorer',
+    description: 'Browse, filter and inspect imported data the same way you do on desktop.',
+    icon: 'description',
+    route: {screen: 'Explorer'},
+  },
+  {
+    title: 'Insights',
+    description: 'AI-generated summaries and KPIs from the Insights experience.',
+    icon: 'insights',
+    route: {screen: 'Insights'},
+  },
+];
 
+const LINKED_SERVICES = [
+  {
+    title: 'Linked Accounts',
+    description: 'View and manage Plaid-linked institutions.',
+    icon: 'account-balance',
+    route: {screen: 'LinkedAccounts'},
+  },
+  {
+    title: 'Link a new account',
+    description: 'Kick off Plaid Link directly from mobile.',
+    icon: 'link',
+    route: {screen: 'LinkedAccounts'},
+  },
+];
+
+export default function RecordsScreen({navigation}: any) {
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Financial Records</Text>
-        <Text style={styles.subtitle}>Manage your financial data and documents</Text>
+      <View style={styles.hero}>
+        <Text style={styles.heroEyebrow}>Financial Records</Text>
+        <Text style={styles.heroTitle}>Keep every document and connection tidy.</Text>
+        <Text style={styles.heroSubtitle}>
+          All data-management tools from the Portfolio Strategist web app live here: uploads, explorer,
+          AI insights and account aggregation.
+        </Text>
       </View>
 
-      <View style={styles.menuContainer}>
-        {menuItems.map((item, index) => (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Document tools</Text>
+        {DOCUMENT_TOOLS.map(item => (
           <TouchableOpacity
-            key={index}
-            style={styles.menuItem}
-            onPress={() => navigation.navigate(item.screen)}
+            key={item.title}
+            style={styles.card}
+            onPress={() => navigation.navigate(item.route.screen)}
           >
-            <View style={[styles.iconContainer, { backgroundColor: `${item.color}15` }]}>
-              <Icon name={item.icon} size={32} color={item.color} />
+            <Icon name={item.icon} size={28} color="#0A84FF" style={styles.cardIcon} />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDescription}>{item.description}</Text>
             </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>{item.title}</Text>
-              <Text style={styles.menuDescription}>{item.description}</Text>
+            <Icon name="chevron-right" size={24} color="#9C9C9C" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Linked services</Text>
+        {LINKED_SERVICES.map(item => (
+          <TouchableOpacity
+            key={item.title}
+            style={styles.card}
+            onPress={() => navigation.navigate(item.route.screen)}
+          >
+            <Icon name={item.icon} size={28} color="#0A84FF" style={styles.cardIcon} />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDescription}>{item.description}</Text>
             </View>
-            <Icon name="chevron-right" size={24} color="#999" />
+            <Icon name="chevron-right" size={24} color="#9C9C9C" />
           </TouchableOpacity>
         ))}
       </View>
@@ -74,60 +94,68 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: '#007AFF',
-    padding: 20,
-    paddingTop: 60,
+  hero: {
+    backgroundColor: '#0A84FF',
+    paddingTop: 64,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  heroEyebrow: {
+    color: '#D7EAFF',
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '700',
     color: '#fff',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#fff',
-    opacity: 0.9,
+  heroSubtitle: {
+    color: '#E6F1FF',
+    fontSize: 15,
+    lineHeight: 22,
   },
-  menuContainer: {
-    padding: 16,
+  section: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
   },
-  menuItem: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 16,
+  },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 10,
+    elevation: 2,
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardIcon: {
     marginRight: 16,
   },
-  menuContent: {
+  cardContent: {
     flex: 1,
   },
-  menuTitle: {
-    fontSize: 18,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: '#111',
   },
-  menuDescription: {
+  cardDescription: {
+    marginTop: 4,
     fontSize: 14,
     color: '#666',
+    lineHeight: 20,
   },
 });
-
-
-

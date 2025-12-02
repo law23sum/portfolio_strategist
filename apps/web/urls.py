@@ -23,6 +23,11 @@ urlpatterns = [
     path("features/", TemplateView.as_view(template_name = "web/features_page.html", extra_context = {"active_tab": "features_page"}), name = "features_page"),
     path("investment-savings/", views.investment_savings, name = "investment_savings"),
     path("investment-savings/stocks-assessment/", views.stocks_assessment, name = "stocks_assessment"),
+    path(
+        "investment-savings/stocks-assessment/<int:pk>/",
+        views.stocks_assessment_detail,
+        name = "stocks_assessment_detail",
+    ),
     path("investment-savings/savings-assessment/", views.savings_assessment, name = "savings_assessment"),
     path("investment-savings/cd-assessment/", views.cd_assessment, name = "cd_assessment"),
     path("investment-savings/bond-assessment/", views.bond_assessment, name = "bond_assessment"),

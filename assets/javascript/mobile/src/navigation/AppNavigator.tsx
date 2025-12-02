@@ -20,21 +20,12 @@ import InsightsScreen from '../screens/records/InsightsScreen';
 import ExplorerScreen from '../screens/records/ExplorerScreen';
 import UploadScreen from '../screens/records/UploadScreen';
 import LinkedAccountsScreen from '../screens/records/LinkedAccountsScreen';
+import AccountDetailScreen from '../screens/records/AccountDetailScreen';
 
 // Stock Analysis Sub-screens
 import AnalyzeStockScreen from '../screens/stock/AnalyzeStockScreen';
 import AnalysisResultsScreen from '../screens/stock/AnalysisResultsScreen';
 import LoanAnalysisScreen from '../screens/stock/LoanAnalysisScreen';
-import InvestmentPlannerScreen from '../screens/stock/InvestmentPlannerScreen';
-
-// Investment & Savings Screens
-import InvestmentSavingsScreen from '../screens/investment/InvestmentSavingsScreen';
-import SavingsAssessmentScreen from '../screens/investment/SavingsAssessmentScreen';
-import CDAssessmentScreen from '../screens/investment/CDAssessmentScreen';
-import BondAssessmentScreen from '../screens/investment/BondAssessmentScreen';
-
-// Budget Planner
-import BudgetPlannerScreen from '../screens/main/BudgetPlannerScreen';
 
 // Chat Screen
 import ChatScreen from '../screens/chat/ChatScreen';
@@ -47,7 +38,6 @@ const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
 const RecordsStack = createStackNavigator();
 const StockStack = createStackNavigator();
-const InvestmentStack = createStackNavigator();
 
 function RecordsNavigator() {
   return (
@@ -77,6 +67,11 @@ function RecordsNavigator() {
         component={LinkedAccountsScreen}
         options={{ title: 'Linked Accounts' }}
       />
+      <RecordsStack.Screen 
+        name="AccountDetail" 
+        component={AccountDetailScreen}
+        options={{ title: 'Account Details' }}
+      />
     </RecordsStack.Navigator>
   );
 }
@@ -104,39 +99,7 @@ function StockNavigator() {
         component={LoanAnalysisScreen}
         options={{ title: 'Loan Analysis' }}
       />
-      <StockStack.Screen 
-        name="InvestmentPlanner" 
-        component={InvestmentPlannerScreen}
-        options={{ title: 'Investment Planner' }}
-      />
     </StockStack.Navigator>
-  );
-}
-
-function InvestmentNavigator() {
-  return (
-    <InvestmentStack.Navigator>
-      <InvestmentStack.Screen 
-        name="InvestmentSavingsMain" 
-        component={InvestmentSavingsScreen}
-        options={{ headerShown: false }}
-      />
-      <InvestmentStack.Screen 
-        name="SavingsAssessment" 
-        component={SavingsAssessmentScreen}
-        options={{ title: 'Savings Assessment' }}
-      />
-      <InvestmentStack.Screen 
-        name="CDAssessment" 
-        component={CDAssessmentScreen}
-        options={{ title: 'CD Assessment' }}
-      />
-      <InvestmentStack.Screen 
-        name="BondAssessment" 
-        component={BondAssessmentScreen}
-        options={{ title: 'Bond Assessment' }}
-      />
-    </InvestmentStack.Navigator>
   );
 }
 
@@ -181,17 +144,6 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
         }}
       />
       <Tab.Screen
-        name="InvestmentSavings"
-        component={InvestmentNavigator}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="savings" size={size} color={color} />
-          ),
-          headerShown: false,
-          tabBarLabel: 'Investments',
-        }}
-      />
-      <Tab.Screen
         name="Solutions"
         component={SolutionsScreen}
         options={{
@@ -199,16 +151,6 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
             <Icon name="lightbulb" size={size} color={color} />
           ),
           headerTitle: 'Solutions',
-        }}
-      />
-      <Tab.Screen
-        name="BudgetPlanner"
-        component={BudgetPlannerScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="account-balance-wallet" size={size} color={color} />
-          ),
-          headerTitle: 'Budget Planner',
         }}
       />
       <Tab.Screen

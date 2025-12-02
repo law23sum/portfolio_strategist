@@ -234,7 +234,7 @@
                         <td>${{ assessment.amount|floatformat:2 }}</td>
                         <td>{{ assessment.annual_interest_rate|floatformat:2 }}%</td>
                         <td>${{ assessment.biweekly_contribution|floatformat:2|default:"0.00" }}</td>
-                        <td>${{ assessment.forecast_data.phase_1.value|default:assessment.forecast_data.decade.value|default:"N/A" }}</td>
+                        <td>${{ assessment.forecast_data.phase_1.value|default:assessment.forecast_data.current.value|default:"N/A" }}</td>
                         <td>{{ assessment.updated_at|date:"M d, Y" }}</td>
                         <td>
                             <button class="button is-small" onclick="loadAssessment({{ assessment.id }})">Edit</button>

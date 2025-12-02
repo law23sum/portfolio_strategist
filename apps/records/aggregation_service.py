@@ -4,6 +4,7 @@ Handles integration with aggregation providers (Plaid, Yodlee, etc.)
 """
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
@@ -14,33 +15,24 @@ from django.utils import timezone
 # Lazy import for Plaid - only import when needed
 try:
     from plaid.configuration import Configuration
-    from plaid.model import (
-        Products,
-        LinkTokenCreateRequest,
-        LinkTokenCreateRequestUser,
-        ItemPublicTokenExchangeRequest,
-        AccountsGetRequest,
-        TransactionsGetRequest,
-        InvestmentsHoldingsGetRequest,
-        InvestmentsTransactionsGetRequest,
-        AccountBase,
-        Transaction,
-        InvestmentHoldingsGetRequestOptions,
-        InvestmentsTransactionsGetRequestOptions,
-        Environment,
-    )
-    # In Plaid SDK 37.x+, CountryCode moved to a submodule
-    try:
-        from plaid.model.country_code import CountryCode
-    except ImportError:
-        # Fallback for older SDK versions
-        from plaid.model import CountryCode
+    from plaid.api_client import ApiClient
+    from plaid.model.products import Products
+    from plaid.model.link_token_create_request import LinkTokenCreateRequest
+    from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
+    from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+    from plaid.model.accounts_get_request import AccountsGetRequest
+    from plaid.model.transactions_get_request import TransactionsGetRequest
+    from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
+    from plaid.model.investments_transactions_get_request import InvestmentsTransactionsGetRequest
+    from plaid.model.identity_get_request import IdentityGetRequest
+    from plaid.model.country_code import CountryCode
     from plaid.api.plaid_api import PlaidApi
+    # Note: In Plaid SDK 37.x+, Environment enum was removed, use strings directly
     PLAID_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     PLAID_AVAILABLE = False
     logger = logging.getLogger(__name__)
-    logger.warning("Plaid Python SDK not installed. Financial aggregation features will be limited.")
+    logger.warning(f"Plaid Python SDK not installed or import error: {e}. Financial aggregation features will be limited.")
 
 from .models import (
     AggregationProvider,
@@ -202,14 +194,15 @@ class PlaidAggregationService:
         self.provider = provider
         
         # Initialize Plaid client
+        # In Plaid SDK 37.x+, host is a string, not an Environment enum
         environment_map = {
-            'sandbox': Environment.sandbox,
-            'development': Environment.development,
-            'production': Environment.production,
+            'sandbox': 'https://sandbox.plaid.com',
+            'development': 'https://development.plaid.com',
+            'production': 'https://production.plaid.com',
         }
         plaid_environment = environment_map.get(
             self.provider.environment.lower(),
-            Environment.sandbox
+            'https://sandbox.plaid.com'
         )
         
         configuration = Configuration(
@@ -219,25 +212,45 @@ class PlaidAggregationService:
                 'secret': self.provider.api_secret,
             }
         )
-        self.client = PlaidApi(configuration)
+        api_client = ApiClient(configuration)
+        self.client = PlaidApi(api_client)
     
-    def create_link_token(self, user_id: str, user_email: str) -> Dict[str, Any]:
+    def create_link_token(self, user_id: str = None, user_email: str = None, for_auth: bool = False) -> Dict[str, Any]:
         """
         Create a Plaid Link token for initiating the OAuth flow.
         Returns a dictionary with 'link_token' and 'expiration'.
+        
+        Args:
+            user_id: User ID (optional for authentication flow)
+            user_email: User email (optional for authentication flow)
+            for_auth: If True, include Identity product for authentication
         """
         try:
-            request = LinkTokenCreateRequest(
-                products=[Products('transactions'), Products('investments'), Products('liabilities')],
-                client_name="The Portfolio Strategist",
-                country_codes=[CountryCode('US')],
-                language='en',
-                user=LinkTokenCreateRequestUser(
-                    client_user_id=str(user_id)
-                ),
-                webhook=self.provider.webhook_url if self.provider.webhook_url else None,
-            )
+            products = [Products('transactions'), Products('investments'), Products('liabilities')]
+            if for_auth:
+                products.append(Products('identity'))
             
+            request_data = {
+                'products': products,
+                'client_name': "The Portfolio Strategist",
+                'country_codes': [CountryCode('US')],
+                'language': 'en',
+            }
+            
+            if user_id:
+                request_data['user'] = LinkTokenCreateRequestUser(
+                    client_user_id=str(user_id)
+                )
+            elif for_auth:
+                # For authentication, use a temporary client_user_id
+                request_data['user'] = LinkTokenCreateRequestUser(
+                    client_user_id='temp_auth_' + str(uuid.uuid4())
+                )
+            
+            if self.provider.webhook_url:
+                request_data['webhook'] = self.provider.webhook_url
+            
+            request = LinkTokenCreateRequest(**request_data)
             response = self.client.link_token_create(request)
             
             # Handle both dict and object responses
@@ -250,6 +263,86 @@ class PlaidAggregationService:
             }
         except Exception as e:
             logger.error(f"Error creating Plaid link token: {e}")
+            raise
+    
+    def get_identity(self, access_token: str) -> Dict[str, Any]:
+        """
+        Get identity information from Plaid using an access token.
+        Returns identity data including names, emails, phone numbers, and addresses.
+        """
+        try:
+            request = IdentityGetRequest(access_token=access_token)
+            response = self.client.identity_get(request)
+            
+            # Handle both dict and object responses
+            if hasattr(response, 'accounts'):
+                accounts = response.accounts
+            else:
+                accounts = response.get('accounts', [])
+            
+            identity_data = {
+                'accounts': [],
+                'names': [],
+                'emails': [],
+                'phone_numbers': [],
+                'addresses': []
+            }
+            
+            for account in accounts:
+                account_data = {
+                    'account_id': account.account_id if hasattr(account, 'account_id') else account.get('account_id'),
+                    'owners': []
+                }
+                
+                owners = account.owners if hasattr(account, 'owners') else account.get('owners', [])
+                for owner in owners:
+                    owner_data = {
+                        'names': [],
+                        'emails': [],
+                        'phone_numbers': [],
+                        'addresses': []
+                    }
+                    
+                    # Extract names
+                    names = owner.names if hasattr(owner, 'names') else owner.get('names', [])
+                    for name in names:
+                        if name not in identity_data['names']:
+                            identity_data['names'].append(name)
+                        owner_data['names'].append(name)
+                    
+                    # Extract emails
+                    emails = owner.emails if hasattr(owner, 'emails') else owner.get('emails', [])
+                    for email_obj in emails:
+                        email = email_obj.data if hasattr(email_obj, 'data') else email_obj.get('data', '')
+                        if email and email not in identity_data['emails']:
+                            identity_data['emails'].append(email)
+                        owner_data['emails'].append(email)
+                    
+                    # Extract phone numbers
+                    phones = owner.phone_numbers if hasattr(owner, 'phone_numbers') else owner.get('phone_numbers', [])
+                    for phone_obj in phones:
+                        phone = phone_obj.data if hasattr(phone_obj, 'data') else phone_obj.get('data', '')
+                        if phone and phone not in identity_data['phone_numbers']:
+                            identity_data['phone_numbers'].append(phone)
+                        owner_data['phone_numbers'].append(phone)
+                    
+                    # Extract addresses
+                    addresses = owner.addresses if hasattr(owner, 'addresses') else owner.get('addresses', [])
+                    for addr_obj in addresses:
+                        addr_data = addr_obj.data if hasattr(addr_obj, 'data') else addr_obj.get('data', {})
+                        if addr_data:
+                            addr_str = f"{addr_data.get('street', '')}, {addr_data.get('city', '')}, {addr_data.get('region', '')} {addr_data.get('postal_code', '')}"
+                            if addr_str not in identity_data['addresses']:
+                                identity_data['addresses'].append(addr_str)
+                            owner_data['addresses'].append(addr_data)
+                    
+                    account_data['owners'].append(owner_data)
+                
+                identity_data['accounts'].append(account_data)
+            
+            return identity_data
+        except Exception as e:
+            logger.error(f"Error getting identity from Plaid: {e}")
             raise
     
     def exchange_public_token(self, public_token: str) -> str:

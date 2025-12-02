@@ -1,91 +1,84 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-export default function SolutionsScreen({ navigation }: any) {
-  const solutions = [
-    {
-      title: 'Budget Planning',
-      description: 'Create and manage your budget with tax, expense, and debt calculations',
-      icon: 'account-balance-wallet',
-      color: '#4CAF50',
-      onPress: () => navigation.navigate('BudgetPlanner'),
-    },
-    {
-      title: 'Investment & Savings',
-      description: 'Assess stocks, savings, CDs, and bonds with detailed forecasts',
-      icon: 'savings',
-      color: '#2196F3',
-      onPress: () => navigation.navigate('InvestmentSavings', { screen: 'InvestmentSavingsMain' }),
-    },
-    {
-      title: 'Stock Analysis',
-      description: 'Analyze stocks and create investment plans with forecasts',
-      icon: 'trending-up',
-      color: '#FF9800',
-      onPress: () => navigation.navigate('StockAnalysis', { screen: 'StockMain' }),
-    },
-    {
-      title: 'Loan Analysis',
-      description: 'Analyze personal loans and compare loan options',
-      icon: 'account-balance',
-      color: '#9C27B0',
-      onPress: () => navigation.navigate('StockAnalysis', { screen: 'Loan' }),
-    },
-    {
-      title: 'Financial Records',
-      description: 'Upload documents, view insights, and explore your financial data',
-      icon: 'description',
-      color: '#00BCD4',
-      onPress: () => navigation.navigate('Records', { screen: 'RecordsMain' }),
-    },
-    {
-      title: 'AI Financial Services',
-      description: 'Get personalized financial advice from our AI assistant',
-      icon: 'chat',
-      color: '#E91E63',
-      onPress: () => navigation.navigate('Chat'),
-    },
-  ];
+const SOLUTION_GROUPS = [
+  {
+    title: 'Budget Planner',
+    description:
+      'The same budgeting, tax, expense and debt worksheets from the web experience, optimized for touch.',
+    icon: 'account-balance-wallet',
+    route: 'BudgetPlanner',
+  },
+  {
+    title: 'Investment & Savings',
+    description:
+      'Stocks, savings, CD and bond assessments with portfolio forecasts, matching the desktop workflows.',
+    icon: 'savings',
+    route: 'InvestmentSavings',
+  },
+  {
+    title: 'AI Solutions',
+    description:
+      'AI assistant mirrors the site-wide chat experience for financial planning and answering “what-if” questions.',
+    icon: 'smart-toy',
+    route: 'Chat',
+  },
+];
 
+const SECONDARY = [
+  {
+    title: 'Portfolio Management',
+    description: 'Review allocations, rebalance suggestions and strategy notes.',
+    icon: 'pie-chart',
+  },
+  {
+    title: 'Retirement Planning',
+    description: 'Project scenarios and track milestones consistent with the web portal.',
+    icon: 'timeline',
+  },
+];
+
+export default function SolutionsScreen({navigation}: any) {
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Solutions</Text>
-        <Text style={styles.subtitle}>
-          Comprehensive financial solutions tailored for you
+      <View style={styles.hero}>
+        <Text style={styles.heroEyebrow}>Solutions Hub</Text>
+        <Text style={styles.heroTitle}>Strategic tools, same as the web.</Text>
+        <Text style={styles.heroSubtitle}>
+          Budget planning, investment planners, retirement projections and AI support are available in one tidy mobile hub.
         </Text>
+      </View>
 
-        {solutions.map((solution, index) => (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Primary solutions</Text>
+        {SOLUTION_GROUPS.map(group => (
           <TouchableOpacity
-            key={index}
-            style={styles.solutionCard}
-            onPress={solution.onPress}
-            activeOpacity={0.7}
+            key={group.title}
+            style={styles.card}
+            onPress={() => navigation.navigate(group.route as never)}
           >
-            <View style={[styles.iconContainer, { backgroundColor: `${solution.color}15` }]}>
-              <Icon name={solution.icon} size={32} color={solution.color} />
+            <Icon name={group.icon} size={28} color="#0A84FF" style={styles.cardIcon} />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>{group.title}</Text>
+              <Text style={styles.cardDescription}>{group.description}</Text>
             </View>
-            <View style={styles.solutionContent}>
-              <Text style={styles.solutionTitle}>{solution.title}</Text>
-              <Text style={styles.solutionDescription}>{solution.description}</Text>
-            </View>
-            <Icon name="chevron-right" size={24} color="#999" />
+            <Icon name="chevron-right" size={24} color="#9C9C9C" />
           </TouchableOpacity>
         ))}
+      </View>
 
-        <View style={styles.infoCard}>
-          <Icon name="info" size={24} color="#007AFF" />
-          <Text style={styles.infoText}>
-            Our solutions help you create, aggregate, report, and predict your financial future
-          </Text>
-        </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Supporting experiences</Text>
+        {SECONDARY.map(item => (
+          <View key={item.title} style={styles.secondaryCard}>
+            <Icon name={item.icon} size={24} color="#0A84FF" />
+            <View style={styles.secondaryContent}>
+              <Text style={styles.secondaryTitle}>{item.title}</Text>
+              <Text style={styles.secondaryDescription}>{item.description}</Text>
+            </View>
+          </View>
+        ))}
       </View>
     </ScrollView>
   );
@@ -96,70 +89,96 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  content: {
-    padding: 16,
+  hero: {
+    backgroundColor: '#0A84FF',
+    paddingTop: 64,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+  heroEyebrow: {
+    color: '#D7EAFF',
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
   },
-  solutionCard: {
+  heroSubtitle: {
+    color: '#E6F1FF',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  section: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 16,
+  },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 10,
+    elevation: 2,
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardIcon: {
     marginRight: 16,
   },
-  solutionContent: {
+  cardContent: {
     flex: 1,
   },
-  solutionTitle: {
-    fontSize: 18,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: '#111',
   },
-  solutionDescription: {
+  cardDescription: {
+    marginTop: 4,
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
   },
-  infoCard: {
+  secondaryCard: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
+    alignItems: 'flex-start',
+    backgroundColor: '#fff',
+    borderRadius: 14,
     padding: 16,
-    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 10,
+    elevation: 1,
   },
-  infoText: {
-    flex: 1,
+  secondaryContent: {
     marginLeft: 12,
-    fontSize: 14,
-    color: '#1976D2',
+    flex: 1,
+  },
+  secondaryTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111',
+  },
+  secondaryDescription: {
+    marginTop: 4,
+    fontSize: 13,
+    color: '#666',
     lineHeight: 20,
   },
 });
-
-
-

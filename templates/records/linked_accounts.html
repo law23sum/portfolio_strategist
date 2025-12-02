@@ -1,0 +1,280 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+    .financial-card {
+        transition: transform 0.2s;
+    }
+    .financial-card:hover {
+        transform: translateY(-2px);
+    }
+    .account-card {
+        margin-bottom: 15px;
+    }
+    .balance-amount {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="container">
+    <div class="level" style="margin-bottom: 30px;">
+        <div class="level-left">
+            <div>
+                <h1 class="title">Linked Accounts</h1>
+                <p class="subtitle">View and manage your connected financial accounts</p>
+            </div>
+        </div>
+        <div class="level-right">
+            <a href="{% url 'records:link_account' %}" class="button is-primary">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>Link New Account</span>
+            </a>
+        </div>
+    </div>
+
+    {% if accounts_with_balances %}
+    <!-- Accounts Grid View -->
+    <div class="columns is-multiline">
+        {% for item in accounts_with_balances %}
+        <div class="column is-one-third">
+            <div class="card account-card financial-card">
+                <div class="card-content">
+                    <div class="level">
+                        <div class="level-left">
+                            <div>
+                                <h3 class="title is-5">{{ item.account.account_name }}</h3>
+                                <p class="subtitle is-6">{{ item.account.institution_name }}</p>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag {% if item.account.status == 'active' %}is-success{% elif item.account.status == 'error' %}is-danger{% else %}is-warning{% endif %}">
+                                {{ item.account.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <p class="heading">Account Type</p>
+                        <p>{{ item.account.get_account_type_display }}</p>
+                    </div>
+
+                    {% if item.latest_balance %}
+                    <div style="margin-top: 15px;">
+                        <p class="heading">Current Balance</p>
+                        <p class="balance-amount {% if item.latest_balance.current_balance >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                            ${{ item.latest_balance.current_balance|floatformat:2|intcomma }}
+                        </p>
+                        <p class="is-size-7 has-text-grey">
+                            As of {{ item.latest_balance.balance_date|date:"M d, Y" }}
+                        </p>
+                        {% if item.latest_balance.available_balance %}
+                        <p class="is-size-7 has-text-grey" style="margin-top: 5px;">
+                            Available: ${{ item.latest_balance.available_balance|floatformat:2|intcomma }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div style="margin-top: 15px;">
+                        <p class="heading">Balance</p>
+                        <p class="has-text-grey">No balance data available</p>
+                        <p class="is-size-7 has-text-grey">Sync account to retrieve balance</p>
+                    </div>
+                    {% endif %}
+
+                    <div style="margin-top: 20px;">
+                        <p class="is-size-7 has-text-grey">
+                            Last synced: 
+                            {% if item.account.last_synced_at %}
+                                {{ item.account.last_synced_at|date:"M d, Y H:i" }}
+                            {% else %}
+                                Never
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="buttons" style="margin-top: 20px;">
+                        <a href="{% url 'records:account_detail' item.account.id %}" class="button is-small is-primary">
+                            <span class="icon">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                            <span>View Details</span>
+                        </a>
+                        <button onclick="syncAccount({{ item.account.id }})" class="button is-small is-info">
+                            <span class="icon">
+                                <i class="fas fa-sync"></i>
+                            </span>
+                            <span>Sync</span>
+                        </button>
+                        <button onclick="disconnectAccount({{ item.account.id }})" class="button is-small is-danger is-outlined">
+                            <span class="icon">
+                                <i class="fas fa-unlink"></i>
+                            </span>
+                            <span>Disconnect</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Accounts Table View (Alternative) -->
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">All Accounts</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Institution</th>
+                        <th>Account Name</th>
+                        <th>Type</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th>Last Synced</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in accounts_with_balances %}
+                    <tr>
+                        <td>{{ item.account.institution_name }}</td>
+                        <td>
+                            <strong>{{ item.account.account_name }}</strong>
+                            {% if item.account.account_number_masked %}
+                            <br><small class="has-text-grey">****{{ item.account.account_number_masked }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.account.get_account_type_display }}</td>
+                        <td>
+                            {% if item.latest_balance %}
+                            <span class="{% if item.latest_balance.current_balance >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                                ${{ item.latest_balance.current_balance|floatformat:2|intcomma }}
+                            </span>
+                            {% else %}
+                            <span class="has-text-grey">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="tag {% if item.account.status == 'active' %}is-success{% elif item.account.status == 'error' %}is-danger{% else %}is-warning{% endif %}">
+                                {{ item.account.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if item.account.last_synced_at %}
+                                {{ item.account.last_synced_at|date:"M d, Y H:i" }}
+                            {% else %}
+                                <span class="has-text-grey">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="buttons">
+                                <a href="{% url 'records:account_detail' item.account.id %}" class="button is-small">View</a>
+                                <button onclick="syncAccount({{ item.account.id }})" class="button is-small is-info">Sync</button>
+                                <button onclick="disconnectAccount({{ item.account.id }})" class="button is-small is-danger">Disconnect</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="box">
+        <div class="has-text-centered" style="padding: 60px 20px;">
+            <span class="icon is-large" style="font-size: 4rem; color: #dbdbdb;">
+                <i class="fas fa-university"></i>
+            </span>
+            <h2 class="title is-4" style="margin-top: 20px;">No Linked Accounts</h2>
+            <p class="subtitle is-6" style="margin-top: 10px;">
+                Get started by linking your first financial account to automatically import transactions and balances.
+            </p>
+            <a href="{% url 'records:link_account' %}" class="button is-primary" style="margin-top: 20px;">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>Link Your First Account</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function syncAccount(accountId) {
+    try {
+        const response = await fetch(`/records/api/sync-account/${accountId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Sync started. This may take a few moments.');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error syncing account:', error);
+        alert('Error syncing account. Please try again.');
+    }
+}
+
+async function disconnectAccount(accountId) {
+    if (!confirm('Are you sure you want to disconnect this account? This will stop automatic syncing and you will need to reconnect it to access data again.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/records/api/disconnect-account/${accountId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Account disconnected successfully.');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error disconnecting account:', error);
+        alert('Error disconnecting account. Please try again.');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

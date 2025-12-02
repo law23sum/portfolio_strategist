@@ -14,6 +14,14 @@ try:
     from .lib.investment_utils import (
         get_current_price, calculate_purchase_plan, summarize_forecast
     )
+    from .lib.analysis_utils import (
+        DEFAULT_BENCHMARK,
+        build_decision_support,
+        build_forecast_error_rows,
+        build_market_overview,
+        calculate_risk_statistics,
+        generate_risk_insights,
+    )
     from .lib.ai_analyzer import analyze_stock_with_news
     from .lib.pdf_generator import PDFGenerator
     from .lib.stock_definitions import RATIO_DEFINITIONS
@@ -29,9 +37,15 @@ except ImportError:
     get_current_price = None
     calculate_purchase_plan = None
     summarize_forecast = None
+    build_decision_support = None
+    build_forecast_error_rows = None
+    build_market_overview = None
+    calculate_risk_statistics = None
+    generate_risk_insights = None
     analyze_stock_with_news = None
     PDFGenerator = None
     RATIO_DEFINITIONS = {}
+    DEFAULT_BENCHMARK = "^GSPC"
     LIB_AVAILABLE = False
 
 
@@ -45,6 +59,34 @@ class StockAnalysisService:
         # Update offline data path for Django
         self.offline_data_path = Path(__file__).parent / 'resources' / 'offline_data'
         self.offline_data_path.mkdir(parents=True, exist_ok=True)
+    
+    @staticmethod
+    def _serialize_history(history_df: pd.DataFrame) -> list:
+        if history_df is None or history_df.empty:
+            return []
+        records = []
+        columns = [col for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Adj_Close', 'Volume'] if col in history_df.columns]
+        for _, row in history_df.iterrows():
+            entry = {}
+            for column in columns:
+                value = row.get(column)
+                key = column.lower()
+                if isinstance(value, pd.Timestamp):
+                    entry[key] = value.isoformat()
+                elif pd.isna(value):
+                    entry[key] = None
+                elif column == 'Volume':
+                    try:
+                        entry[key] = int(value)
+                    except (TypeError, ValueError):
+                        entry[key] = None
+                else:
+                    try:
+                        entry[key] = float(value)
+                    except (TypeError, ValueError):
+                        entry[key] = value
+            records.append(entry)
+        return records
     
     def analyze_stock(self, symbol, forecast_days=365, equation_type=None):
         """Perform complete stock analysis"""
@@ -69,6 +111,7 @@ class StockAnalysisService:
         
         # Forecast
         forecast_df = None
+        forecast_errors = []
         if not history_df.empty:
             equation_type = equation_type or "Geometric Brownian Motion External Macroeconomic Factors"
             forecast_df = self.stock_app.forecast_prices_advanced(
@@ -76,6 +119,31 @@ class StockAnalysisService:
                 equation_type=equation_type,
                 forecast_days=forecast_days
             )
+            if build_forecast_error_rows:
+                forecast_errors = build_forecast_error_rows(history_df, forecast_df)
+        
+        benchmark_symbol = DEFAULT_BENCHMARK
+        risk_metrics = {}
+        risk_insights = []
+        market_overview = {}
+        decision_support = {}
+        history_records = self._serialize_history(history_df)
+        if calculate_risk_statistics and not history_df.empty:
+            risk_metrics, _ = calculate_risk_statistics(history_df, benchmark_symbol)
+            if generate_risk_insights:
+                risk_insights = generate_risk_insights(risk_metrics, symbol)
+            if build_market_overview:
+                market_overview = build_market_overview(history_df, symbol, benchmark_symbol)
+            if build_decision_support:
+                decision_support = build_decision_support(
+                    ratios_table,
+                    ai_assessment,
+                    history_df,
+                    benchmark_symbol,
+                    risk_metrics,
+                )
+        elif build_decision_support:
+            decision_support = build_decision_support(ratios_table, ai_assessment, history_df, benchmark_symbol)
         
         return {
             'stock_data': stock_data,
@@ -83,6 +151,13 @@ class StockAnalysisService:
             'ai_assessment': ai_assessment,
             'forecast_data': forecast_df.to_dict('records') if forecast_df is not None and not forecast_df.empty else [],
             'news_html': news_html,
+            'history_data': history_records,
+            'risk_metrics': risk_metrics,
+            'risk_insights': risk_insights,
+            'market_overview': market_overview,
+            'decision_support': decision_support,
+            'forecast_errors': forecast_errors,
+            'benchmark_symbol': benchmark_symbol,
         }
     
     def generate_pdf_report(self, symbol, stock_data, ratios_table, ai_assessment, output_path):
@@ -94,4 +169,3 @@ class StockAnalysisService:
         generator = PDFGenerator(symbol, stock_data, ratios_df, ai_assessment, RATIO_DEFINITIONS)
         generator.generate_pdf(output_path)
         return output_path
-

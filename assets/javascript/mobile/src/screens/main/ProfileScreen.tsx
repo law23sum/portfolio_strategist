@@ -1,25 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
   ActivityIndicator,
+  Alert,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../../services/api';
+import {API_BASE_URL} from '../../config/api';
+
+const ACCOUNT_ACTIONS = [
+  {icon: 'edit', label: 'Edit profile'},
+  {icon: 'lock', label: 'Change password'},
+  {icon: 'subscriptions', label: 'Subscriptions'},
+];
+
+const SETTINGS_ACTIONS = [
+  {icon: 'notifications', label: 'Notifications'},
+  {icon: 'privacy-tip', label: 'Privacy'},
+  {icon: 'help', label: 'Help & Support'},
+];
 
 interface ProfileScreenProps {
   onLogout: () => void;
 }
 
-export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
+export default function ProfileScreen({onLogout}: ProfileScreenProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const loadProfile = async () => {
     try {
@@ -28,7 +44,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
         setUser(response.data);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('Error loading profile', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -45,21 +61,67 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await apiService.logout();
-            onLogout();
-          },
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await apiService.logout();
+          onLogout();
         },
-      ]
-    );
+      },
+    ]);
+  };
+
+  const loadDebugInfo = async () => {
+    try {
+      const accessToken = await AsyncStorage.getItem('accessToken');
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      const tokenPreview = accessToken ? `${accessToken.substring(0, 20)}...` : 'none';
+      const refreshPreview = refreshToken ? `${refreshToken.substring(0, 20)}...` : 'none';
+      
+      // Test token validity
+      let tokenValid = false;
+      let tokenError = null;
+      if (accessToken) {
+        try {
+          const verifyResponse = await apiService.verifyToken(accessToken);
+          tokenValid = verifyResponse.status === 200;
+          if (!tokenValid) {
+            tokenError = verifyResponse.error || 'Token verification failed';
+          }
+        } catch (e: any) {
+          tokenError = e.message || 'Token verification error';
+        }
+      }
+      
+      setDebugInfo({
+        apiBaseUrl: API_BASE_URL,
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        accessTokenPreview: tokenPreview,
+        refreshTokenPreview: refreshPreview,
+        tokenValid,
+        tokenError,
+        userEmail: user?.email || 'Not loaded',
+        userId: user?.pk || user?.id || 'Not loaded',
+      });
+    } catch (error: any) {
+      setDebugInfo({
+        error: error.message || 'Failed to load debug info',
+      });
+    }
+  };
+
+  const handleDebugPress = () => {
+    if (showDebug) {
+      setShowDebug(false);
+      setDebugInfo(null);
+    } else {
+      setShowDebug(true);
+      loadDebugInfo();
+    }
   };
 
   if (loading) {
@@ -75,68 +137,114 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Icon name="person" size={48} color="#007AFF" />
-          </View>
-          <Text style={styles.name}>
-            {user?.username || user?.email || 'User'}
-          </Text>
-          {user?.email && (
-            <Text style={styles.email}>{user.email}</Text>
-          )}
+      <View style={styles.hero}>
+        <View style={styles.avatar}>
+          <Icon name="person" size={48} color="#0A84FF" />
         </View>
+        <Text style={styles.name}>{user?.username || user?.email || 'User'}</Text>
+        {user?.email && <Text style={styles.email}>{user.email}</Text>}
+      </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="edit" size={24} color="#007AFF" />
-            <Text style={styles.menuText}>Edit Profile</Text>
-            <Icon name="chevron-right" size={24} color="#999" />
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        {ACCOUNT_ACTIONS.map(action => (
+          <TouchableOpacity key={action.label} style={styles.menuItem}>
+            <Icon name={action.icon} size={22} color="#0A84FF" />
+            <Text style={styles.menuText}>{action.label}</Text>
+            <Icon name="chevron-right" size={22} color="#9C9C9C" />
           </TouchableOpacity>
+        ))}
+      </View>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="lock" size={24} color="#007AFF" />
-            <Text style={styles.menuText}>Change Password</Text>
-            <Icon name="chevron-right" size={24} color="#999" />
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Settings</Text>
+        {SETTINGS_ACTIONS.map(action => (
+          <TouchableOpacity key={action.label} style={styles.menuItem}>
+            <Icon name={action.icon} size={22} color="#0A84FF" />
+            <Text style={styles.menuText}>{action.label}</Text>
+            <Icon name="chevron-right" size={22} color="#9C9C9C" />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="subscriptions" size={24} color="#007AFF" />
-            <Text style={styles.menuText}>Subscription</Text>
-            <Icon name="chevron-right" size={24} color="#999" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="notifications" size={24} color="#007AFF" />
-            <Text style={styles.menuText}>Notifications</Text>
-            <Icon name="chevron-right" size={24} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="privacy-tip" size={24} color="#007AFF" />
-            <Text style={styles.menuText}>Privacy</Text>
-            <Icon name="chevron-right" size={24} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="help" size={24} color="#007AFF" />
-            <Text style={styles.menuText}>Help & Support</Text>
-            <Icon name="chevron-right" size={24} color="#999" />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Icon name="logout" size={24} color="#ff4444" />
-          <Text style={styles.logoutText}>Logout</Text>
+        ))}
+        <TouchableOpacity style={styles.menuItem} onPress={handleDebugPress}>
+          <Icon name="bug-report" size={22} color="#0A84FF" />
+          <Text style={styles.menuText}>Debug Info</Text>
+          <Icon name={showDebug ? "expand-less" : "expand-more"} size={22} color="#9C9C9C" />
         </TouchableOpacity>
       </View>
+
+      {showDebug && debugInfo && (
+        <View style={styles.debugSection}>
+          <Text style={styles.debugTitle}>Debug Information</Text>
+          <View style={styles.debugItem}>
+            <Text style={styles.debugLabel}>API Base URL:</Text>
+            <Text style={styles.debugValue}>{debugInfo.apiBaseUrl}</Text>
+          </View>
+          <View style={styles.debugItem}>
+            <Text style={styles.debugLabel}>Has Access Token:</Text>
+            <Text style={[styles.debugValue, debugInfo.hasAccessToken ? styles.success : styles.error]}>
+              {debugInfo.hasAccessToken ? 'Yes' : 'No'}
+            </Text>
+          </View>
+          <View style={styles.debugItem}>
+            <Text style={styles.debugLabel}>Has Refresh Token:</Text>
+            <Text style={[styles.debugValue, debugInfo.hasRefreshToken ? styles.success : styles.error]}>
+              {debugInfo.hasRefreshToken ? 'Yes' : 'No'}
+            </Text>
+          </View>
+          {debugInfo.hasAccessToken && (
+            <>
+              <View style={styles.debugItem}>
+                <Text style={styles.debugLabel}>Token Preview:</Text>
+                <Text style={styles.debugValue} numberOfLines={1}>{debugInfo.accessTokenPreview}</Text>
+              </View>
+              <View style={styles.debugItem}>
+                <Text style={styles.debugLabel}>Token Valid:</Text>
+                <Text style={[styles.debugValue, debugInfo.tokenValid ? styles.success : styles.error]}>
+                  {debugInfo.tokenValid ? 'Yes' : 'No'}
+                </Text>
+              </View>
+              {debugInfo.tokenError && (
+                <View style={styles.debugItem}>
+                  <Text style={styles.debugLabel}>Token Error:</Text>
+                  <Text style={[styles.debugValue, styles.error]}>{debugInfo.tokenError}</Text>
+                </View>
+              )}
+            </>
+          )}
+          <View style={styles.debugItem}>
+            <Text style={styles.debugLabel}>User Email:</Text>
+            <Text style={styles.debugValue}>{debugInfo.userEmail}</Text>
+          </View>
+          <View style={styles.debugItem}>
+            <Text style={styles.debugLabel}>User ID:</Text>
+            <Text style={styles.debugValue}>{debugInfo.userId}</Text>
+          </View>
+          {debugInfo.error && (
+            <View style={styles.debugItem}>
+              <Text style={styles.debugLabel}>Error:</Text>
+              <Text style={[styles.debugValue, styles.error]}>{debugInfo.error}</Text>
+            </View>
+          )}
+          <TouchableOpacity 
+            style={styles.debugButton} 
+            onPress={async () => {
+              Alert.alert(
+                'Copy Debug Info',
+                'Debug information copied to console. Check Metro bundler terminal for details.',
+                [{text: 'OK'}]
+              );
+              console.log('[DEBUG] Full Debug Info:', JSON.stringify(debugInfo, null, 2));
+            }}
+          >
+            <Text style={styles.debugButtonText}>Copy to Console</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Icon name="logout" size={22} color="#FF3B30" />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -151,82 +259,139 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
-    padding: 16,
-  },
-  header: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    padding: 32,
+  hero: {
     alignItems: 'center',
-    marginBottom: 24,
+    backgroundColor: '#fff',
+    paddingVertical: 32,
+    marginBottom: 16,
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#fff',
+    backgroundColor: '#EAF2FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#111',
   },
   email: {
-    fontSize: 16,
-    color: '#fff',
-    opacity: 0.9,
+    marginTop: 6,
+    color: '#666',
   },
   section: {
-    marginBottom: 24,
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 8,
+    elevation: 1,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    color: '#555',
+    marginLeft: 12,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#eee',
   },
   menuText: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 16,
+    marginLeft: 12,
+    fontSize: 15,
+    color: '#111',
   },
   logoutButton: {
+    marginHorizontal: 16,
+    marginBottom: 32,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#ff4444',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 8,
+    elevation: 1,
   },
   logoutText: {
-    color: '#ff4444',
-    fontSize: 16,
-    fontWeight: '600',
     marginLeft: 8,
+    color: '#FF3B30',
+    fontWeight: '600',
+  },
+  debugSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  debugTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  debugItem: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#eee',
+  },
+  debugLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 4,
+  },
+  debugValue: {
+    fontSize: 13,
+    color: '#111',
+    fontFamily: 'monospace',
+  },
+  success: {
+    color: '#34C759',
+  },
+  error: {
+    color: '#FF3B30',
+  },
+  debugButton: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
-
-
-

@@ -23,4 +23,9 @@ urlpatterns = [
     path("api/sync-account/<int:account_id>/", aggregation_views.sync_account, name="sync_account"),
     path("api/disconnect-account/<int:account_id>/", aggregation_views.disconnect_account, name="disconnect_account"),
     path("webhooks/plaid/", aggregation_views.plaid_webhook, name="plaid_webhook"),
+    # Financial aggregation API endpoints
+    path("api/dashboard-summary/", aggregation_views.dashboard_summary_api, name="dashboard_summary_api"),
+    path("api/budget-data/", aggregation_views.budget_data_api, name="budget_data_api"),
+    path("api/investment-data/", aggregation_views.investment_data_api, name="investment_data_api"),
+    path("api/debt-data/", aggregation_views.debt_data_api, name="debt_data_api"),
 ]

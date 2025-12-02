@@ -12,7 +12,11 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import apiService from '../../services/api';
 
-export default function LinkedAccountsScreen() {
+interface LinkedAccountsScreenProps {
+  navigation: any;
+}
+
+export default function LinkedAccountsScreen({ navigation }: LinkedAccountsScreenProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -82,18 +86,40 @@ export default function LinkedAccountsScreen() {
 
         {accounts.length > 0 ? (
           <View style={styles.accountsList}>
-            {accounts.map((account, index) => (
-              <View key={index} style={styles.accountCard}>
-                <Icon name="account-balance" size={32} color="#007AFF" />
-                <View style={styles.accountInfo}>
-                  <Text style={styles.accountName}>{account.name || 'Account'}</Text>
-                  <Text style={styles.accountType}>{account.type || 'Bank Account'}</Text>
-                </View>
-                <TouchableOpacity>
-                  <Icon name="more-vert" size={24} color="#999" />
+            {accounts.map((account: any, index: number) => {
+              const accountId = account.id || account.account_id;
+              const accountName = account.account_name || account.name || 'Account';
+              const accountType = account.account_type || account.type || 'Bank Account';
+              const latestBalance = account.latest_balance || account.balance;
+              const balance = latestBalance?.current_balance || account.balance || 0;
+
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.accountCard}
+                  onPress={() => {
+                    if (accountId) {
+                      navigation.navigate('AccountDetail', { accountId });
+                    }
+                  }}
+                >
+                  <Icon name="account-balance" size={32} color="#007AFF" />
+                  <View style={styles.accountInfo}>
+                    <Text style={styles.accountName}>{accountName}</Text>
+                    <Text style={styles.accountType}>{accountType}</Text>
+                    {balance && (
+                      <Text style={styles.accountBalance}>
+                        ${parseFloat(balance).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                  <Icon name="chevron-right" size={24} color="#999" />
                 </TouchableOpacity>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <View style={styles.emptyContainer}>
@@ -177,6 +203,13 @@ const styles = StyleSheet.create({
   accountType: {
     fontSize: 14,
     color: '#666',
+    marginBottom: 4,
+  },
+  accountBalance: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginTop: 4,
   },
   emptyContainer: {
     backgroundColor: '#fff',

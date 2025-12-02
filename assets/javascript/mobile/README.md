@@ -12,21 +12,29 @@ A comprehensive React Native mobile application that provides all the features o
 - Token-based authentication with automatic refresh
 
 ### Dashboard
-- Financial overview
-- Quick action buttons
-- Recent activity
-- Statistics and insights
+- **Financial Summary**: Net worth, total assets, investments, cash, and liabilities
+- **Recent Transactions**: View recent financial transactions with details
+- **Quick Actions**: Fast access to key features
+- **Account Overview**: Summary of linked accounts and financial status
 
 ### Financial Records
 - **Insights**: View financial insights and analytics
 - **Explorer**: Explore financial data
 - **Upload**: Upload financial documents (PDF, images)
 - **Linked Accounts**: Manage connected financial accounts (Plaid integration ready)
+- **Account Details**: View detailed account information, transactions, and investment holdings
+- **Account Management**: Sync and disconnect linked accounts
 
 ### Stock Analysis
 - **Analyze Stock**: Analyze stock symbols with multiple forecasting models
 - **Results**: View detailed analysis results including forecasts, ratios, and AI assessments
 - **Loan Analysis**: Personal loan analysis and comparison (coming soon)
+
+### Chat Assistant
+- **AI Chat**: Interactive chat with financial AI assistant
+- **Chat History**: View and manage chat conversations
+- **Clear History**: Clear chat history functionality
+- **Context-Aware**: AI has access to your financial data for personalized assistance
 
 ### Solutions
 - Budget Planning

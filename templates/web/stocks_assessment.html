@@ -46,6 +46,37 @@
         color: #333;
         font-size: 1.1em;
     }
+    .financia-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 15px;
+        margin-top: 10px;
+    }
+    .financia-card {
+        background: #fff;
+        border-left: 4px solid #3273dc;
+        border-radius: 6px;
+        padding: 16px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        height: 100%;
+    }
+    .financia-card h4 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #7a7a7a;
+        margin-bottom: 6px;
+    }
+    .financia-card .value {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #111;
+    }
+    .financia-analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 15px;
+    }
 </style>
 {% endblock %}
 
@@ -61,26 +92,90 @@
     <h1 class="title is-2">Stocks Assessment</h1>
     <p class="subtitle">Analyze and forecast your stock investments</p>
     
-    <!-- Plaid Integration -->
+    {% if account_defaults.total_investments or account_defaults.accounts %}
     <div class="box" style="margin-bottom: 30px;">
-        <h2 class="title is-4">Link Account from Plaid (Optional)</h2>
+        <h2 class="title is-4">Linked Investment Overview (Plaid)</h2>
+        <p class="subtitle is-6">Financia-style snapshot of your connected investment accounts</p>
+        <div class="columns is-multiline">
+            <div class="column is-one-quarter">
+                <div class="card">
+                    <div class="card-content">
+                        <p class="heading">Total Linked Investments</p>
+                        <p class="title is-3">${{ account_defaults.total_investments|floatformat:2 }}</p>
+                        <p class="subtitle is-7">Auto-filled from Plaid</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-three-quarters">
+                <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+                    <table class="table is-fullwidth is-striped">
+                        <thead>
+                            <tr>
+                                <th>Institution</th>
+                                <th>Account</th>
+                                <th>Type</th>
+                                <th class="has-text-right">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for acct in account_defaults.accounts %}
+                            <tr>
+                                <td>{{ acct.institution|default:"Linked Account" }}</td>
+                                <td>{{ acct.name }}</td>
+                                <td>{{ acct.account_type|title }}</td>
+                                <td class="has-text-right">${{ acct.balance|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="has-text-centered has-text-grey">No Plaid investment accounts detected yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <p class="help">Values refresh whenever you link/sync accounts. Use them to auto-fill your stock plans.</p>
+    </div>
+    {% endif %}
+
+    <!-- Plaid Integration -->
+    {% if linked_accounts or account_defaults.accounts %}
+    <div class="box" style="margin-bottom: 30px;">
+        <h2 class="title is-4">Import from Linked Account</h2>
         <div class="field">
-            <label class="label">Import from Linked Account</label>
+            <label class="label">Select Plaid Investment Account</label>
             <div class="control">
                 <div class="select is-fullwidth">
                     <select id="plaidAccountSelect">
                         <option value="">Select a linked account (optional)</option>
-                        {% for account in linked_accounts %}
-                        <option value="{{ account.id }}" data-institution="{{ account.institution_name }}">
-                            {{ account.institution_name }} - {{ account.account_name }}
-                        </option>
-                        {% endfor %}
+                        {% if account_defaults.accounts %}
+                        <optgroup label="Plaid Investment Accounts">
+                            {% for acct in account_defaults.accounts %}
+                            <option value="{{ acct.id }}" data-institution="{{ acct.institution|default:'Plaid' }}" data-balance="{{ acct.balance|floatformat:2 }}">
+                                {{ acct.institution|default:"Plaid" }} - {{ acct.name }} ({{ acct.balance|floatformat:2 }})
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                        {% if linked_accounts %}
+                        <optgroup label="Linked Accounts (Database)">
+                            {% for account in linked_accounts %}
+                            {% with latest_balance=account.balances.first %}
+                            <option value="{{ account.id }}" data-institution="{{ account.institution_name }}" data-balance="{% if latest_balance %}{{ latest_balance.current_balance|floatformat:2 }}{% else %}0{% endif %}">
+                                {{ account.institution_name }} - {{ account.account_name }}
+                            </option>
+                            {% endwith %}
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
                     </select>
                 </div>
             </div>
-            <p class="help">Select a linked investment account to auto-fill stock holdings</p>
+            <p class="help">Choose an account to auto-fill your Financia stock plan with live Plaid balances.</p>
         </div>
     </div>
+    {% endif %}
     
     <!-- Stock Input Form -->
     <div class="box">
@@ -92,7 +187,7 @@
                 <input class="input" type="text" id="stockSymbol" placeholder="e.g., AAPL, NVDA, TSLA" required>
             </div>
             <p class="help">
-                <button class="button is-small is-info" onclick="fetchStockDetails()">
+                <button type="button" class="button is-small is-info" onclick="fetchStockDetails()">
                     Fetch Stock Details & Charts
                 </button>
             </p>
@@ -103,7 +198,7 @@
                 <div class="field">
                     <label class="label">Investment Amount ($)</label>
                     <div class="control">
-                        <input class="input" type="number" id="investmentAmount" placeholder="10000" step="0.01">
+                        <input class="input" type="number" id="investmentAmount" placeholder="10000" step="0.01" value="{% if account_defaults.total_investments > 0 %}{{ account_defaults.total_investments|floatformat:2 }}{% endif %}">
                     </div>
                 </div>
             </div>
@@ -161,12 +256,12 @@
         
         <div class="field is-grouped">
             <div class="control">
-                <button class="button is-primary" onclick="calculateAndSave()">
+                <button type="button" class="button is-primary" onclick="calculateAndSave()">
                     Calculate & Save Assessment
                 </button>
             </div>
             <div class="control">
-                <button class="button is-info" onclick="calculateForecast()">
+                <button type="button" class="button is-info" onclick="calculateForecast()">
                     Preview Forecast
                 </button>
             </div>
@@ -177,6 +272,30 @@
     <div class="box" id="forecastSection" style="display: none;">
         <h2 class="title is-4">Forecast Projections</h2>
         
+        <!-- Financia Summary Cards -->
+        <div class="financia-summary-grid" id="financiaSummaryCards" style="display: none;">
+            <div class="financia-card">
+                <h4>Current Price</h4>
+                <div class="value" id="summaryCurrentPrice">$0.00</div>
+                <p class="is-size-7 has-text-grey">Latest closing price from Financia</p>
+            </div>
+            <div class="financia-card">
+                <h4>Total Cost</h4>
+                <div class="value" id="summaryTotalCost">$0.00</div>
+                <p class="is-size-7 has-text-grey">Based on shares &amp; contributions</p>
+            </div>
+            <div class="financia-card">
+                <h4>Shares Held</h4>
+                <div class="value" id="summaryShares">0</div>
+                <p class="is-size-7 has-text-grey">Calculated from inputs</p>
+            </div>
+            <div class="financia-card">
+                <h4>Model</h4>
+                <div class="value" style="font-size: 1rem;" id="summaryModel">—</div>
+                <p class="is-size-7 has-text-grey">Forecast equation used</p>
+            </div>
+        </div>
+
         <!-- Summary Chart -->
         <div class="chart-container">
             <canvas id="forecastChart"></canvas>
@@ -257,9 +376,10 @@
                         <td>{{ assessment.share_quantity|default:"N/A" }}</td>
                         <td>${{ assessment.forecast_data.current.value|default:"N/A" }}</td>
                         <td>{{ assessment.updated_at|date:"M d, Y" }}</td>
-                        <td>
-                            <button class="button is-small" onclick="loadAssessment({{ assessment.id }})">Edit</button>
-                            <button class="button is-small is-danger" onclick="deleteAssessment({{ assessment.id }})">Delete</button>
+                        <td class="buttons are-small">
+                            <a href="{% url 'web:stocks_assessment_detail' assessment.id %}" class="button is-link is-light">View</a>
+                            <button class="button" onclick="loadAssessment({{ assessment.id }})">Edit</button>
+                            <button class="button is-danger" onclick="deleteAssessment({{ assessment.id }})">Delete</button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -272,9 +392,73 @@
 
 <script src="{% static 'js/investment_retirement.js' %}"></script>
 <script>
+// Auto-populate fields with Plaid data (automatically distributed after login)
+document.addEventListener('DOMContentLoaded', function() {
+    {% if plaid_data %}
+    const plaidData = {{ plaid_data|safe }};
+    {% endif %}
+
+    {% if account_defaults_json %}
+    const accountDefaults = {{ account_defaults_json|safe }};
+    const investmentInput = document.getElementById('investmentAmount');
+    if (accountDefaults && accountDefaults.total_investments && investmentInput && !investmentInput.value) {
+        investmentInput.value = Number(accountDefaults.total_investments).toFixed(2);
+    }
+    {% else %}
+    const accountDefaults = null;
+    {% endif %}
+    
+    // Auto-fill from Plaid account selection
+    const plaidSelect = document.getElementById('plaidAccountSelect');
+    if (plaidSelect) {
+        plaidSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const balance = parseFloat(selectedOption.getAttribute('data-balance')) || 0;
+                const investmentInput = document.getElementById('investmentAmount');
+                if (investmentInput && balance > 0) {
+                    investmentInput.value = balance.toFixed(2);
+                }
+            }
+        });
+    }
+});
+
 let forecastChart = null;
 let currentAssessmentId = null;
 let currentStockData = null;
+
+function updateFinanciaSummaryCards(data, plan) {
+    const grid = document.getElementById('financiaSummaryCards');
+    if (!grid) {
+        return;
+    }
+    if (!data) {
+        grid.style.display = 'none';
+        return;
+    }
+    const priceEl = document.getElementById('summaryCurrentPrice');
+    const costEl = document.getElementById('summaryTotalCost');
+    const sharesEl = document.getElementById('summaryShares');
+    const modelEl = document.getElementById('summaryModel');
+
+    if (priceEl) {
+        priceEl.textContent = data.current_price ? `$${Number(data.current_price).toFixed(2)}` : '$0.00';
+    }
+    if (costEl) {
+        const totalCost = plan ? Number(plan.total_cost || 0) : (data.purchase_plan ? Number(data.purchase_plan.total_cost || 0) : 0);
+        costEl.textContent = `$${totalCost.toFixed(2)}`;
+    }
+    if (sharesEl) {
+        const shares = plan ? Number(plan.shares || 0) : (data.purchase_plan ? Number(data.purchase_plan.shares || 0) : 0);
+        sharesEl.textContent = shares.toFixed(4);
+    }
+    if (modelEl) {
+        modelEl.textContent = data.equation_type || data.model || 'Financia Forecast';
+    }
+
+    grid.style.display = 'grid';
+}
 
 // Time periods in years
 const TIME_PERIODS = {
@@ -371,22 +555,65 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
     const summary = data.summary || [];
     
     // Map summary horizons to our time periods
+    // Match the API response labels from HORIZON_WINDOWS
     const horizonMap = {
-        'biweekly': 14,
-        'monthly': 30,
-        'quarterly': 90,
-        'biyearly': 182,
-        'yearly': 365,
-        '3years': 1095,
-        '5years': 1825,
-        'decade': 3650,
-        'twodecades': 7300,
-        'threedecades': 10950
+        'biweekly': 14,        // Maps to "Biweekly"
+        'monthly': 30,         // Maps to "Next Month"
+        'quarterly': 90,       // Maps to "Next Quarter"
+        'biyearly': 182,       // Maps to "Next Half"
+        'yearly': 365,         // Maps to "Next Year"
+        '3years': 1095,        // Maps to "3 Years"
+        '5years': 1825,        // Maps to "5 Years"
+        'decade': 3650,        // Maps to "Decade"
+        'twodecades': 7300,    // Maps to "Two Decades"
+        'threedecades': 10950  // Maps to "Three Decades"
     };
     
-    // First, try to use summary data
+    // Also create reverse map for API label -> template period
+    const apiLabelToPeriod = {
+        'Biweekly': 'biweekly',
+        'Next Month': 'monthly',
+        'Next Quarter': 'quarterly',
+        'Next Half': 'biyearly',
+        'Next Year': 'yearly',
+        '3 Years': '3years',
+        '5 Years': '5years',
+        'Decade': 'decade',
+        'Two Decades': 'twodecades',
+        'Three Decades': 'threedecades'
+    };
+    
+    // First, try to use summary data - match by API label first, then by days
+    for (const entry of summary) {
+        const apiLabel = entry.label;
+        // Try to map API label to template period
+        if (apiLabelToPeriod[apiLabel]) {
+            const period = apiLabelToPeriod[apiLabel];
+            if (period in TIME_PERIODS) {
+                const years = TIME_PERIODS[period];
+                const forecastPrice = entry.forecast_price;
+                const investmentValue = entry.investment_value || (shares * forecastPrice);
+                const profitLoss = entry.profit_loss || (investmentValue - investment);
+                const growthPercent = entry.growth_pct || (((forecastPrice - currentPrice) / currentPrice) * 100);
+                
+                forecasts[period] = {
+                    years: years,
+                    forecastPrice: forecastPrice,
+                    investmentValue: investmentValue,
+                    profitLoss: profitLoss,
+                    growthPercent: growthPercent,
+                    shares: shares,
+                    peak: entry.peak,
+                    valley: entry.valley,
+                    targetDate: entry.target_date
+                };
+            }
+        }
+    }
+    
+    // Fill in any missing periods by finding closest match by days
     for (const [period, days] of Object.entries(horizonMap)) {
-        if (period in TIME_PERIODS) {
+        if (!forecasts[period] && period in TIME_PERIODS) {
             const years = TIME_PERIODS[period];
             // Find closest summary entry
             let bestMatch = null;
@@ -400,7 +627,7 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
                 }
             }
             
-            if (bestMatch) {
+            if (bestMatch && minDiff < 30) { // Only use if within 30 days
                 const forecastPrice = bestMatch.forecast_price;
                 const investmentValue = bestMatch.investment_value || (shares * forecastPrice);
                 const profitLoss = bestMatch.profit_loss || (investmentValue - investment);
@@ -456,7 +683,8 @@ async function calculateForecastWithAPI(symbol, investment, shares, currentPrice
     if (data.statistics || data.external_factors || data.mean_reversion_params) {
         displayFinanciaDetails(data);
     }
-    
+    updateFinanciaSummaryCards(data, data.purchase_plan || null);
+
     displayForecastResults(forecasts, investment, shares, currentPrice, data);
     document.getElementById('forecastSection').style.display = 'block';
 }
@@ -605,52 +833,79 @@ function displayForecastResults(forecasts, investment, shares, currentPrice, api
 function displayFinanciaDetails(data) {
     const detailsDiv = document.getElementById('financiaDetails');
     const contentDiv = document.getElementById('financiaDetailsContent');
-    
-    if (!detailsDiv || !contentDiv) return;
-    
-    let html = '<div class="columns is-multiline">';
-    
-    if (data.statistics) {
+
+    if (!detailsDiv || !contentDiv) {
+        return;
+    }
+
+    let html = '<div class="financia-analysis-grid">';
+
+    const stats = data && data.statistics ? data.statistics : null;
+    if (stats) {
+        const mu = isFinite(stats.mu_daily) ? Number(stats.mu_daily).toFixed(6) : 'N/A';
+        const sigma = isFinite(stats.sigma_daily) ? Number(stats.sigma_daily).toFixed(6) : 'N/A';
         html += `
-            <div class="column is-half">
-                <h4 class="title is-6">Statistics</h4>
-                <ul>
-                    <li>Daily Drift (μ): ${data.statistics.mu_daily?.toFixed(6) || 'N/A'}</li>
-                    <li>Daily Volatility (σ): ${data.statistics.sigma_daily?.toFixed(6) || 'N/A'}</li>
-                </ul>
+            <div class="financia-card">
+                <h4>Statistical Parameters</h4>
+                <p class="metric-cell"><strong>Daily Drift (μ)</strong> ${mu}</p>
+                <p class="metric-cell"><strong>Daily Volatility (σ)</strong> ${sigma}</p>
             </div>
         `;
     }
-    
-    if (data.external_factors) {
+
+    const external = data && data.external_factors ? data.external_factors : null;
+    if (external) {
+        const betaMarket = isFinite(external.market_beta) ? Number(external.market_beta).toFixed(4) : 'N/A';
+        const betaRate = isFinite(external.interest_rate_beta) ? Number(external.interest_rate_beta).toFixed(4) : 'N/A';
+        const betaVol = isFinite(external.volatility_beta) ? Number(external.volatility_beta).toFixed(4) : 'N/A';
+        const factorList = external.factor_betas ? Object.keys(external.factor_betas).map((key) => {
+            const val = external.factor_betas[key];
+            return `<p class="is-size-7">${key}: ${isFinite(val) ? Number(val).toFixed(4) : 'N/A'}</p>`;
+        }).join('') : '';
         html += `
-            <div class="column is-half">
-                <h4 class="title is-6">External Factors</h4>
-                <ul>
-                    ${data.external_factors.market_beta ? `<li>Market Beta (βₘ): ${data.external_factors.market_beta.toFixed(4)}</li>` : ''}
-                    ${data.external_factors.interest_rate_beta ? `<li>Interest Rate Beta (βᵣ): ${data.external_factors.interest_rate_beta.toFixed(4)}</li>` : ''}
-                    ${data.external_factors.volatility_beta ? `<li>Volatility Beta (βᵥ): ${data.external_factors.volatility_beta.toFixed(4)}</li>` : ''}
-                </ul>
+            <div class="financia-card">
+                <h4>External Macro Factors</h4>
+                <p class="metric-cell"><strong>Market Beta (βₘ)</strong> ${betaMarket}</p>
+                <p class="metric-cell"><strong>Interest Rate Beta (βᵣ)</strong> ${betaRate}</p>
+                <p class="metric-cell"><strong>Volatility Beta (βᵥ)</strong> ${betaVol}</p>
+                ${external.factor_betas ? '<p class="has-text-weight-semibold mt-2">Factor Betas</p>' : ''}
+                ${factorList}
             </div>
         `;
     }
-    
-    if (data.mean_reversion_params) {
+
+    const reversion = data && data.mean_reversion_params ? data.mean_reversion_params : null;
+    if (reversion) {
+        const eta = isFinite(reversion.eta) ? Number(reversion.eta).toFixed(6) : 'N/A';
+        const theta = isFinite(reversion.theta) ? Number(reversion.theta).toFixed(2) : 'N/A';
         html += `
-            <div class="column is-half">
-                <h4 class="title is-6">Mean Reversion Parameters</h4>
-                <ul>
-                    ${data.mean_reversion_params.eta ? `<li>Eta (η): ${data.mean_reversion_params.eta.toFixed(6)}</li>` : ''}
-                    ${data.mean_reversion_params.theta ? `<li>Theta (θ): ${data.mean_reversion_params.theta.toFixed(2)}</li>` : ''}
-                </ul>
+            <div class="financia-card">
+                <h4>Mean Reversion</h4>
+                <p class="metric-cell"><strong>Eta (η)</strong> ${eta}</p>
+                <p class="metric-cell"><strong>Theta (θ)</strong> ${theta}</p>
             </div>
         `;
     }
-    
+
+    if (data && data.equation_type) {
+        html += `
+            <div class="financia-card">
+                <h4>Forecast Model</h4>
+                <p class="value" style="font-size: 1rem;">${data.equation_type}</p>
+                <p class="is-size-7 has-text-grey">Configured by Financia with stochastic processes and macro drivers.</p>
+            </div>
+        `;
+    }
+
     html += '</div>';
     contentDiv.innerHTML = html;
-    detailsDiv.style.display = 'block';
+    if (stats || external || reversion || (data && data.equation_type)) {
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
 }
+
 
 function updateForecastChart(forecasts) {
     const ctx = document.getElementById('forecastChart');
@@ -760,6 +1015,40 @@ async function saveAssessment() {
     if (currentStockData && currentStockData.summary) {
         // Use financia API data
         const summary = currentStockData.summary || [];
+        // Use the same mapping logic as in calculateForecastWithAPI
+        const apiLabelToPeriod = {
+            'Biweekly': 'biweekly',
+            'Next Month': 'monthly',
+            'Next Quarter': 'quarterly',
+            'Next Half': 'biyearly',
+            'Next Year': 'yearly',
+            '3 Years': '3years',
+            '5 Years': '5years',
+            'Decade': 'decade',
+            'Two Decades': 'twodecades',
+            'Three Decades': 'threedecades'
+        };
+        
+        // Map by API label first
+        for (const entry of summary) {
+            const apiLabel = entry.label;
+            if (apiLabelToPeriod[apiLabel]) {
+                const period = apiLabelToPeriod[apiLabel];
+                if (period in TIME_PERIODS) {
+                    forecastData[period] = {
+                        value: entry.investment_value || (shares * entry.forecast_price),
+                        price: entry.forecast_price,
+                        profit_loss: entry.profit_loss || ((entry.investment_value || (shares * entry.forecast_price)) - investment),
+                        growth_percent: entry.growth_pct || (((entry.forecast_price - currentPrice) / currentPrice) * 100),
+                        peak: entry.peak,
+                        valley: entry.valley,
+                        target_date: entry.target_date
+                    };
+                }
+            }
+        }
+        
+        // Fill in missing periods by days
         const horizonMap = {
             'biweekly': 14,
             'monthly': 30,
@@ -774,7 +1063,7 @@ async function saveAssessment() {
         };
         
         for (const [period, days] of Object.entries(horizonMap)) {
-            if (period in TIME_PERIODS) {
+            if (!forecastData[period] && period in TIME_PERIODS) {
                 let bestMatch = null;
                 let minDiff = Infinity;
                 
@@ -786,7 +1075,7 @@ async function saveAssessment() {
                     }
                 }
                 
-                if (bestMatch) {
+                if (bestMatch && minDiff < 30) {
                     forecastData[period] = {
                         value: bestMatch.investment_value || (shares * bestMatch.forecast_price),
                         price: bestMatch.forecast_price,
@@ -830,6 +1119,30 @@ async function saveAssessment() {
     // Store biweekly contribution in forecast_data
     if (biweeklyContrib > 0) {
         forecastData.biweekly_contribution = biweeklyContrib;
+    }
+
+    if (currentStockData) {
+        if (currentStockData.statistics) {
+            forecastData._statistics = currentStockData.statistics;
+        }
+        if (currentStockData.external_factors) {
+            forecastData._external_factors = currentStockData.external_factors;
+        }
+        if (currentStockData.mean_reversion_params) {
+            forecastData._mean_reversion_params = currentStockData.mean_reversion_params;
+        }
+        if (currentStockData.equation_type) {
+            forecastData._equation_type = currentStockData.equation_type;
+        }
+        if (currentStockData.summary) {
+            forecastData._summary = currentStockData.summary;
+        }
+    }
+    if (!forecastData._equation_type) {
+        const modelSelect = document.getElementById('forecastModel');
+        if (modelSelect) {
+            forecastData._equation_type = modelSelect.value;
+        }
     }
     
     const data = {
@@ -926,4 +1239,3 @@ async function fetchStockDetails() {
 }
 </script>
 {% endblock %}
-

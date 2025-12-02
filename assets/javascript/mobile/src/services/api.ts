@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 
 const TOKEN_KEY = 'accessToken';
@@ -16,7 +17,13 @@ class ApiService {
   private isRefreshing: boolean = false;
 
   constructor() {
-    this.baseURL = API_BASE_URL;
+    // Sanitize base URL - remove trailing slashes and any invalid characters
+    this.baseURL = API_BASE_URL.replace(/\/+$/, '').trim();
+    console.log(`[API] Initialized with base URL: ${this.baseURL}`);
+    console.log(`[API] Platform: ${Platform.OS}`);
+    if (__DEV__) {
+      console.log(`[API] Development mode - using ${this.baseURL}`);
+    }
   }
 
   private async getToken(): Promise<string | null> {
@@ -94,6 +101,7 @@ class ApiService {
       const token = await this.getToken();
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers,
       };
 
@@ -101,30 +109,78 @@ class ApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const url = `${this.baseURL}${endpoint}`;
+      // Ensure endpoint starts with / and sanitize URL construction
+      const sanitizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      const url = `${this.baseURL}${sanitizedEndpoint}`;
+      
+      // Validate URL doesn't have invalid characters
+      if (url.includes('~') || url.includes(' ')) {
+        console.error(`[API] Invalid URL detected: ${url}`);
+        return {
+          status: 0,
+          error: `Invalid URL format: ${url}`,
+        };
+      }
+      
       console.log(`[API] Making request to: ${url}`);
       console.log(`[API] Method: ${options.method || 'GET'}`);
+      console.log(`[API] Base URL: ${this.baseURL}`);
+      console.log(`[API] Endpoint: ${sanitizedEndpoint}`);
 
       let response: Response;
       try {
+        // Add timeout for iOS network requests (React Native fetch supports AbortController)
+        let timeoutId: NodeJS.Timeout | null = null;
+        let controller: AbortController | null = null;
+        
+        // Only use AbortController if available (React Native 0.60+)
+        if (typeof AbortController !== 'undefined') {
+          controller = new AbortController();
+          timeoutId = setTimeout(() => {
+            if (controller) {
+              controller.abort();
+            }
+          }, 30000); // 30 second timeout
+        }
+        
         response = await fetch(url, {
           ...options,
           headers,
+          ...(controller && { signal: controller.signal }),
         });
+        
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       } catch (fetchError: any) {
         console.error('[API] Fetch error:', fetchError);
+        console.error('[API] Error details:', {
+          message: fetchError.message,
+          name: fetchError.name,
+          code: fetchError.code,
+          url,
+        });
         
         // Provide more specific error messages based on error type
         let errorMessage = 'Unable to connect to server.';
-        if (fetchError.message) {
-          if (fetchError.message.includes('Network request failed')) {
-            errorMessage = `Network request failed. Please check:\n- Server is running at ${this.baseURL}\n- Your device is on the same network\n- Firewall allows connections to port 8000`;
-          } else if (fetchError.message.includes('timeout')) {
+        if (fetchError.name === 'AbortError') {
+          errorMessage = 'Request timed out. The server may be slow or unreachable.';
+        } else if (fetchError.message) {
+          if (fetchError.message.includes('Network request failed') || 
+              fetchError.message.includes('network request failed') ||
+              fetchError.message.includes('NetworkError') ||
+              fetchError.message.toLowerCase().includes('network')) {
+            errorMessage = `Network request failed to ${this.baseURL}.\n\nTroubleshooting:\n1. Is the Django server running? (python manage.py runserver)\n2. For iOS Simulator: Try http://localhost:8000\n3. For physical device: Update IP in src/config/api.ts\n4. Check firewall settings\n5. Verify device is on same network\n\nCurrent URL: ${this.baseURL}`;
+          } else if (fetchError.message.includes('timeout') || fetchError.message.includes('timed out')) {
             errorMessage = 'Request timed out. The server may be slow or unreachable.';
-          } else if (fetchError.message.includes('Failed to fetch')) {
-            errorMessage = `Failed to connect to ${this.baseURL}. Please verify:\n- Server is running\n- Correct IP address and port\n- Network connectivity`;
+          } else if (fetchError.message.includes('Failed to fetch') || 
+                     fetchError.message.includes('failed to fetch')) {
+            errorMessage = `Failed to connect to ${this.baseURL}.\n\nPlease verify:\n- Server is running (check terminal)\n- Correct IP address and port\n- Network connectivity\n- CORS settings allow mobile app\n- Info.plist allows this domain`;
+          } else if (fetchError.message.includes('ECONNREFUSED') || 
+                     fetchError.message.includes('connection refused')) {
+            errorMessage = `Connection refused. Server may not be running at ${this.baseURL}.\n\nStart server with: python manage.py runserver 0.0.0.0:8000`;
           } else {
-            errorMessage = `Network error: ${fetchError.message}`;
+            errorMessage = `Network error: ${fetchError.message}\n\nURL: ${this.baseURL}`;
           }
         }
         
@@ -135,6 +191,124 @@ class ApiService {
       }
 
       console.log(`[API] Response status: ${response.status}`);
+
+      // Handle 403 Forbidden - permission denied
+      if (response.status === 403) {
+        console.error('[API] 403 Forbidden - Permission denied');
+        console.error('[API] Request URL:', url);
+        console.error('[API] Request Method:', options.method || 'GET');
+        console.error('[API] Has Token:', !!token);
+        console.error('[API] Token Preview:', token ? `${token.substring(0, 20)}...` : 'none');
+        
+        const contentType = response.headers.get('content-type');
+        let errorData: any = { detail: 'Permission denied' };
+        
+        // Read error message from response (clone first to avoid consuming the body)
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const responseClone = response.clone();
+            const text = await responseClone.text();
+            console.error('[API] 403 Response Body:', text);
+            if (text) {
+              errorData = JSON.parse(text);
+              console.error('[API] 403 Parsed Error Data:', JSON.stringify(errorData, null, 2));
+            }
+          } catch (e) {
+            console.error('[API] Failed to parse 403 error response:', e);
+          }
+        } else {
+          // Try to read as text anyway
+          try {
+            const responseClone = response.clone();
+            const text = await responseClone.text();
+            console.error('[API] 403 Response Body (non-JSON):', text);
+            errorData = { detail: text || 'Permission denied' };
+          } catch (e) {
+            console.error('[API] Failed to read 403 response body:', e);
+          }
+        }
+        
+        // Log response headers for debugging
+        console.error('[API] 403 Response Headers:');
+        try {
+          // Headers.forEach may not be available in all React Native environments
+          // Use alternative method to iterate headers
+          if (response.headers && typeof response.headers.forEach === 'function') {
+            response.headers.forEach((value, key) => {
+              console.error(`[API]   ${key}: ${value}`);
+            });
+          } else if (response.headers && typeof response.headers.entries === 'function') {
+            // Alternative: use entries() iterator
+            for (const [key, value] of response.headers.entries()) {
+              console.error(`[API]   ${key}: ${value}`);
+            }
+          } else {
+            // Fallback: try to access common headers directly
+            const headersToCheck = ['x-frame-options', 'content-type', 'www-authenticate', 'x-content-type-options'];
+            headersToCheck.forEach(headerName => {
+              const value = response.headers.get(headerName);
+              if (value) {
+                console.error(`[API]   ${headerName}: ${value}`);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('[API] Error logging headers:', e);
+        }
+        
+        // If we have a token but got 403, it might be expired or invalid
+        if (token) {
+          console.log('[API] Token present but 403 received - token may be invalid or expired');
+          console.log('[API] Attempting token refresh...');
+          // Try to refresh token
+          const refreshed = await this.refreshAccessToken();
+          if (refreshed) {
+            console.log('[API] Token refresh successful, retrying request...');
+            const newToken = await this.getToken();
+            if (newToken) {
+              headers['Authorization'] = `Bearer ${newToken}`;
+              // Retry the request once
+              response = await fetch(url, {
+                ...options,
+                headers,
+              });
+              console.log('[API] Retry response status:', response.status);
+              // If still 403 after refresh, return error with detailed info
+              if (response.status === 403) {
+                const retryErrorData: any = { detail: 'Permission denied after token refresh' };
+                try {
+                  const retryText = await response.clone().text();
+                  if (retryText) {
+                    retryErrorData.original = JSON.parse(retryText);
+                  }
+                } catch (e) {
+                  // Ignore parse errors
+                }
+                return {
+                  status: 403,
+                  error: `Permission denied. ${errorData.detail || errorData.message || 'The server explicitly denied access to this resource. Please check:\n1. Django server logs for the exact permission error\n2. Your user account has the required permissions\n3. The API endpoint URL is correct\n4. Try logging out and logging back in'}`,
+                };
+              }
+              // If retry succeeded, continue with normal processing below
+            }
+          } else {
+            console.error('[API] Token refresh failed');
+            // Refresh failed, clear tokens
+            await this.clearTokens();
+            return {
+              status: 403,
+              error: 'Session expired. Token refresh failed. Please login again.',
+            };
+          }
+        } else {
+          // No token - this endpoint requires authentication
+          console.error('[API] No token present - endpoint requires authentication');
+          return {
+            status: 403,
+            error: errorData.detail || errorData.message || 'Authentication required. Please login.',
+          };
+        }
+      }
 
       // If unauthorized, try to refresh token
       if (response.status === 401 && token) {
@@ -353,6 +527,20 @@ class ApiService {
     return this.makeRequest(API_ENDPOINTS.AUTH.USER_DETAILS);
   }
 
+  async verifyToken(token?: string): Promise<ApiResponse<any>> {
+    const tokenToVerify = token || await this.getToken();
+    if (!tokenToVerify) {
+      return {
+        status: 400,
+        error: 'No token provided',
+      };
+    }
+    return this.makeRequest(API_ENDPOINTS.AUTH.TOKEN_VERIFY, {
+      method: 'POST',
+      body: JSON.stringify({ token: tokenToVerify }),
+    });
+  }
+
   async changePassword(oldPassword: string, newPassword1: string, newPassword2: string): Promise<ApiResponse<any>> {
     return this.makeRequest(
       API_ENDPOINTS.AUTH.PASSWORD_CHANGE,
@@ -481,58 +669,46 @@ class ApiService {
     return this.makeRequest(API_ENDPOINTS.CHAT.GET_RESPONSE(chatId, taskId));
   }
 
-  // Investment & Savings Methods
-  async getInvestmentSavingsSummary(): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SUMMARY);
-  }
-
-  async saveStocksAssessment(data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_STOCKS, {
+  async clearChatHistory(chatId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.CHAT.CLEAR_HISTORY(chatId), {
       method: 'POST',
-      body: JSON.stringify(data),
     });
   }
 
-  async saveSavingsAssessment(data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_SAVINGS, {
+  async getChatUserData(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.CHAT.USER_DATA);
+  }
+
+  // Financial Aggregation Methods
+  async getDashboardSummary(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.FINANCIAL.DASHBOARD_SUMMARY);
+  }
+
+  async getBudgetData(days: number = 30): Promise<ApiResponse<any>> {
+    return this.makeRequest(`${API_ENDPOINTS.FINANCIAL.BUDGET_DATA}?days=${days}`);
+  }
+
+  async getInvestmentData(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.FINANCIAL.INVESTMENT_DATA);
+  }
+
+  async getDebtData(): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.FINANCIAL.DEBT_DATA);
+  }
+
+  async getAccountDetail(accountId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.RECORDS.ACCOUNT_DETAIL(accountId));
+  }
+
+  async syncAccount(accountId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.RECORDS.SYNC_ACCOUNT(accountId), {
       method: 'POST',
-      body: JSON.stringify(data),
     });
   }
 
-  async saveCDAssessment(data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_CD, {
+  async disconnectAccount(accountId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(API_ENDPOINTS.RECORDS.DISCONNECT_ACCOUNT(accountId), {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async saveBondAssessment(data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.INVESTMENT_SAVINGS.SAVE_BOND, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Budget Planner Methods
-  async getBudgetPlannerData(): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.BUDGET_PLANNER);
-  }
-
-  // Loan Analysis Methods
-  async getLoanResults(id: number): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.STOCK_ANALYSIS.LOAN_RESULTS(id));
-  }
-
-  // Investment Planner Methods
-  async getInvestmentPlanner(analysisPk: number): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.STOCK_ANALYSIS.PLANNER(analysisPk));
-  }
-
-  async createInvestmentPlan(analysisPk: number, data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(API_ENDPOINTS.STOCK_ANALYSIS.PLANNER(analysisPk), {
-      method: 'POST',
-      body: JSON.stringify(data),
     });
   }
 }

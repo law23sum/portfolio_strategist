@@ -1,7 +1,42 @@
-// API Configuration
-export const API_BASE_URL = __DEV__ 
-  ? 'http://10.23.49.129:8000' // Development URL - update with your local IP
-  : 'https://your-production-url.com'; // Production URL
+import {Platform} from 'react-native';
+
+// For iOS Simulator: Use localhost if Django runs directly, or your Mac's IP if Django runs in Docker
+// To find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1
+const IOS_SIMULATOR_HOST = 'http://192.168.254.64:8000'; // Updated to work with Docker
+const ANDROID_EMULATOR_HOST = 'http://10.0.2.2:8000';
+const DEFAULT_LAN_HOST = 'http://192.168.254.64:8000'; // replace with your Mac/PC IP when using a physical device
+
+const runtimeOverride =
+  (typeof globalThis !== 'undefined' && (globalThis as any).__API_URL__) ||
+  (typeof process !== 'undefined' && process.env.API_BASE_URL);
+
+const resolvedDevHost = runtimeOverride
+  ? runtimeOverride
+  : Platform.select({
+      ios: IOS_SIMULATOR_HOST,
+      android: ANDROID_EMULATOR_HOST,
+      default: DEFAULT_LAN_HOST,
+    }) ?? IOS_SIMULATOR_HOST;
+
+const sanitizeBaseUrl = (url: string): string => url.replace(/[~\/\s]+$/, '').trim();
+
+export const API_BASE_URL = sanitizeBaseUrl(
+  __DEV__ ? resolvedDevHost : 'https://your-production-url.com',
+);
+
+export const setApiBaseUrl = (url: string) => {
+  if (typeof url === 'string' && url.trim().length > 0) {
+    (globalThis as any).__API_URL__ = sanitizeBaseUrl(url);
+  }
+};
+
+if (__DEV__) {
+  console.log('[API Config] Platform:', Platform.OS);
+  console.log('[API Config] Base URL:', API_BASE_URL);
+  console.log(
+    '[API Config] Override via process.env.API_BASE_URL or calling setApiBaseUrl("http://YOUR_IP:8000")',
+  );
+}
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -13,9 +48,12 @@ export const API_ENDPOINTS = {
     TOKEN_VERIFY: '/api/auth/token/verify/',
     USER_DETAILS: '/api/auth/user/',
     PASSWORD_CHANGE: '/api/auth/password/change/',
+    PLAID_LINK_TOKEN: '/api/auth/plaid/link-token/',
+    PLAID_EXCHANGE: '/api/auth/plaid/exchange/',
   },
   DASHBOARD: {
     STATS: '/dashboard/api/signups/',
+    SUMMARY: '/api/dashboard/summary/',
   },
   RECORDS: {
     INSIGHTS: '/records/insights/',
@@ -34,7 +72,7 @@ export const API_ENDPOINTS = {
   },
   STOCK_ANALYSIS: {
     HOME: '/stock-analysis/',
-    ANALYZE: '/stock-analysis/analyze/',
+    ANALYZE: '/stock-analysis/api/analyze/', // API endpoint (CSRF exempt)
     RESULTS: (id: number) => `/stock-analysis/results/${id}/`,
     DOWNLOAD_PDF: (id: number) => `/stock-analysis/download-pdf/${id}/`,
     LOAN: '/stock-analysis/loan/',
@@ -73,4 +111,3 @@ export const API_ENDPOINTS = {
     GET_RESPONSE: (id: number, taskId: string) => `/chat/chat/${id}/get_response/${taskId}/`,
   },
 };
-

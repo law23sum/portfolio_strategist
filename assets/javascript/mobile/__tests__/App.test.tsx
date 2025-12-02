@@ -3,11 +3,16 @@
  */
 
 import React from 'react';
-import ReactTestRenderer from 'react-test-renderer';
+import {act, create} from 'react-test-renderer';
 import App from '../App';
 
+jest.mock('../src/navigation/AppNavigator', () => () => null);
+jest.useFakeTimers();
+
 test('renders correctly', async () => {
-  await ReactTestRenderer.act(() => {
-    ReactTestRenderer.create(<App />);
+  await act(async () => {
+    create(<App />);
+    jest.runAllTimers();
+    await Promise.resolve();
   });
 });

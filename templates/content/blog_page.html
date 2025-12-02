@@ -11,32 +11,36 @@
   {% endwith %}
 {% endblock %}
 {% block content %}
-  <nav aria-label="breadcrumbs">
-    <ol class="pg-breadcrumbs">
-      <li class=""><a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a></li>
-      <li class="pg-breadcrumb-active" aria-current="page">{{ page.title }}</li>
+  <nav aria-label="breadcrumbs" class="mb-4">
+    <ol class="breadcrumb">
+      <li><a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a></li>
+      <li class="is-active" aria-current="page">{{ page.title }}</li>
     </ol>
   </nav>
-  <div class="py-4">
-    <h1 class="pg-title">{{ page.title }}</h1>
-    <h2 class="pg-subtitle">{{ page.intro }}</h2>
-    <p><small>{{ page.date }}</small></p>
-    <div class="my-2 pg-content">
+  <article class="blog-post">
+    <header class="mb-5">
+      <h1 class="title is-size-2-mobile is-size-1-tablet mb-3">{{ page.title }}</h1>
+      <h2 class="subtitle is-size-5-mobile is-size-4-tablet mb-4">{{ page.intro }}</h2>
+      <p class="is-size-6 has-text-grey"><time datetime="{{ page.date|date:'Y-m-d' }}">{{ page.date|date:"F j, Y" }}</time></p>
+    </header>
+    <div class="content blog-content">
       {% include_block page.body %}
     </div>
-    {% for item in page.gallery_images.all %}
-      {% if forloop.first %}
-        <hr>
-        <h2 class="pg-subtitle mt-5">{% translate 'Image Gallery' %}</h2>
-        <div class="pg-columns">
-      {% endif %}
-      <div class="pg-column">
-        {% image item.image fill-320x240 %}
-        <p>{{ item.caption }}</p>
+    {% if page.gallery_images.all %}
+      <hr class="my-5">
+      <h2 class="title is-size-4 mb-4">{% translate 'Image Gallery' %}</h2>
+      <div class="columns is-multiline is-variable is-4">
+        {% for item in page.gallery_images.all %}
+          <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
+            <figure class="image">
+              {% image item.image fill-400x300 %}
+              {% if item.caption %}
+                <figcaption class="is-size-7 has-text-grey mt-2">{{ item.caption }}</figcaption>
+              {% endif %}
+            </figure>
+          </div>
+        {% endfor %}
       </div>
-      {% if forloop.last %}
-        </div>
-      {% endif %}
-    {% endfor %}
-  </div>
+    {% endif %}
+  </article>
 {% endblock %}

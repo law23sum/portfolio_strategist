@@ -227,6 +227,39 @@ const ChatScreen = ({ route, navigation }: any) => {
     );
   };
 
+  const clearChatHistory = () => {
+    if (!chatId) return;
+    
+    Alert.alert(
+      'Clear Chat History',
+      'Are you sure you want to clear all messages in this chat?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.clearChatHistory(chatId);
+              if (response.data) {
+                setMessages([
+                  {
+                    key: -1,
+                    message_type: 'AI',
+                    content: 'Chat history cleared. How can I help you?',
+                  },
+                ]);
+              }
+            } catch (error) {
+              console.error('Error clearing chat:', error);
+              Alert.alert('Error', 'Failed to clear chat history');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderThinkingIndicator = () => {
     if (!currentTaskId) return null;
     return (
@@ -258,7 +291,12 @@ const ChatScreen = ({ route, navigation }: any) => {
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chat Assistant</Text>
-        <View style={styles.backButton} />
+        <TouchableOpacity
+          onPress={clearChatHistory}
+          style={styles.backButton}
+        >
+          <Icon name="delete-outline" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {loading ? (

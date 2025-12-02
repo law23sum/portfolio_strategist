@@ -11,9 +11,9 @@ urlpatterns = [
     path('download/<int:pk>/', views.download_pdf, name='download_pdf'),
     path('loan/', views.personal_loan_analysis, name='loan'),
     path('loan/results/<int:pk>/', views.loan_results, name='loan_results'),
-    # API endpoint for investment prediction
+    # API endpoints (CSRF exempt for mobile apps)
+    path('api/analyze/', views.analyze_stock_api, name='analyze_stock_api'),
     path('api/investment-forecast/', views.investment_forecast_api, name='investment_forecast_api'),
-    # API endpoint for stock details (reports, charts, graphs)
     path('api/stock-details/', views.stock_details_api, name='stock_details_api'),
 ]
 

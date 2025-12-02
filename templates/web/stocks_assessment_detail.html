@@ -1,0 +1,290 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .stat-card {
+        border-left: 4px solid #3273dc;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        height: 100%;
+    }
+    .chart-wrapper {
+        min-height: 320px;
+        position: relative;
+    }
+    .metric-cell strong {
+        display: block;
+        font-size: 0.85rem;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<section class="app-card">
+    <div class="level">
+        <div class="level-left">
+            <a href="{% url 'web:stocks_assessment' %}" class="button is-light">
+                <span class="icon"><i class="fa fa-arrow-left"></i></span>
+                <span>Back to Stocks Assessment</span>
+            </a>
+        </div>
+        <div class="level-right">
+            <span class="tag is-light">Updated {{ assessment.updated_at|date:"M d, Y H:i" }}</span>
+        </div>
+    </div>
+
+    <h1 class="title is-3 mb-1">{{ assessment.symbol }} Assessment</h1>
+    <p class="subtitle is-6">Linked Account: {{ assessment.linked_account.account_name|default:"Manual Entry" }}</p>
+
+    <div class="columns is-multiline mt-4">
+        <div class="column is-one-quarter-desktop is-half-tablet">
+            <div class="box stat-card">
+                <p class="heading">Investment Amount</p>
+                <p class="title is-4">${{ investment_amount|floatformat:2 }}</p>
+            </div>
+        </div>
+        <div class="column is-one-quarter-desktop is-half-tablet">
+            <div class="box stat-card">
+                <p class="heading">Shares Held</p>
+                <p class="title is-4">
+                    {% if shares is not None %}
+                        {{ shares|floatformat:4 }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="column is-one-quarter-desktop is-half-tablet">
+            <div class="box stat-card">
+                <p class="heading">Current Price</p>
+                <p class="title is-4">${{ current_price|floatformat:2 }}</p>
+            </div>
+        </div>
+        <div class="column is-one-quarter-desktop is-half-tablet">
+            <div class="box stat-card">
+                <p class="heading">Current Value</p>
+                <p class="title is-4">${{ current_value|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="columns">
+            <div class="column">
+                <h2 class="title is-4">Forecast Timeline</h2>
+                <p class="is-size-7 has-text-grey">Financia extended horizon summary</p>
+            </div>
+            <div class="column is-narrow">
+                {% if biweekly_contrib %}
+                <span class="tag is-info is-light">Biweekly Contribution: ${{ biweekly_contrib|floatformat:2 }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="forecastTimelineChart"></canvas>
+        </div>
+    </div>
+
+    <div class="box">
+        <h2 class="title is-4">Forecast Horizons</h2>
+        <div class="table-container">
+            <table class="table is-striped is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Years</th>
+                        <th>Forecast Price</th>
+                        <th>Investment Value</th>
+                        <th>Profit/Loss</th>
+                        <th>Growth</th>
+                        <th>Peak</th>
+                        <th>Valley</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in horizon_rows %}
+                    <tr>
+                        <td>{{ row.label }}</td>
+                        <td>{% if row.years %}{{ row.years|floatformat:2 }}{% elif row.days %}{{ row.days }} days{% else %}—{% endif %}</td>
+                        <td>{% if row.price is not None %}${{ row.price|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td>{% if row.value is not None %}${{ row.value|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td class="has-text-weight-semibold" style="color: {% if row.profit is not None and row.profit < 0 %}#dc3545{% else %}#28a745{% endif %};">
+                            {% if row.profit is not None %}${{ row.profit|floatformat:2 }}{% else %}—{% endif %}
+                        </td>
+                        <td style="color: {% if row.growth is not None and row.growth < 0 %}#dc3545{% else %}#28a745{% endif %};">
+                            {% if row.growth is not None %}{{ row.growth|floatformat:2 }}%{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if row.peak.price %}
+                                ${{ row.peak.price|floatformat:2 }}{% if row.peak.date %}<br/><span class="is-size-7 has-text-grey">{{ row.peak.date }}</span>{% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if row.valley.price %}
+                                ${{ row.valley.price|floatformat:2 }}{% if row.valley.date %}<br/><span class="is-size-7 has-text-grey">{{ row.valley.date }}</span>{% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="has-text-centered">No forecast data stored for this assessment yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="columns is-multiline">
+        <div class="column is-half">
+            <div class="box">
+                <h3 class="title is-5">3-Year Plan Summary</h3>
+                <div class="table-container">
+                    <table class="table is-fullwidth">
+                        <tbody>
+                            <tr>
+                                <td>Principal Amount</td>
+                                <td>${{ plan_summary.principal|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td>Biweekly Contribution</td>
+                                <td>{% if plan_summary.biweekly %}${{ plan_summary.biweekly|floatformat:2 }}{% else %}—{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td>3-Year Forecast Value</td>
+                                <td>${{ plan_summary.three_year_value|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Projected Value</strong></td>
+                                <td><strong>${{ plan_summary.plan_total|floatformat:2 }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="column is-half">
+            <div class="box">
+                <h3 class="title is-5">Notes</h3>
+                {% if assessment.notes %}
+                <p>{{ assessment.notes|linebreaks }}</p>
+                {% else %}
+                <p class="has-text-grey">No notes provided.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if financia_details.statistics or financia_details.external_factors or financia_details.mean_reversion or financia_details.equation_type %}
+    <div class="box">
+        <h2 class="title is-4">Financia Advanced Analysis</h2>
+        <div class="columns is-multiline">
+            {% if financia_details.statistics %}
+            <div class="column is-half">
+                <div class="box">
+                    <h4 class="title is-6">Statistical Parameters</h4>
+                    <p class="metric-cell"><strong>Daily Drift (μ)</strong> {{ financia_details.statistics.mu_daily|default:"N/A" }}</p>
+                    <p class="metric-cell"><strong>Daily Volatility (σ)</strong> {{ financia_details.statistics.sigma_daily|default:"N/A" }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if financia_details.external_factors %}
+            <div class="column is-half">
+                <div class="box">
+                    <h4 class="title is-6">External Macroeconomic Factors</h4>
+                    {% with ef=financia_details.external_factors %}
+                    <p class="metric-cell"><strong>Market Beta (βₘ)</strong> {{ ef.market_beta|default:"N/A" }}</p>
+                    <p class="metric-cell"><strong>Interest Rate Beta (βᵣ)</strong> {{ ef.interest_rate_beta|default:"N/A" }}</p>
+                    <p class="metric-cell"><strong>Volatility Beta (βᵥ)</strong> {{ ef.volatility_beta|default:"N/A" }}</p>
+                    {% if ef.factor_betas %}
+                        <p class="has-text-weight-semibold mt-3">Factor Betas</p>
+                        <ul class="is-size-7">
+                        {% for key, value in ef.factor_betas.items %}
+                            <li>{{ key }}: {{ value }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if financia_details.mean_reversion %}
+            <div class="column is-half">
+                <div class="box">
+                    <h4 class="title is-6">Mean Reversion</h4>
+                    {% with mr=financia_details.mean_reversion %}
+                    <p class="metric-cell"><strong>Eta (η)</strong> {{ mr.eta|default:"N/A" }}</p>
+                    <p class="metric-cell"><strong>Theta (θ)</strong> {{ mr.theta|default:"N/A" }}</p>
+                    {% endwith %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if financia_details.equation_type %}
+            <div class="column is-half">
+                <div class="box">
+                    <h4 class="title is-6">Forecast Model</h4>
+                    <p>{{ financia_details.equation_type }}</p>
+                    <p class="is-size-7 has-text-grey">Model configured by the Financia prediction engine.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<script>
+const timelinePoints = {{ timeline_json|safe }};
+(function renderTimelineChart() {
+    const ctx = document.getElementById('forecastTimelineChart');
+    if (!ctx || !timelinePoints.length) {
+        if (ctx) {
+            ctx.parentElement.innerHTML = '<p class="has-text-grey">Timeline data not available yet.</p>';
+        }
+        return;
+    }
+
+    const labels = timelinePoints.map(point => point.label);
+    const prices = timelinePoints.map(point => point.price);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Forecasted Price',
+                data: prices,
+                borderColor: 'rgba(50, 115, 220, 0.9)',
+                backgroundColor: 'rgba(50, 115, 220, 0.2)',
+                fill: true,
+                tension: 0.25,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ` $${ctx.parsed.y.toFixed(2)}`,
+                    },
+                },
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Price ($)' },
+                },
+            },
+        },
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,461 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+    .financial-card {
+        transition: transform 0.2s;
+    }
+    .financial-card:hover {
+        transform: translateY(-2px);
+    }
+    .account-header {
+        margin-bottom: 30px;
+    }
+    .section-title {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .transaction-row {
+        transition: background-color 0.2s;
+    }
+    .transaction-row:hover {
+        background-color: #f8fafc;
+    }
+    .holding-card {
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="container">
+    <!-- Back Button -->
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'records:linked_accounts' %}" class="button is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>Back to Accounts</span>
+        </a>
+    </div>
+
+    <!-- Account Header -->
+    <div class="box account-header">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title is-3">{{ linked_account.account_name }}</h1>
+                    <p class="subtitle is-5">{{ linked_account.institution_name }}</p>
+                    <div class="tags" style="margin-top: 10px;">
+                        <span class="tag is-info">{{ linked_account.get_account_type_display }}</span>
+                        <span class="tag {% if linked_account.status == 'active' %}is-success{% elif linked_account.status == 'error' %}is-danger{% else %}is-warning{% endif %}">
+                            {{ linked_account.get_status_display }}
+                        </span>
+                        {% if linked_account.account_number_masked %}
+                        <span class="tag is-light">****{{ linked_account.account_number_masked }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="level-right">
+                <div class="buttons">
+                    <button onclick="syncAccount({{ linked_account.id }})" class="button is-info">
+                        <span class="icon">
+                            <i class="fas fa-sync"></i>
+                        </span>
+                        <span>Sync Account</span>
+                    </button>
+                    <button onclick="disconnectAccount({{ linked_account.id }})" class="button is-danger is-outlined">
+                        <span class="icon">
+                            <i class="fas fa-unlink"></i>
+                        </span>
+                        <span>Disconnect</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Balance -->
+    {% if latest_balance %}
+    <div class="box">
+        <h2 class="title is-4 section-title">Current Balance</h2>
+        <div class="columns is-multiline">
+            <div class="column is-one-third">
+                <div class="card financial-card">
+                    <div class="card-content">
+                        <p class="heading">Current Balance</p>
+                        <p class="title is-3 {% if latest_balance.current_balance >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                            ${{ latest_balance.current_balance|floatformat:2|intcomma }}
+                        </p>
+                        <p class="subtitle is-7">As of {{ latest_balance.balance_date|date:"M d, Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+            {% if latest_balance.available_balance %}
+            <div class="column is-one-third">
+                <div class="card financial-card">
+                    <div class="card-content">
+                        <p class="heading">Available Balance</p>
+                        <p class="title is-3 has-text-info">
+                            ${{ latest_balance.available_balance|floatformat:2|intcomma }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if latest_balance.limit %}
+            <div class="column is-one-third">
+                <div class="card financial-card">
+                    <div class="card-content">
+                        <p class="heading">Credit Limit</p>
+                        <p class="title is-3">
+                            ${{ latest_balance.limit|floatformat:2|intcomma }}
+                        </p>
+                        {% if latest_balance.current_balance and latest_balance.limit %}
+                        {% widthratio latest_balance.current_balance latest_balance.limit 100 as utilization %}
+                        <p class="subtitle is-7">
+                            Utilization: {{ utilization|floatformat:1 }}%
+                            {% if utilization < 30 %}
+                            <span class="tag is-success is-small">Excellent</span>
+                            {% elif utilization < 70 %}
+                            <span class="tag is-warning is-small">Good</span>
+                            {% else %}
+                            <span class="tag is-danger is-small">High</span>
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="box">
+        <div class="notification is-warning is-light">
+            <p><strong>No balance data available.</strong> Please sync your account to retrieve the latest balance information.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Investment Holdings -->
+    {% if holdings %}
+    <div class="box">
+        <h2 class="title is-4 section-title">Investment Holdings</h2>
+        <div class="columns is-multiline">
+            {% for holding in holdings %}
+            <div class="column is-one-third">
+                <div class="card holding-card">
+                    <div class="card-content">
+                        <p class="heading">
+                            {% if holding.security_ticker %}
+                            {{ holding.security_ticker }}
+                            {% endif %}
+                            {% if holding.security_name %}
+                            - {{ holding.security_name }}
+                            {% endif %}
+                        </p>
+                        <p class="title is-4">${{ holding.value|floatformat:2|intcomma }}</p>
+                        <div class="content">
+                            <p><strong>Quantity:</strong> {{ holding.quantity|floatformat:6 }}</p>
+                            {% if holding.price %}
+                            <p><strong>Price:</strong> ${{ holding.price|floatformat:2|intcomma }}</p>
+                            {% endif %}
+                            {% if holding.cost_basis %}
+                            <p><strong>Cost Basis:</strong> ${{ holding.cost_basis|floatformat:2|intcomma }}</p>
+                            {% if holding.value and holding.cost_basis %}
+                            {% widthratio holding.value holding.cost_basis 100 as return_pct %}
+                            <p>
+                                <strong>Return:</strong> 
+                                <span class="{% if return_pct >= 100 %}has-text-success{% else %}has-text-danger{% endif %}">
+                                    {{ return_pct|floatformat:1 }}%
+                                </span>
+                            </p>
+                            {% endif %}
+                            {% endif %}
+                            {% if holding.security_type %}
+                            <p><strong>Type:</strong> {{ holding.security_type }}</p>
+                            {% endif %}
+                            <p class="is-size-7 has-text-grey">As of {{ holding.as_of_date|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Transactions -->
+    {% if recent_transactions %}
+    <div class="box">
+        <h2 class="title is-4 section-title">Recent Transactions</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th class="has-text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in recent_transactions %}
+                    <tr class="transaction-row">
+                        <td>{{ transaction.date|date:"M d, Y" }}</td>
+                        <td>
+                            {% if transaction.merchant_name %}
+                            <strong>{{ transaction.merchant_name }}</strong><br>
+                            <small class="has-text-grey">{{ transaction.description|truncatewords:10 }}</small>
+                            {% else %}
+                            {{ transaction.description|truncatewords:15 }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if transaction.category %}
+                            <span class="tag is-light">{{ transaction.category }}</span>
+                            {% else %}
+                            <span class="tag is-light">Uncategorized</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="tag {% if transaction.transaction_type == 'credit' %}is-success{% elif transaction.transaction_type == 'debit' %}is-danger{% else %}is-info{% endif %}">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                            {% if transaction.pending %}
+                            <span class="tag is-warning is-small">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="has-text-right">
+                            <span class="{% if transaction.transaction_type == 'credit' %}has-text-success{% elif transaction.transaction_type == 'debit' %}has-text-danger{% else %}has-text-info{% endif %}">
+                                {% if transaction.transaction_type == 'credit' %}+{% endif %}${{ transaction.amount|floatformat:2|intcomma }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if recent_transactions|length >= 50 %}
+        <div class="notification is-info is-light" style="margin-top: 15px;">
+            <p>Showing the 50 most recent transactions. Use the API endpoint to retrieve more.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="box">
+        <div class="notification is-info is-light">
+            <p><strong>No transactions found.</strong> Transactions will appear here after syncing your account.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sync History -->
+    {% if sync_logs %}
+    <div class="box">
+        <h2 class="title is-4 section-title">Sync History</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Started</th>
+                        <th>Completed</th>
+                        <th>Duration</th>
+                        <th>Results</th>
+                        {% if sync_logs.0.error_message %}
+                        <th>Error</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in sync_logs %}
+                    <tr>
+                        <td>
+                            <span class="tag {% if log.status == 'success' %}is-success{% elif log.status == 'error' %}is-danger{% else %}is-warning{% endif %}">
+                                {{ log.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ log.started_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            {% if log.completed_at %}
+                            {{ log.completed_at|date:"M d, Y H:i" }}
+                            {% else %}
+                            <span class="has-text-grey">In Progress</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.duration_seconds %}
+                            {{ log.duration_seconds|floatformat:1 }}s
+                            {% else %}
+                            <span class="has-text-grey">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.transactions_synced or log.balances_synced or log.holdings_synced %}
+                            <div class="tags">
+                                {% if log.transactions_synced %}
+                                <span class="tag is-light">{{ log.transactions_synced }} transactions</span>
+                                {% endif %}
+                                {% if log.balances_synced %}
+                                <span class="tag is-light">{{ log.balances_synced }} balances</span>
+                                {% endif %}
+                                {% if log.holdings_synced %}
+                                <span class="tag is-light">{{ log.holdings_synced }} holdings</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="has-text-grey">-</span>
+                            {% endif %}
+                        </td>
+                        {% if sync_logs.0.error_message %}
+                        <td>
+                            {% if log.error_message %}
+                            <span class="has-text-danger">{{ log.error_message|truncatewords:10 }}</span>
+                            {% else %}
+                            <span class="has-text-grey">-</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Account Metadata -->
+    <div class="box">
+        <h2 class="title is-4 section-title">Account Information</h2>
+        <div class="content">
+            <table class="table is-narrow">
+                <tbody>
+                    <tr>
+                        <th>Account ID</th>
+                        <td>{{ linked_account.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Institution</th>
+                        <td>{{ linked_account.institution_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Account Type</th>
+                        <td>{{ linked_account.get_account_type_display }}</td>
+                    </tr>
+                    {% if linked_account.account_subtype %}
+                    <tr>
+                        <th>Account Subtype</th>
+                        <td>{{ linked_account.account_subtype }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            <span class="tag {% if linked_account.status == 'active' %}is-success{% elif linked_account.status == 'error' %}is-danger{% else %}is-warning{% endif %}">
+                                {{ linked_account.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Last Synced</th>
+                        <td>
+                            {% if linked_account.last_synced_at %}
+                            {{ linked_account.last_synced_at|date:"M d, Y H:i" }}
+                            {% else %}
+                            <span class="has-text-grey">Never</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Created</th>
+                        <td>{{ linked_account.created_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% if linked_account.error_message %}
+                    <tr>
+                        <th>Error Message</th>
+                        <td><span class="has-text-danger">{{ linked_account.error_message }}</span></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+async function syncAccount(accountId) {
+    try {
+        const response = await fetch(`/records/api/sync-account/${accountId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Sync started. This may take a few moments. The page will refresh when complete.');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error syncing account:', error);
+        alert('Error syncing account. Please try again.');
+    }
+}
+
+async function disconnectAccount(accountId) {
+    if (!confirm('Are you sure you want to disconnect this account? This will stop automatic syncing and you will need to reconnect it to access data again.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/records/api/disconnect-account/${accountId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Account disconnected successfully.');
+            window.location.href = '{% url "records:linked_accounts" %}';
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error disconnecting account:', error);
+        alert('Error disconnecting account. Please try again.');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

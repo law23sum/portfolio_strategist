@@ -1,23 +1,30 @@
 {% extends "content/base.html" %}
 {% load wagtailcore_tags wagtailimages_tags %}
 {% block content %}
-  <div class="pg-text-centered my-4">
-    <h1 class="pg-title">{{ page.title }}</h1>
-    <div class="pg-subtitle">{{ page.intro|richtext }}</div>
+  <div class="has-text-centered my-5 py-4">
+    <h1 class="title is-size-2-mobile is-size-1-tablet">{{ page.title }}</h1>
+    <div class="subtitle is-size-5-mobile is-size-4-tablet">{{ page.intro|richtext }}</div>
   </div>
-  {% for post in page.get_ordered_blog_posts %}{% with post.specific as post %}
-    <div class="app-card">
-      <div class="pg-columns">
-        <div class="pg-column">
-          <h3 class="pg-title"><a class="pg-link is-info" href="{% pageurl post %}">{{ post.title }}</a></h3>
-          <div class="pg-subtitle">{{ post.intro }}</div>
-        </div>
-        {% with post.main_image as main_image %}{% if main_image %}
-          <div class="pg-column-one-quarter">
-            {% image main_image fill-300x200 %}
+  <div class="blog-index">
+    {% for post in page.get_ordered_blog_posts %}{% with post.specific as post %}
+      <div class="app-card mb-5">
+        <div class="columns is-variable is-6 is-vcentered">
+          <div class="column is-three-quarters-mobile is-full-tablet">
+            <h2 class="title is-size-4-mobile is-size-3-tablet mb-3">
+              <a class="pg-link is-info" href="{% pageurl post %}">{{ post.title }}</a>
+            </h2>
+            <p class="subtitle is-size-6 mb-3">{{ post.intro }}</p>
+            <p class="is-size-7 has-text-grey">{{ post.date|date:"F j, Y" }}</p>
           </div>
-        {% endif %}{% endwith %}
+          {% with post.main_image as main_image %}{% if main_image %}
+            <div class="column is-one-quarter-mobile is-one-third-tablet">
+              <figure class="image">
+                {% image main_image fill-400x300 %}
+              </figure>
+            </div>
+          {% endif %}{% endwith %}
+        </div>
       </div>
-    </div>
-  {% endwith %}{% endfor %}
+    {% endwith %}{% endfor %}
+  </div>
 {% endblock %}
