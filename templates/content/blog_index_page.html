@@ -1,30 +1,139 @@
 {% extends "content/base.html" %}
 {% load wagtailcore_tags wagtailimages_tags %}
+{% load static %}
+
+{% block page_head %}
+<style>
+  .blog-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 4rem 1.5rem;
+    text-align: center;
+    color: white;
+    margin-bottom: 3rem;
+    border-radius: 0 0 2rem 2rem;
+  }
+  .blog-hero h1 {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+  }
+  .blog-hero .subtitle {
+    color: rgba(255,255,255,0.95);
+    font-size: 1.1rem;
+  }
+  .blog-posts {
+    padding: 2rem 0;
+  }
+  .blog-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    border-left: 4px solid #667eea;
+  }
+  .blog-card:hover {
+    transform: translateX(10px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  .blog-card-content {
+    flex: 1;
+  }
+  .blog-card-title {
+    margin-bottom: 0.75rem;
+  }
+  .blog-card-title a {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  .blog-card-title a:hover {
+    color: #667eea;
+  }
+  .blog-card-intro {
+    color: #7f8c8d;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+  }
+  .blog-card-image {
+    flex-shrink: 0;
+    width: 300px;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+  .blog-card-image img {
+    transition: transform 0.5s ease;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .blog-card:hover .blog-card-image img {
+    transform: scale(1.05);
+  }
+  .blog-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #7f8c8d;
+  }
+  .blog-empty h2 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+  }
+  @media (max-width: 768px) {
+    .blog-hero {
+      padding: 2.5rem 1rem;
+    }
+    .blog-hero h1 {
+      font-size: 2rem;
+    }
+    .blog-card {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .blog-card-image {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-  <div class="has-text-centered my-5 py-4">
-    <h1 class="title is-size-2-mobile is-size-1-tablet">{{ page.title }}</h1>
-    <div class="subtitle is-size-5-mobile is-size-4-tablet">{{ page.intro|richtext }}</div>
+  <div class="blog-hero">
+    <h1 class="title">{{ page.title }}</h1>
+    <div class="subtitle">{{ page.intro|richtext }}</div>
   </div>
-  <div class="blog-index">
-    {% for post in page.get_ordered_blog_posts %}{% with post.specific as post %}
-      <div class="app-card mb-5">
-        <div class="columns is-variable is-6 is-vcentered">
-          <div class="column is-three-quarters-mobile is-full-tablet">
-            <h2 class="title is-size-4-mobile is-size-3-tablet mb-3">
-              <a class="pg-link is-info" href="{% pageurl post %}">{{ post.title }}</a>
-            </h2>
-            <p class="subtitle is-size-6 mb-3">{{ post.intro }}</p>
-            <p class="is-size-7 has-text-grey">{{ post.date|date:"F j, Y" }}</p>
+  
+  <div class="blog-posts">
+    {% for post in page.get_ordered_blog_posts %}
+      {% with post.specific as post %}
+        <div class="blog-card">
+          <div class="blog-card-content">
+            <h3 class="blog-card-title">
+              <a href="{% pageurl post %}">{{ post.title }}</a>
+            </h3>
+            <div class="blog-card-intro">{{ post.intro }}</div>
           </div>
           {% with post.main_image as main_image %}{% if main_image %}
-            <div class="column is-one-quarter-mobile is-one-third-tablet">
-              <figure class="image">
-                {% image main_image fill-400x300 %}
-              </figure>
+            <div class="blog-card-image">
+              {% image main_image fill-300x200 %}
             </div>
           {% endif %}{% endwith %}
         </div>
+      {% endwith %}
+    {% empty %}
+      <div class="blog-empty">
+        <h2>No blog posts yet</h2>
+        <p>Check back soon for new content!</p>
       </div>
-    {% endwith %}{% endfor %}
+    {% endfor %}
   </div>
 {% endblock %}

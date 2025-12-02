@@ -53,8 +53,13 @@ def decrypt_token(encrypted_token: str) -> str:
         decrypted = cipher.decrypt(encrypted_bytes)
         return decrypted.decode()
     except Exception as e:
-        logger.error(f"Error decrypting token: {e}")
-        raise
+        error_msg = str(e) if str(e) else repr(e)
+        logger.error(f"Error decrypting token: {error_msg}")
+        # Check if this is a key mismatch error
+        if 'InvalidToken' in str(type(e).__name__) or 'Invalid' in error_msg:
+            logger.error("This error usually indicates FERNET_KEY has changed. Tokens encrypted with a different key cannot be decrypted.")
+            logger.error("Set FERNET_KEY in Django settings to a fixed value to prevent this issue.")
+        raise ValueError(f"Failed to decrypt token. This may be due to FERNET_KEY mismatch. Original error: {error_msg}") from e
 
 
 

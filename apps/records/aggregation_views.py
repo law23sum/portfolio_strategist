@@ -451,6 +451,32 @@ def account_detail_view(request, account_id):
 
 
 @csrf_exempt
+@require_http_methods(["GET", "POST"])
+def plaid_oauth_callback(request):
+    """Handle OAuth callback from Plaid"""
+    try:
+        # OAuth callback typically includes oauth_state_id and error (if any)
+        oauth_state_id = request.GET.get('oauth_state_id') or request.POST.get('oauth_state_id')
+        error = request.GET.get('error') or request.POST.get('error')
+        
+        if error:
+            logger.error(f"Plaid OAuth error: {error}")
+            return JsonResponse({'error': error}, status=400)
+        
+        if not oauth_state_id:
+            return JsonResponse({'error': 'Missing oauth_state_id'}, status=400)
+        
+        # The OAuth flow is typically handled client-side
+        # This endpoint just acknowledges the callback
+        logger.info(f"Plaid OAuth callback received with state: {oauth_state_id}")
+        return JsonResponse({'status': 'ok', 'oauth_state_id': oauth_state_id}, status=200)
+        
+    except Exception as e:
+        logger.error(f"Error processing Plaid OAuth callback: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
 @require_http_methods(["POST"])
 def plaid_webhook(request):
     """Handle webhooks from Plaid"""

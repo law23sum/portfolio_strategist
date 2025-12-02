@@ -426,14 +426,23 @@ class PlaidAggregationService:
             }
             
         except Exception as e:
-            logger.error(f"Error syncing account {linked_account.id}: {e}")
+            import traceback
+            error_msg = str(e) if str(e) else repr(e)
+            error_traceback = traceback.format_exc()
+            
+            logger.error(f"Error syncing account {linked_account.id}: {error_msg}")
+            logger.error(f"Traceback: {error_traceback}")
+            
             sync_log.status = 'error'
-            sync_log.error_message = str(e)
+            sync_log.error_message = error_msg[:500]  # Limit length
             sync_log.completed_at = timezone.now()
             sync_log.duration_seconds = (sync_log.completed_at - sync_log.started_at).total_seconds()
+            sync_log.metadata = sync_log.metadata or {}
+            sync_log.metadata['error_traceback'] = error_traceback[:1000]  # Store traceback in metadata
+            sync_log.save()
             
             linked_account.status = 'error'
-            linked_account.error_message = str(e)
+            linked_account.error_message = error_msg[:500]  # Limit length
             linked_account.save()
         
         sync_log.save()
@@ -455,17 +464,47 @@ class PlaidAggregationService:
                 if hasattr(account, 'account_id'):
                     account_id = account.account_id
                     name = account.name
-                    account_type = account.type
-                    subtype = getattr(account, 'subtype', None)
+                    account_type_raw = account.type
+                    subtype_raw = getattr(account, 'subtype', None)
                     mask = getattr(account, 'mask', '')
                     balances_obj = account.balances
+                    
+                    # Convert enum types to strings immediately
+                    if account_type_raw and hasattr(account_type_raw, 'value'):
+                        account_type = str(account_type_raw.value)
+                    elif account_type_raw:
+                        account_type = str(account_type_raw)
+                    else:
+                        account_type = None
+                    
+                    if subtype_raw and hasattr(subtype_raw, 'value'):
+                        subtype = str(subtype_raw.value)
+                    elif subtype_raw:
+                        subtype = str(subtype_raw)
+                    else:
+                        subtype = None
                 else:
                     account_id = account.get('account_id')
                     name = account.get('name')
-                    account_type = account.get('type')
-                    subtype = account.get('subtype')
+                    account_type_raw = account.get('type')
+                    subtype_raw = account.get('subtype')
                     mask = account.get('mask', '')
                     balances_obj = account.get('balances', {})
+                    
+                    # Convert enum types to strings immediately
+                    if account_type_raw and hasattr(account_type_raw, 'value'):
+                        account_type = str(account_type_raw.value)
+                    elif account_type_raw:
+                        account_type = str(account_type_raw)
+                    else:
+                        account_type = None
+                    
+                    if subtype_raw and hasattr(subtype_raw, 'value'):
+                        subtype = str(subtype_raw.value)
+                    elif subtype_raw:
+                        subtype = str(subtype_raw)
+                    else:
+                        subtype = None
                 
                 # Extract balance info
                 if hasattr(balances_obj, 'current'):
@@ -607,6 +646,9 @@ class PlaidAggregationService:
     
     def _sync_investment_holdings(self, linked_account: LinkedAccount, access_token: str) -> int:
         """Sync investment holdings from Plaid"""
+        if not linked_account:
+            logger.error("Cannot sync investment holdings: linked_account is None")
+            return 0
         try:
             request = InvestmentsHoldingsGetRequest(access_token=access_token)
             response = self.client.investments_holdings_get(request)
@@ -689,7 +731,15 @@ class PlaidAggregationService:
                 if hasattr(tx_data, 'investment_transaction_id'):
                     tx_id = tx_data.investment_transaction_id
                     security = getattr(tx_data, 'security_id', '')
-                    tx_type = getattr(tx_data, 'type', '').lower()
+                    # Handle enum types - convert to string before calling .lower()
+                    tx_type_raw = getattr(tx_data, 'type', '')
+                    if tx_type_raw:
+                        if hasattr(tx_type_raw, 'value'):
+                            tx_type = str(tx_type_raw.value).lower()
+                        else:
+                            tx_type = str(tx_type_raw).lower()
+                    else:
+                        tx_type = ''
                     tx_amount = getattr(tx_data, 'amount', 0)
                     quantity = getattr(tx_data, 'quantity', None)
                     price = getattr(tx_data, 'price', None)
@@ -700,7 +750,15 @@ class PlaidAggregationService:
                 else:
                     tx_id = tx_data.get('investment_transaction_id')
                     security = tx_data.get('security_id', '')
-                    tx_type = tx_data.get('type', '').lower()
+                    # Handle enum types - convert to string before calling .lower()
+                    tx_type_raw = tx_data.get('type', '')
+                    if tx_type_raw:
+                        if hasattr(tx_type_raw, 'value'):
+                            tx_type = str(tx_type_raw.value).lower()
+                        else:
+                            tx_type = str(tx_type_raw).lower()
+                    else:
+                        tx_type = ''
                     tx_amount = tx_data.get('amount', 0)
                     quantity = tx_data.get('quantity')
                     price = tx_data.get('price')

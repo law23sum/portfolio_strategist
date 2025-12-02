@@ -1,8 +1,10 @@
 import {Platform} from 'react-native';
 
-// For iOS Simulator: Use localhost if Django runs directly, or your Mac's IP if Django runs in Docker
+// For iOS Simulator: Use localhost (simulator shares host network stack)
+// For physical iOS device: Use your Mac's IP address
 // To find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1
-const IOS_SIMULATOR_HOST = 'http://192.168.254.64:8000'; // Updated to work with Docker
+const IOS_SIMULATOR_HOST = 'http://localhost:8000'; // iOS Simulator can use localhost
+const IOS_PHYSICAL_DEVICE_HOST = 'http://192.168.254.64:8000'; // Use Mac's IP for physical device
 const ANDROID_EMULATOR_HOST = 'http://10.0.2.2:8000';
 const DEFAULT_LAN_HOST = 'http://192.168.254.64:8000'; // replace with your Mac/PC IP when using a physical device
 

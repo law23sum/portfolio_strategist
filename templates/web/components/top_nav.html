@@ -35,8 +35,7 @@
         <a class="navbar-item is-tab" href="{% url 'web:pricing_page' %}">
           Subscription
         </a>
-        {% slugurl 'blog' as blog_url %}
-        <a class="navbar-item is-tab {% if blog_url in request.path %}is-active{% endif %}" href="{{ blog_url }}">
+        <a class="navbar-item is-tab {% if '/content/blog' in request.path %}is-active{% endif %}" href="/content/blog/">
           {% translate "Blog" %}
         </a>
           {% endif %}

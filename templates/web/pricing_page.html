@@ -3,80 +3,153 @@
 {% block page_head %}
 <style>
     #pricing-page-head {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         background-image: url('{% static "images/pegasus/stars-pano-banner.jpg" %}');
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
+        background-blend-mode: overlay;
+        padding: 5rem 1.5rem;
+        position: relative;
+    }
+    #pricing-page-head::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+    }
+    #pricing-page-head .hero-body {
+        position: relative;
+        z-index: 1;
+    }
+    #pricing-page-head .title {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    #pricing-page-head .subtitle {
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 1.2rem;
+    }
+    .pricing-matrix {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        margin-top: -3rem;
+        position: relative;
+        z-index: 2;
     }
     .pricing-block {
-        padding: 1.5rem;
-        border-radius: 12px;
-        background-color: #fafafa;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 2.5rem;
+        border-radius: 1rem;
+        background-color: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
-        height: 100%;
+        border: 2px solid transparent;
     }
     .pricing-block:hover {
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-        transform: translateY(-4px);
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    .pricing-block.is-highlighted {
+        border-color: #667eea;
+        background: linear-gradient(to bottom, #ffffff 0%, #f8f9ff 100%);
+        transform: scale(1.05);
+        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
+    }
+    .pricing-block.is-highlighted:hover {
+        transform: scale(1.05) translateY(-8px);
     }
     .pricing-block h3 {
-        font-size: 1.25rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+        text-align: center;
     }
     .pricing-block .price {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #333;
-        margin: 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #667eea;
+        text-align: center;
+        margin: 1rem 0 0.5rem 0;
+        line-height: 1;
     }
     .pricing-block .price-detail {
-        font-size: 0.875rem;
-        color: #666;
-        margin-bottom: 1rem;
+        font-size: 0.95rem;
+        color: #7f8c8d;
+        text-align: center;
+        margin-bottom: 1.5rem;
     }
     .pricing-block ul {
-        margin-top: 1rem;
-        list-style-type: disc;
-        padding-left: 1.5rem;
+        margin-top: 1.5rem;
+        list-style: none;
+        padding-left: 0;
         flex-grow: 1;
     }
     .pricing-block ul li {
-        font-size: 0.875rem;
+        font-size: 0.9rem;
         margin-bottom: 0.75rem;
-        line-height: 1.5;
+        padding-left: 1.5rem;
+        position: relative;
+        color: #555;
+        line-height: 1.6;
+    }
+    .pricing-block ul li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+        font-size: 1.1rem;
     }
     .pricing-block .button {
-        margin-top: auto;
+        margin-top: 2rem;
         width: 100%;
-        padding: 0.75rem 1.5rem;
+        padding: 1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
     }
-    .pricing-block.is-highlighted {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-    }
-    .pricing-block.is-highlighted h3,
-    .pricing-block.is-highlighted .price,
-    .pricing-block.is-highlighted .price-detail,
-    .pricing-block.is-highlighted ul li {
-        color: white;
+    .pricing-block .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     .pricing-block.is-highlighted .button {
-        background-color: white;
-        color: #667eea;
-        border-color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
     }
-    .pricing-block.is-highlighted .button:hover {
-        background-color: #f0f0f0;
-        border-color: #f0f0f0;
+    .pricing-section {
+        padding: 4rem 0;
+        background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+    }
+    @media (max-width: 1024px) {
+        .pricing-matrix {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
     @media (max-width: 768px) {
-        .pricing-block {
-            margin-bottom: 1.5rem;
+        .pricing-matrix {
+            grid-template-columns: 1fr;
+            margin-top: 2rem;
+        }
+        .pricing-block.is-highlighted {
+            transform: scale(1);
+        }
+        .pricing-block.is-highlighted:hover {
+            transform: translateY(-8px);
+        }
+        #pricing-page-head {
+            padding: 3rem 1rem;
+        }
+        #pricing-page-head .title {
+            font-size: 2rem;
         }
     }
 </style>
@@ -85,69 +158,69 @@
 <div id="example-page-content">
   <div class="py-3 container">
   </div>
-  <div class="hero is-medium" id="pricing-page-head">
+  <div class="hero" id="pricing-page-head">
     <div class="hero-body has-text-centered">
       <div class="container">
-        <h1 class="title is-size-2-mobile is-size-1-tablet has-text-white">
+        <h1 class="title">
           Choose the Plan That Sweeps You Off Your Feet
         </h1>
-        <h2 class="subtitle is-size-5-mobile is-size-4-tablet has-text-white-bis">
+        <p class="subtitle">
           All the luscious features you desire—served fresh, no matter your budget.
-        </h2>
+        </p>
       </div>
     </div>
   </div>
 
-  <section id="plans" class="section">
+  <section id="plans" class="pricing-section">
     <div class="container">
       <div class="pricing-matrix">
         <!-- Row 1: Budgeting Functionality -->
         <div class="pricing-block">
-          <h3 class="is-size-4">Budgeting (Monthly)</h3>
+          <h3>Budgeting (Monthly)</h3>
           <p class="price">$15</p>
           <p class="price-detail">per month</p>
           <ul>
-            <li>Core categories: Earnings, Government, Retirement, Insurance, Debt, Investments, Assets, Credit Score</li>
+            <li>Core categories: Earnings, Governemnt, Retirement, Insurance, Debt, Investments, Assets, Credit Score</li>
             <li>Core functions: Create, Report</li>
             <li>Budgeting tools with spending tracking</li>
             <li>Customizable templates and goal tracking</li>
           </ul>
-          <a class="button is-info is-outlined is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-info is-outlined is-medium" href="#sign-up">
             Subscribe Monthly
           </a>
         </div>
         <div class="pricing-block is-highlighted">
-          <h3 class="is-size-4">Budgeting (Bi-Annual)</h3>
+          <h3>Budgeting (Bi-Annual)</h3>
           <p class="price">$75</p>
           <p class="price-detail">every 6 months</p>
           <ul>
-            <li>Core categories: Earnings, Government, Retirement, Insurance, Debt, Investments, Assets, Credit Score</li>
+            <li>Core categories: Earnings, Governemnt, Retirement, Insurance, Debt, Investments, Assets, Credit Score</li>
             <li>Core functions: Create, Report</li>
             <li>Budgeting tools with spending tracking</li>
             <li>Customizable templates and goal tracking</li>
           </ul>
-          <a class="button is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-primary is-medium" href="#sign-up">
             Subscribe Bi-Annually
           </a>
         </div>
         <div class="pricing-block">
-          <h3 class="is-size-4">Budgeting (Annual)</h3>
+          <h3>Budgeting (Annual)</h3>
           <p class="price">$150</p>
           <p class="price-detail">per year</p>
           <ul>
-            <li>Core categories: Earnings, Government, Retirement, Insurance, Debt, Investments, Assets, Credit Score</li>
+            <li>Core categories: Earnings, Governemnt, Retirement, Insurance, Debt, Investments, Assets, Credit Score</li>
             <li>Core functions: Create, Report</li>
             <li>Budgeting tools with spending tracking</li>
             <li>Customizable templates and goal tracking</li>
           </ul>
-          <a class="button is-info is-outlined is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-info is-outlined is-medium" href="#sign-up">
             Subscribe Annually
           </a>
         </div>
 
         <!-- Row 2: Debt Repayment Functionality -->
         <div class="pricing-block">
-          <h3 class="is-size-4">Debt Repayment (Monthly)</h3>
+          <h3>Debt Repayment (Monthly)</h3>
           <p class="price">$25</p>
           <p class="price-detail">per month</p>
           <ul>
@@ -156,12 +229,12 @@
             <li>Debt management: Student loans, credit cards, mortgages</li>
             <li>Payment strategies and interest rate tracking</li>
           </ul>
-          <a class="button is-info is-outlined is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-info is-outlined is-medium" href="#sign-up">
             Subscribe Monthly
           </a>
         </div>
         <div class="pricing-block is-highlighted">
-          <h3 class="is-size-4">Debt Repayment (Bi-Annual)</h3>
+          <h3>Debt Repayment (Bi-Annual)</h3>
           <p class="price">$120</p>
           <p class="price-detail">every 6 months</p>
           <ul>
@@ -170,12 +243,12 @@
             <li>Debt management: Student loans, credit cards, mortgages</li>
             <li>Payment strategies and interest rate tracking</li>
           </ul>
-          <a class="button is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-primary is-medium" href="#sign-up">
             Subscribe Bi-Annually
           </a>
         </div>
         <div class="pricing-block">
-          <h3 class="is-size-4">Debt Repayment (Annual)</h3>
+          <h3>Debt Repayment (Annual)</h3>
           <p class="price">$240</p>
           <p class="price-detail">per year</p>
           <ul>
@@ -184,14 +257,14 @@
             <li>Debt management: Student loans, credit cards, mortgages</li>
             <li>Payment strategies and interest rate tracking</li>
           </ul>
-          <a class="button is-info is-outlined is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-info is-outlined is-medium" href="#sign-up">
             Subscribe Annually
           </a>
         </div>
 
         <!-- Row 3: Retirement & Investment Functionality -->
         <div class="pricing-block">
-          <h3 class="is-size-4">Retirement & Investment (Monthly)</h3>
+          <h3>Retirement & Investment (Monthly)</h3>
           <p class="price">$35</p>
           <p class="price-detail">per month</p>
           <ul>
@@ -201,12 +274,12 @@
             <li>Investments: Stocks, bonds, mutual funds</li>
             <li>AI-driven insights and market trend predictions</li>
           </ul>
-          <a class="button is-info is-outlined is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-info is-outlined is-medium" href="#sign-up">
             Subscribe Monthly
           </a>
         </div>
         <div class="pricing-block is-highlighted">
-          <h3 class="is-size-4">Retirement & Investment (Bi-Annual)</h3>
+          <h3>Retirement & Investment (Bi-Annual)</h3>
           <p class="price">$180</p>
           <p class="price-detail">every 6 months</p>
           <ul>
@@ -216,12 +289,12 @@
             <li>Investments: Stocks, bonds, mutual funds</li>
             <li>AI-driven insights and market trend predictions</li>
           </ul>
-          <a class="button is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-primary is-medium" href="#sign-up">
             Subscribe Bi-Annually
           </a>
         </div>
         <div class="pricing-block">
-          <h3 class="is-size-4">Retirement & Investment (Annual)</h3>
+          <h3>Retirement & Investment (Annual)</h3>
           <p class="price">$360</p>
           <p class="price-detail">per year</p>
           <ul>
@@ -231,7 +304,7 @@
             <li>Investments: Stocks, bonds, mutual funds</li>
             <li>AI-driven insights and market trend predictions</li>
           </ul>
-          <a class="button is-info is-outlined is-medium" href="{% url 'account_signup' %}">
+          <a class="button is-info is-outlined is-medium" href="#sign-up">
             Subscribe Annually
           </a>
         </div>

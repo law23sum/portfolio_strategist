@@ -93,30 +93,36 @@ class PlaidDataDistributionService:
             except Exception as e:
                 logger.warning(f"Could not fetch transactions: {e}")
             
-            # 4. Get Investment Holdings data
-            investment_holdings = []
-            try:
-                holdings_data = service._sync_investment_holdings(None, access_token)
-                if holdings_data:
-                    investment_holdings = holdings_data
-            except Exception as e:
-                logger.warning(f"Could not fetch investment holdings: {e}")
-            
-            # 5. Get Investment Transactions data
-            investment_transactions = []
-            try:
-                inv_tx_data = service._sync_investment_transactions(None, access_token)
-                if inv_tx_data:
-                    investment_transactions = inv_tx_data
-            except Exception as e:
-                logger.warning(f"Could not fetch investment transactions: {e}")
-            
-            # Store identity data in the first linked account's metadata
+            # Get linked accounts first - needed for investment data sync
             linked_accounts = LinkedAccount.objects.filter(
                 user=user,
                 provider=provider,
                 status='active'
             )
+            
+            # 4. Get Investment Holdings data (only if we have a linked account)
+            investment_holdings = []
+            if linked_accounts.exists():
+                try:
+                    # Use the first linked account for investment holdings
+                    first_account = linked_accounts.first()
+                    holdings_count = service._sync_investment_holdings(first_account, access_token)
+                    # Note: _sync_investment_holdings returns count, not data
+                    # If we need the actual holdings data, we'd need a separate fetch method
+                except Exception as e:
+                    logger.warning(f"Could not fetch investment holdings: {e}")
+            
+            # 5. Get Investment Transactions data (only if we have a linked account)
+            investment_transactions = []
+            if linked_accounts.exists():
+                try:
+                    # Use the first linked account for investment transactions
+                    first_account = linked_accounts.first()
+                    tx_count = service._sync_investment_transactions(first_account, access_token, days_back=90)
+                    # Note: _sync_investment_transactions returns count, not data
+                    # If we need the actual transaction data, we'd need a separate fetch method
+                except Exception as e:
+                    logger.warning(f"Could not fetch investment transactions: {e}")
             
             if linked_accounts.exists() and identity_data:
                 first_account = linked_accounts.first()
@@ -383,27 +389,48 @@ class PlaidDataDistributionService:
                 account_type = account_data.get('type', '')
                 
                 # Handle type - could be string, enum, or AccountType object
-                # Since _fetch_accounts now returns enums as-is, we need to convert them
+                # Convert enum types to strings safely
                 if account_type:
-                    # Check if it's an enum type (AccountType, AccountSubtype, etc.)
-                    if hasattr(account_type, 'value'):
-                        account_type = str(account_type.value).lower()
-                    elif type(account_type).__name__ in ['AccountType', 'AccountSubtype']:
-                        account_type = str(account_type.value).lower() if hasattr(account_type, 'value') else str(account_type).lower()
-                    else:
-                        account_type = str(account_type).lower()
+                    try:
+                        # Check type name first to avoid triggering __contains__ on Plaid objects
+                        type_name = type(account_type).__name__
+                        if type_name in ['AccountType', 'AccountSubtype']:
+                            try:
+                                account_type = str(account_type.value).lower()
+                            except (KeyError, AttributeError):
+                                account_type = str(account_type).lower()
+                        elif hasattr(account_type, 'value'):
+                            try:
+                                account_type = str(account_type.value).lower()
+                            except (KeyError, AttributeError):
+                                account_type = str(account_type).lower()
+                        else:
+                            account_type = str(account_type).lower()
+                    except (KeyError, AttributeError):
+                        account_type = str(account_type).lower() if account_type else ''
                 else:
                     account_type = ''
                 
                 subtype_raw = account_data.get('subtype', '')
                 # Handle subtype - convert enum to string safely
                 if subtype_raw:
-                    if hasattr(subtype_raw, 'value'):
-                        subtype = str(subtype_raw.value).lower()
-                    elif type(subtype_raw).__name__ in ['AccountType', 'AccountSubtype']:
-                        subtype = str(subtype_raw.value).lower() if hasattr(subtype_raw, 'value') else str(subtype_raw).lower()
-                    else:
-                        subtype = str(subtype_raw).lower()
+                    try:
+                        # Check type name first to avoid triggering __contains__ on Plaid objects
+                        subtype_type_name = type(subtype_raw).__name__
+                        if subtype_type_name in ['AccountType', 'AccountSubtype']:
+                            try:
+                                subtype = str(subtype_raw.value).lower()
+                            except (KeyError, AttributeError):
+                                subtype = str(subtype_raw).lower()
+                        elif hasattr(subtype_raw, 'value'):
+                            try:
+                                subtype = str(subtype_raw.value).lower()
+                            except (KeyError, AttributeError):
+                                subtype = str(subtype_raw).lower()
+                        else:
+                            subtype = str(subtype_raw).lower()
+                    except (KeyError, AttributeError):
+                        subtype = str(subtype_raw).lower() if subtype_raw else ''
                 else:
                     subtype = ''
                 
@@ -520,38 +547,68 @@ class PlaidDataDistributionService:
         
         # Convert Decimal and enum types to JSON-serializable formats
         def convert_for_json(obj):
+            # Handle basic types first
+            if isinstance(obj, (str, int, float, bool, type(None))):
+                return obj
+            
             # Handle Decimal
             if isinstance(obj, Decimal):
                 return float(obj)
-            # Handle Plaid enum types (AccountType, AccountSubtype, etc.)
-            # Check for enum-like objects (have 'value' attribute or are enum instances)
-            elif hasattr(obj, 'value') and not isinstance(obj, (str, int, float, bool, type(None))):
-                # Plaid enum objects have a 'value' attribute
-                try:
-                    return str(obj.value)
-                except:
-                    return str(obj)
-            # Handle enum types directly (check class name)
-            elif type(obj).__name__ in ['AccountType', 'AccountSubtype', 'CountryCode', 'Products']:
-                try:
-                    return str(obj.value) if hasattr(obj, 'value') else str(obj)
-                except:
-                    return str(obj)
-            elif isinstance(obj, dict):
-                return {k: convert_for_json(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_for_json(item) for item in obj]
-            elif isinstance(obj, (datetime, timezone.datetime)):
+            
+            # Handle datetime
+            if isinstance(obj, (datetime, timezone.datetime)):
                 return obj.isoformat()
-            elif hasattr(obj, '__dict__') and not isinstance(obj, (str, int, float, bool, type(None))):
-                # Handle other objects that might have attributes
+            
+            # Handle dict
+            if isinstance(obj, dict):
+                return {k: convert_for_json(v) for k, v in obj.items()}
+            
+            # Handle list
+            if isinstance(obj, list):
+                return [convert_for_json(item) for item in obj]
+            
+            # Handle Plaid enum types - check class name first to avoid triggering __contains__
+            obj_type_name = type(obj).__name__
+            if obj_type_name in ['AccountType', 'AccountSubtype', 'CountryCode', 'Products']:
                 try:
-                    # Try to convert to dict first
-                    if hasattr(obj, '__dict__'):
-                        return {k: convert_for_json(v) for k, v in obj.__dict__.items()}
+                    # Try to get value attribute safely
+                    if hasattr(obj, 'value'):
+                        try:
+                            return str(obj.value)
+                        except (KeyError, AttributeError):
+                            pass
                     return str(obj)
-                except:
+                except (KeyError, AttributeError):
                     return str(obj)
-            return obj
+            
+            # Handle other Plaid model objects
+            try:
+                obj_module = type(obj).__module__
+                if obj_module and 'plaid' in str(obj_module).lower():
+                    # Try to convert Plaid model to dict safely
+                    try:
+                        if hasattr(obj, 'dict') and callable(getattr(obj, 'dict', None)):
+                            return convert_for_json(obj.dict())
+                    except (KeyError, AttributeError, TypeError):
+                        pass
+                    # Fallback: try to get attributes without triggering __contains__
+                    try:
+                        if hasattr(obj, '__dict__'):
+                            return {k: convert_for_json(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
+                    except (KeyError, AttributeError, TypeError):
+                        pass
+                    return str(obj)
+            except (KeyError, AttributeError, TypeError):
+                pass
+            
+            # Handle other objects with __dict__
+            try:
+                if hasattr(obj, '__dict__'):
+                    return {k: convert_for_json(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
+            except (KeyError, AttributeError, TypeError):
+                pass
+            
+            # Final fallback: convert to string
+            return str(obj)
         
         return convert_for_json(organized_data)

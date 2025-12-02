@@ -608,7 +608,11 @@ PLAID_WEBHOOK_URL = env("PLAID_WEBHOOK_URL", default="")
 
 # Encryption key for sensitive financial data (access tokens, etc.)
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-FERNET_KEY = env("FERNET_KEY", default="")
+# FERNET_KEY for encrypting/decrypting Plaid access tokens
+# Generate a new key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# IMPORTANT: Once set, do not change this key or existing encrypted tokens cannot be decrypted
+# If you need to change it, all linked accounts must be re-linked
+FERNET_KEY = env("FERNET_KEY", default="rctHNe5nvwnRzgzRGP71MBHQLUAcevKYbeMUQP4LsMQ=")
 
 
 # Sentry setup
