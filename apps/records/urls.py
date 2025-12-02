@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/exchange-token/", aggregation_views.exchange_token, name="exchange_token"),
     path("api/sync-account/<int:account_id>/", aggregation_views.sync_account, name="sync_account"),
     path("api/disconnect-account/<int:account_id>/", aggregation_views.disconnect_account, name="disconnect_account"),
+    path("api/plaid-oauth-callback/", aggregation_views.plaid_oauth_callback, name="plaid_oauth_callback"),
     path("webhooks/plaid/", aggregation_views.plaid_webhook, name="plaid_webhook"),
     # Financial aggregation API endpoints
     path("api/dashboard-summary/", aggregation_views.dashboard_summary_api, name="dashboard_summary_api"),
