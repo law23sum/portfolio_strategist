@@ -2,8 +2,7 @@ import decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
-    from djstripe.models import APIKey, Coupon, Price
-    from djstripe.utils import CURRENCY_SIGILS
+    from djstripe.models import Coupon, Price
 
 
 def get_stripe_module():

@@ -1,0 +1,335 @@
+{% extends "web/app/app_base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+  .health-layout {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .hero-card {
+    background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+    border-radius: 18px;
+    padding: 2rem;
+    color: #f8fafc;
+    box-shadow: 0 24px 48px rgba(30, 64, 175, 0.3);
+    margin-bottom: 2rem;
+  }
+  .hero-card .score-dial {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: conic-gradient(#38bdf8 calc(var(--score) * 1%), rgba(255, 255, 255, 0.25) 0);
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  .hero-card .score-dial::after {
+    content: attr(data-score);
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.85);
+    display: grid;
+    place-items: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+  .metric-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  }
+  .metric-card h3 {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+    margin-bottom: 0.75rem;
+  }
+  .metric-score {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .metric-card small {
+    color: #64748b;
+  }
+  .progress-track {
+    width: 100%;
+    height: 9px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin-top: 0.85rem;
+    margin-bottom: 0.35rem;
+  }
+  .progress-track span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(135deg, #6366f1, #22d3ee);
+  }
+  .data-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    margin-bottom: 2rem;
+  }
+  .metric-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .metric-table th,
+  .metric-table td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .metric-table th {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: #64748b;
+  }
+  .metric-table td:first-child {
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .recommendation-list {
+    display: grid;
+    gap: 1rem;
+  }
+  .recommendation-item {
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: linear-gradient(120deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.7));
+  }
+  .recommendation-item h4 {
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .empty-state {
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+  }
+  @media (max-width: 768px) {
+    .hero-card {
+      text-align: center;
+    }
+    .hero-card .level {
+      flex-direction: column;
+      text-align: center;
+    }
+    .hero-card .score-dial {
+      margin: 0 auto 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="health-layout">
+  <section class="hero-card">
+    <div class="level">
+      <div class="level-left">
+        <div>
+          <h1 class="title is-3 mb-2">{% translate "Financial Health Intelligence" %}</h1>
+          <p class="subtitle is-6">
+            {% blocktrans with date=health_score.calculated_at|date:"F j, Y" %}
+              Computed on {{ date }} using the latest aggregation of your banking, credit, and investment telemetry.
+            {% endblocktrans %}
+          </p>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="score-dial" style="--score: {{ health_score.overall_score|default:0 }};" data-score="{{ health_score.overall_score|default:0 }}"></div>
+      </div>
+    </div>
+    <div class="columns mt-4">
+      <div class="column">
+        <p class="heading has-text-white-ter">{% translate "Overall score" %}</p>
+        <p class="title is-4 has-text-white">{{ health_score.overall_score|default:0 }}</p>
+      </div>
+      <div class="column">
+        <p class="heading has-text-white-ter">{% translate "Model version" %}</p>
+        <p class="title is-4 has-text-white">{{ health_score.calculation_version }}</p>
+      </div>
+      <div class="column">
+        <p class="heading has-text-white-ter">{% translate "Priority focus" %}</p>
+        {% with health_score.recommendations|first as first_reco %}
+          <p class="title is-5 has-text-white">
+            {% if first_reco %}
+              {% if first_reco.title %}{{ first_reco.title }}{% elif first_reco.description %}{{ first_reco.description|truncatewords:6 }}{% else %}{% translate "Review recommendations" %}{% endif %}
+            {% else %}
+              {% translate "All indicators stable" %}
+            {% endif %}
+          </p>
+        {% endwith %}
+      </div>
+    </div>
+  </section>
+
+  <section class="metric-grid">
+    <div class="metric-card">
+      <h3>{% translate "Savings Adequacy" %}</h3>
+      <div class="metric-score">{{ health_score.savings_score|default:0 }}</div>
+      <div class="progress-track"><span style="width: {{ health_score.savings_score|default:0 }}%"></span></div>
+      <small>{% translate "Measures runway of liquid reserves relative to lifestyle." %}</small>
+    </div>
+    <div class="metric-card">
+      <h3>{% translate "Debt Management" %}</h3>
+      <div class="metric-score">{{ health_score.debt_score|default:0 }}</div>
+      <div class="progress-track"><span style="width: {{ health_score.debt_score|default:0 }}%"></span></div>
+      <small>{% translate "Assesses leverage, utilization, and amortization velocity." %}</small>
+    </div>
+    <div class="metric-card">
+      <h3>{% translate "Investment Health" %}</h3>
+      <div class="metric-score">{{ health_score.investment_score|default:0 }}</div>
+      <div class="progress-track"><span style="width: {{ health_score.investment_score|default:0 }}%"></span></div>
+      <small>{% translate "Diversification, risk-adjusted returns, and capital efficiency." %}</small>
+    </div>
+    <div class="metric-card">
+      <h3>{% translate "Budget Discipline" %}</h3>
+      <div class="metric-score">{{ health_score.budget_score|default:0 }}</div>
+      <div class="progress-track"><span style="width: {{ health_score.budget_score|default:0 }}%"></span></div>
+      <small>{% translate "Stability of spending versus planned allocations." %}</small>
+    </div>
+    <div class="metric-card">
+      <h3>{% translate "Emergency Preparedness" %}</h3>
+      <div class="metric-score">{{ health_score.emergency_fund_score|default:0 }}</div>
+      <div class="progress-track"><span style="width: {{ health_score.emergency_fund_score|default:0 }}%"></span></div>
+      <small>{% translate "Depth of reserves, insurance adequacy, and coverage cadence." %}</small>
+    </div>
+    <div class="metric-card">
+      <h3>{% translate "Credit Trajectory" %}</h3>
+      <div class="metric-score">{{ health_score.credit_score_health|default:0 }}</div>
+      <div class="progress-track"><span style="width: {{ health_score.credit_score_health|default:0 }}%"></span></div>
+      <small>{% translate "Credit score, utilization, and recent bureau movements." %}</small>
+    </div>
+  </section>
+
+  <section class="data-card">
+    <div class="level">
+      <div class="level-left">
+        <h2 class="title is-4">{% translate "Underlying Metrics" %}</h2>
+      </div>
+      <div class="level-right">
+        <span class="tag"><i class="fa-solid fa-database"></i> {% translate "Real-time aggregation" %}</span>
+      </div>
+    </div>
+    {% if health_score.metrics %}
+      <div class="table-container mt-4">
+        <table class="metric-table">
+          <thead>
+            <tr>
+              <th>{% translate "Metric" %}</th>
+              <th class="pg-text-right">{% translate "Value" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, value in health_score.metrics.items %}
+              <tr>
+                <td>{{ key|title }}</td>
+                <td class="pg-text-right">
+                  {% if value|floatformat:-1 %}
+                    {{ value|floatformat:2 }}
+                  {% else %}
+                    {{ value }}
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="2" class="pg-text-centered">{% translate "Metrics pending computation." %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">{% translate "Connect accounts to surface detailed financial health signals." %}</div>
+    {% endif %}
+  </section>
+
+  <section class="data-card">
+    <div class="level">
+      <div class="level-left">
+        <h2 class="title is-4">{% translate "Actionable Recommendations" %}</h2>
+      </div>
+      <div class="level-right">
+        <span class="tag"><i class="fa-solid fa-clipboard-check"></i> {% translate "Priority ordered" %}</span>
+      </div>
+    </div>
+    {% if health_score.recommendations %}
+      <div class="recommendation-list mt-4">
+        {% for recommendation in health_score.recommendations %}
+          <div class="recommendation-item">
+            <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
+              <h4 class="title is-5">
+                {% if recommendation.title %}
+                  {{ recommendation.title }}
+                {% else %}
+                  {% translate "Strategic initiative" %} {{ forloop.counter }}
+                {% endif %}
+              </h4>
+              {% if recommendation.priority %}
+                <span class="tag"><i class="fa-solid fa-flag"></i> {% translate "Priority" %} {{ recommendation.priority }}</span>
+              {% endif %}
+            </div>
+            <p class="mb-2">
+              {% if recommendation.description %}
+                {{ recommendation.description }}
+              {% elif recommendation.message %}
+                {{ recommendation.message }}
+              {% else %}
+                {% translate "Monitor this dimension and adjust allocations to improve resilience." %}
+              {% endif %}
+            </p>
+            {% if recommendation.next_step %}
+              <p class="has-text-weight-medium">
+                <i class="fa-solid fa-circle-chevron-right"></i>
+                {{ recommendation.next_step }}
+              </p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fa-solid fa-circle-check"></i>
+        <p class="mt-2">{% translate "All critical thresholds satisfied. Continue monitoring through linked data feeds." %}</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

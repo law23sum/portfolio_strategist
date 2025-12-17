@@ -18,59 +18,59 @@ class Command(BaseCommand):
 
 
 def bootstrap_initial_content():
-    root_page = Page.objects.get(slug = "root").specific
+    root_page = Page.objects.get(slug="root").specific
     try:
-        landing_page = ContentPage.objects.get(slug = "content")
+        landing_page = ContentPage.objects.get(slug="content")
         print("Using existing content homepage...")
     except ContentPage.DoesNotExist:
         print("Creating your content homepage...")
         landing_page = ContentPage(
-                slug = "content",
-                title = "Welcome to your content area!",
-                body = _text_to_stream_value(
-                        "This is where your blog lives. You can also create other pages here. "
-                        'Everything here can be edited in <a href="/cms">the content admin</a>.'
-                        ),
-                )
-        root_page.add_child(instance = landing_page)
+            slug="content",
+            title="Welcome to your content area!",
+            body=_text_to_stream_value(
+                "This is where your blog lives. You can also create other pages here. "
+                'Everything here can be edited in <a href="/cms">the content admin</a>.'
+            ),
+        )
+        root_page.add_child(instance=landing_page)
         landing_page.save()
 
     site = Site.objects.get()
     site.root_page = landing_page
     site.save()
 
-    if BlogIndexPage.objects.filter(slug = "blog").exists():
-        blog_index = BlogIndexPage.objects.filter(slug = "blog")[0]
+    if BlogIndexPage.objects.filter(slug="blog").exists():
+        blog_index = BlogIndexPage.objects.filter(slug="blog")[0]
         print("Using existing blog index page...")
     else:
         print("Creating your blog index page...")
         blog_index = BlogIndexPage(
-                slug = "blog",
-                title = "Blog",
-                intro = "Welcome to our blog!",
-                )
-        landing_page.add_child(instance = blog_index)
+            slug="blog",
+            title="Blog",
+            intro="Welcome to our blog!",
+        )
+        landing_page.add_child(instance=blog_index)
         blog_index.save()
 
     try:
         print("Creating some blog posts...")
         blog_post = BlogPage(
-                slug = "pegasus-and-wagtail",
-                title = "Pegasus and Wagtail",
-                date = datetime.today(),
-                intro = "A introduction to using Wagtail with Pegasus",
-                body = _text_to_stream_value(BLOG_POST_HTML),
-                )
+            slug="pegasus-and-wagtail",
+            title="Pegasus and Wagtail",
+            date=datetime.today(),
+            intro="A introduction to using Wagtail with Pegasus",
+            body=_text_to_stream_value(BLOG_POST_HTML),
+        )
         save_post(blog_index, blog_post)
         blog_post_2 = BlogPage(
-                slug = "another-post",
-                title = "Another Blog Post",
-                date = datetime.today() - timedelta(days = 1),
-                intro = "A second post, with other interesting information.",
-                body = _text_to_stream_value(
-                        'This is the body of the post. You can edit these in <a href="/cms">the content admin</a>.'
-                        ),
-                )
+            slug="another-post",
+            title="Another Blog Post",
+            date=datetime.today() - timedelta(days=1),
+            intro="A second post, with other interesting information.",
+            body=_text_to_stream_value(
+                'This is the body of the post. You can edit these in <a href="/cms">the content admin</a>.'
+            ),
+        )
         save_post(blog_index, blog_post_2)
         print("Created some blog posts...")
     except ValidationError:
@@ -81,29 +81,29 @@ def bootstrap_initial_content():
 
 
 def _text_to_stream_value(text):
-    return json.dumps([{"type": "paragraph", "value": text}], cls = DjangoJSONEncoder)
+    return json.dumps([{"type": "paragraph", "value": text}], cls=DjangoJSONEncoder)
 
 
 def save_post(blog_index, post):
-    blog_index.add_child(instance = post)
+    blog_index.add_child(instance=post)
     post.save()
     revision = post.save_revision()
     revision.publish()
 
 
 def create_pages_for_translation(landing_page):
-    locale, _ = Locale.objects.get_or_create(language_code = "fr")
+    locale, _ = Locale.objects.get_or_create(language_code="fr")
     try:
-        landing_page_fr = CopyPageForTranslationAction(landing_page, locale, include_subtree = True).execute(
-                skip_permission_checks = True
-                )
+        landing_page_fr = CopyPageForTranslationAction(landing_page, locale, include_subtree=True).execute(
+            skip_permission_checks=True
+        )
         append_locale_key_to_titles(landing_page_fr.id)
     except ValidationError as e:
         print(f"Problem creating wagtail translations. Details {e}")
 
 
 def append_locale_key_to_titles(page_id):
-    page = Page.objects.get(id = page_id)
+    page = Page.objects.get(id=page_id)
     print("Updating page: ", page.title)
     page.title += " (fr)"
     page.draft_title = page.title

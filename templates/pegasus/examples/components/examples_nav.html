@@ -14,6 +14,11 @@
       </a>
     </li>
     <li>
+      <a href="{% url 'pegasus_employees:charts' %}" {% if active_tab == 'charts' %}class="is-active"{% endif %}>
+        <span class="pg-icon"><i class="fa fa-chart-line"></i></span><span class="is-hidden-tablet-only">Analytics</span>
+      </a>
+    </li>
+    <li>
       <a href="{% url 'pegasus_examples:tasks' %}" {% if active_tab == 'tasks' %}class="is-active"{% endif %}>
         <span class="pg-icon"><i class="fa fa-tasks"></i></span><span class="is-hidden-tablet-only">Background Tasks</span>
       </a>

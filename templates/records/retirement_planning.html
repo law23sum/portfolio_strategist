@@ -1,0 +1,277 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block page_head %}
+<style>
+  .retirement-layout {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .retirement-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 12px 24px rgba(17, 24, 39, 0.08);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #3273dc;
+  }
+  .retirement-card h2 {
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+  .retirement-card .meta {
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .retirement-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+  .retirement-pill {
+    background: #f3f4f6;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+  .retirement-pill span {
+    display: block;
+  }
+  .retirement-pill .label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+  }
+  .retirement-pill .value {
+    font-weight: 600;
+    color: #111827;
+    margin-top: 0.25rem;
+  }
+  .analysis-box {
+    margin-top: 1.5rem;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    background: #f9fafb;
+  }
+  .analysis-box h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .analysis-item {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+  .analysis-item .label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 0.35rem;
+  }
+  .analysis-item .value {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .analysis-item.is-success .value {
+    color: #047857;
+  }
+  .analysis-item.is-warning .value {
+    color: #b45309;
+  }
+  .recommendations {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #eff6ff;
+    border-radius: 0.75rem;
+    border: 1px solid #bfdbfe;
+  }
+  .recommendations ul {
+    margin-top: 0.5rem;
+    padding-left: 1.25rem;
+  }
+  .projection-table {
+    margin-top: 1.5rem;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: #f9fafb;
+    border-radius: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="retirement-layout">
+  <div class="level" style="margin-bottom: 1.5rem;">
+    <div class="level-left">
+      <div>
+        <h1 class="title is-3">{% translate "Retirement Planning" %}</h1>
+        <p class="subtitle is-6">
+          {% translate "Track your retirement scenarios, savings progress, and projected outcomes." %}
+        </p>
+      </div>
+    </div>
+    <div class="level-right">
+      <a href="{% url 'records:retirement_planning_api' %}" class="button is-primary is-outlined" onclick="event.preventDefault(); window.open(this.href, '_blank');">
+        <span class="icon"><i class="fas fa-plus"></i></span>
+        <span>{% translate "Manage Plans via API" %}</span>
+      </a>
+    </div>
+  </div>
+
+  {% if plans %}
+    {% for plan in plans %}
+      <div class="retirement-card">
+        <h2>{{ plan.plan_name }}</h2>
+        <div class="meta">
+          {% translate "Created" %} {{ plan.created_at|date:"M j, Y" }} · {% translate "Updated" %} {{ plan.updated_at|date:"M j, Y" }}
+        </div>
+
+        <div class="retirement-grid">
+          <div class="retirement-pill">
+            <span class="label">{% translate "Current Age" %}</span>
+            <span class="value">{{ plan.current_age }}</span>
+          </div>
+          <div class="retirement-pill">
+            <span class="label">{% translate "Retirement Age" %}</span>
+            <span class="value">{{ plan.retirement_age }}</span>
+          </div>
+          <div class="retirement-pill">
+            <span class="label">{% translate "Monthly Contribution" %}</span>
+            <span class="value">${{ plan.monthly_contribution|floatformat:2|intcomma }}</span>
+          </div>
+          <div class="retirement-pill">
+            <span class="label">{% translate "Employer Match" %}</span>
+            <span class="value">{{ plan.employer_match_percent|floatformat:1 }}%</span>
+          </div>
+          <div class="retirement-pill">
+            <span class="label">{% translate "Current Savings" %}</span>
+            <span class="value">${{ plan.current_savings|floatformat:2|intcomma }}</span>
+          </div>
+          <div class="retirement-pill">
+            <span class="label">{% translate "Desired Annual Income" %}</span>
+            <span class="value">${{ plan.desired_retirement_income|floatformat:2|intcomma }}</span>
+          </div>
+        </div>
+
+        {% with analysis=plan.analysis %}
+          {% if analysis %}
+            <div class="analysis-box">
+              <h3>{% translate "Retirement Outlook" %}</h3>
+              <div class="analysis-grid">
+                <div class="analysis-item {% if analysis.on_track %}is-success{% else %}is-warning{% endif %}">
+                  <div class="label">{% translate "Projected Balance" %}</div>
+                  <div class="value">${{ analysis.final_balance|default_if_none:0|floatformat:2|intcomma }}</div>
+                </div>
+                <div class="analysis-item">
+                  <div class="label">{% translate "Required Savings" %}</div>
+                  <div class="value">${{ analysis.needed_savings|default_if_none:0|floatformat:2|intcomma }}</div>
+                </div>
+                <div class="analysis-item">
+                  <div class="label">{% translate "Shortfall" %}</div>
+                  <div class="value">${{ analysis.shortfall|default_if_none:0|floatformat:2|intcomma }}</div>
+                </div>
+                <div class="analysis-item">
+                  <div class="label">{% translate "Status" %}</div>
+                  <div class="value">
+                    {% if analysis.on_track %}
+                      {% translate "On Track" %}
+                    {% else %}
+                      {% translate "Needs Attention" %}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              {% if analysis.recommendations %}
+                <div class="recommendations">
+                  <strong>{% translate "Recommendations" %}</strong>
+                  <ul>
+                    {% for recommendation in analysis.recommendations %}
+                      <li>{{ recommendation }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% with projections=plan.projections %}
+          {% if projections %}
+            <div class="projection-table">
+              <h3 class="title is-5" style="margin-bottom: 0.75rem;">{% translate "Projection Highlights" %}</h3>
+              <div class="table-container">
+                <table class="table is-striped is-fullwidth">
+                  <thead>
+                    <tr>
+                      <th>{% translate "Age" %}</th>
+                      <th>{% translate "Balance" %}</th>
+                      <th>{% translate "Contributions" %}</th>
+                      <th>{% translate "Employer Match" %}</th>
+                      <th>{% translate "Needed Savings" %}</th>
+                      <th>{% translate "Status" %}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for snapshot in projections|slice:":5" %}
+                      <tr>
+                        <td>{{ snapshot.age }}</td>
+                        <td>${{ snapshot.balance|default_if_none:0|floatformat:2|intcomma }}</td>
+                        <td>${{ snapshot.contributions|default_if_none:0|floatformat:2|intcomma }}</td>
+                        <td>${{ snapshot.employer_match|default_if_none:0|floatformat:2|intcomma }}</td>
+                        <td>
+                          {% if snapshot.needed_savings %}
+                            ${{ snapshot.needed_savings|floatformat:2|intcomma }}
+                          {% else %}
+                            —
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if snapshot.on_track == True %}
+                            <span class="tag is-success is-light">{% translate "On Track" %}</span>
+                          {% elif snapshot.on_track == False %}
+                            <span class="tag is-warning is-light">{% translate "Behind" %}</span>
+                          {% else %}
+                            <span class="tag is-light">{% translate "Forecasting" %}</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <h2 class="title is-4">{% translate "Create Your First Retirement Scenario" %}</h2>
+      <p class="subtitle is-6">
+        {% translate "Use the API or admin panel to add a retirement plan, then return here to review projections and recommendations." %}
+      </p>
+      <a href="{% url 'records:retirement_planning_api' %}" class="button is-primary">
+        <span class="icon"><i class="fas fa-rocket"></i></span>
+        <span>{% translate "Add Retirement Plan" %}</span>
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

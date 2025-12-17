@@ -2,7 +2,6 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, Sum
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
-from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST

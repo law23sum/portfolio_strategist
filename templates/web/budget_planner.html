@@ -1,5 +1,6 @@
 {% extends "web/app/app_base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block page_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -132,14 +133,22 @@
     </div>
 
     <div class="box">
-        <h2 class="title is-4">Monthly Expenses</h2>
-        <div id="expensesContainer">
-            <div class="expense-item">
-                <input type="text" class="input expense-name" placeholder="Expense name" value="Utilities">
-                <input type="number" class="input expense-amount" placeholder="Amount" step="0.01" value="200" style="width: 150px;">
-                <button class="button is-danger is-small" onclick="removeExpense(this)">Remove</button>
+        <div class="level">
+            <div class="level-left">
+                <h2 class="title is-4">Monthly Expenses</h2>
+            </div>
+            <div class="level-right">
+                {% if budget_insights.spending_by_category %}
+                    <span class="tag is-info is-light">
+                        {% blocktrans with count=budget_insights.spending_by_category|length days=budget_insights.period.days %}
+                            {{ count }} categories tracked in the last {{ days }} days
+                        {% endblocktrans %}
+                    </span>
+                {% endif %}
             </div>
         </div>
+        <div id="expensesContainer"></div>
+        <p class="help">{{ _("Pull in your real spending categories or add your own below.") }}</p>
         <button class="button is-primary" onclick="addExpense()">Add Expense</button>
     </div>
 
@@ -148,15 +157,15 @@
         <div class="field">
             <label class="label">Monthly Debt Payment ($)</label>
             <div class="control">
-                <input class="input" type="number" id="monthlyDebtPayment" placeholder="2000" step="0.01" value="2000">
+                <input class="input" type="number" id="monthlyDebtPayment" placeholder="0" step="0.01" value="{{ debt_insights.estimated_monthly_payment|default_if_none:'' }}">
             </div>
         </div>
         
         <div id="debtsContainer">
             <div class="debt-item">
-                <input type="text" class="input debt-name" placeholder="Debt name" value="Car Loan">
-                <input type="number" class="input debt-amount" placeholder="Total debt" step="0.01" value="25000" style="width: 150px;">
-                <input type="number" class="input debt-paid" placeholder="Amount paid" step="0.01" value="0" style="width: 150px;">
+                <input type="text" class="input debt-name" placeholder="Debt name">
+                <input type="number" class="input debt-amount" placeholder="Total debt" step="0.01" style="width: 150px;">
+                <input type="number" class="input debt-paid" placeholder="Amount paid" step="0.01" style="width: 150px;">
                 <button class="button is-danger is-small" onclick="removeDebt(this)">Remove</button>
             </div>
         </div>
@@ -234,6 +243,94 @@
     </div>
 </div>
 
+{% if budget_insights or debt_insights %}
+<div class="box" style="margin-top: 30px;">
+    <div class="columns is-variable is-6">
+        {% if budget_insights %}
+        <div class="column">
+            <h2 class="title is-4">{{ _("Real Spending Snapshot") }}</h2>
+            <p class="has-text-grey">
+                {% blocktrans with days=budget_insights.period.days %}
+                    Based on the last {{ days }} days of linked account activity.
+                {% endblocktrans %}
+            </p>
+            <div class="columns is-gapless is-multiline" style="margin-top: 1rem;">
+                <div class="column is-half">
+                    <div class="notification is-success is-light">
+                        <strong>{{ _("Income") }}</strong>
+                        <p>${{ budget_insights.income|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+                <div class="column is-half">
+                    <div class="notification is-warning is-light">
+                        <strong>{{ _("Expenses") }}</strong>
+                        <p>${{ budget_insights.expenses|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+                <div class="column is-half">
+                    <div class="notification is-info is-light">
+                        <strong>{{ _("Net Cash Flow") }}</strong>
+                        <p>${{ budget_insights.net_flow|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+                <div class="column is-half">
+                    <div class="notification is-link is-light">
+                        <strong>{{ _("Cash on Hand") }}</strong>
+                        <p>${{ budget_insights.total_available|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+            </div>
+            {% if budget_insights.spending_by_category %}
+                <h3 class="title is-6" style="margin-top:1rem;">{{ _("Top Spending Categories") }}</h3>
+                <ul>
+                    {% for entry in budget_insights.spending_by_category|slice:":5" %}
+                        <li>{{ entry.category|default:_("Uncategorized") }} · ${{ entry.amount|floatformat:2|intcomma }} ({{ entry.count }} {{ _("transactions") }})</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if debt_insights %}
+        <div class="column">
+            <h2 class="title is-4">{{ _("Debt Overview") }}</h2>
+            <div class="notification is-danger is-light">
+                <strong>{{ _("Total Debt") }}</strong>
+                <p>${{ debt_insights.total_debt|floatformat:2|intcomma }}</p>
+                {% if debt_insights.credit_utilization %}
+                    <p>{{ _("Credit utilization:") }} {{ debt_insights.credit_utilization|floatformat:1 }}%</p>
+                {% endif %}
+            </div>
+            {% if debt_insights.debt_by_type %}
+                <h3 class="title is-6">{{ _("By Type") }}</h3>
+                <ul>
+                    {% for entry in debt_insights.debt_by_type %}
+                        <li>{{ entry.type|title }} · ${{ entry.balance|floatformat:2|intcomma }} ({{ entry.count }} {{ _("accounts") }})</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if debt_insights.upcoming_payments %}
+                <h3 class="title is-6">{{ _("Upcoming Payments") }}</h3>
+                <ul>
+                    {% for entry in debt_insights.upcoming_payments|slice:":3" %}
+                        <li>{{ entry.date }} · {{ entry.account }} · ${{ entry.amount|floatformat:2|intcomma }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if budget_insights_json %}
+<script>
+  window.budgetPlannerContext = {
+    budget: JSON.parse('{{ budget_insights_json|escapejs }}'),
+    debt: JSON.parse('{{ debt_insights_json|escapejs }}'),
+    plaid: JSON.parse('{{ plaid_data|default:"{}"|escapejs }}')
+  };
+</script>
+{% endif %}
+
 <script src="{% static 'js/budget_planner.js' %}"></script>
 {% endblock %}
-

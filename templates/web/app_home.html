@@ -1,27 +1,524 @@
 {% extends "web/app/app_base.html" %}
 {% load i18n %}
 {% load static %}
+{% load humanize %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .dashboard-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .metric-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(18, 38, 63, 0.08);
+    border-left: 4px solid #3273dc;
+  }
+  .metric-card--positive {
+    border-left-color: #22c35e;
+  }
+  .metric-card--warning {
+    border-left-color: #f0ad4e;
+  }
+  .metric-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #6b7280;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+  .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+  .metric-subtext {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .dashboard-panel {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1.75rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  }
+  .dashboard-panel h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #111827;
+  }
+  .recent-transaction {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .recent-transaction:last-child {
+    border-bottom: none;
+  }
+  .recent-transaction__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+  .quick-actions a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(135deg, rgba(50,115,220,0.08), rgba(50,115,220,0.02));
+    color: #1e40af;
+    font-weight: 600;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .quick-actions a:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(59, 130, 246, 0.15);
+    color: #1e3a8a;
+  }
+  .account-summary-list li + li {
+    margin-top: 0.5rem;
+  }
+  .chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 1rem;
+  }
+  .chart-panel {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1.75rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    grid-column: 1 / -1;
+  }
+  .chart-panel h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #111827;
+  }
+  .spending-category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .spending-category-item:last-child {
+    border-bottom: none;
+  }
+  .category-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+    overflow: hidden;
+  }
+  .category-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3273dc, #4a9eff);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  @media (max-width: 768px) {
+    .metric-value {
+      font-size: 1.6rem;
+    }
+    .dashboard-panel {
+      padding: 1.25rem;
+    }
+    .chart-container {
+      height: 250px;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block app %}
 <section class="app-card">
-    <div class="pg-columns pg-columns-reversed pg-align-items-center">
-        <div class="pg-column-one-third">
-            <img class="img-fluid" src="{% static 'images/web/rocket-laptop.svg' %}" alt="{% translate "Fly Away!" %}">
+  <h1 class="pg-title">{% translate "Your Financial Snapshot" %}</h1>
+  <p class="pg-subtitle">{{ _("Here’s where your money stands today across linked accounts.") }}</p>
+
+  {% if financial_summary %}
+    <div class="dashboard-hero">
+      <div class="metric-card metric-card--positive">
+        <div class="metric-label">
+          <span>{{ _("Net Worth") }}</span>
+          <span class="tag is-success is-light">{{ _("All Accounts") }}</span>
         </div>
-        <div class="pg-column">
-            <h1 class="pg-title">{% translate "You're Signed In!" %}</h1>
-            <h2 class="pg-subtitle">
-                {% translate "This is your application's logged in home page." %}
-            </h2>
-            <p>
-                Now go make something great!
-            </p>
+        <div class="metric-value">${{ financial_summary.net_worth|floatformat:2|intcomma }}</div>
+        <div class="metric-subtext">{{ _("Assets minus liabilities across your linked institutions.") }}</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">
+          <span>{{ _("Total Assets") }}</span>
+          <span class="tag is-link is-light">{{ _("Cash & Investments") }}</span>
         </div>
+        <div class="metric-value">${{ financial_summary.total_assets|floatformat:2|intcomma }}</div>
+        <div class="metric-subtext">{{ _("Liquid cash:") }} ${{ financial_summary.total_cash|floatformat:2|intcomma }} · {{ _("Investments:") }} ${{ financial_summary.total_investments|floatformat:2|intcomma }}</div>
+      </div>
+
+      <div class="metric-card metric-card--warning">
+        <div class="metric-label">
+          <span>{{ _("Total Liabilities") }}</span>
+          <span class="tag is-warning is-light">{{ _("Debt & Credit") }}</span>
+        </div>
+        <div class="metric-value">${{ financial_summary.total_liabilities|floatformat:2|intcomma }}</div>
+        <div class="metric-subtext">
+          {% if financial_summary.accounts_with_errors %}
+            {{ financial_summary.accounts_with_errors }} {{ _("account(s) need attention") }}
+          {% else %}
+            {{ _("You're up to date on payments tracked here.") }}
+          {% endif %}
+        </div>
+      </div>
     </div>
-</section>
-<section class="app-card">
-    <div class="pg-content">
-        <p>To add more to this page you can make new sections like this one.</p>
-        <p>Tip: the source of this page can be found at <code>templates/web/app_home.html</code></p>
+
+    <div class="dashboard-grid">
+      <section class="dashboard-panel">
+        <h2>{{ _("Linked Accounts Overview") }}</h2>
+        <ul class="account-summary-list">
+          <li><strong>{{ _("Connected accounts:") }}</strong> {{ financial_summary.linked_accounts_count }}</li>
+          {% if financial_summary.account_counts %}
+            {% for account_type, count in financial_summary.account_counts.items %}
+              <li>{{ account_type|title }} &middot; {{ count }}</li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+      </section>
+
+      <section class="dashboard-panel">
+        <h2>{{ _("Recent Activity") }}</h2>
+        {% if financial_summary.recent_transactions %}
+          {% for tx in financial_summary.recent_transactions %}
+            <article class="recent-transaction">
+              <div class="recent-transaction__meta">
+                <span class="has-text-weight-medium">{{ tx.description|default:_("Unnamed transaction") }}</span>
+                <span class="has-text-grey is-size-7">
+                  {% if tx.account %}
+                    {{ tx.account.account_name }}
+                  {% else %}
+                    {{ _("Unlinked account") }}
+                  {% endif %}
+                  · {{ tx.category|default:_("Uncategorized") }}
+                </span>
+              </div>
+              <div class="{% if tx.transaction_type == 'credit' %}has-text-success{% else %}has-text-danger{% endif %}">
+                {% if tx.transaction_type == 'credit' %}+{% else %}-{% endif %}${{ tx.amount|floatformat:2|intcomma }}
+              </div>
+            </article>
+          {% empty %}
+            <p class="has-text-grey">{{ _("No transactions available yet.") }}</p>
+          {% endfor %}
+        {% else %}
+          <p class="has-text-grey">{{ _("We haven't pulled transactions for this period yet.") }}</p>
+        {% endif %}
+      </section>
+
+      <section class="dashboard-panel">
+        <h2>{{ _("Quick Actions") }}</h2>
+        <div class="quick-actions">
+          <a href="{% url 'web:budget_planner' %}">
+            <span class="icon"><i class="fa fa-calculator"></i></span>
+            <span>{{ _("Budget Planner") }}</span>
+          </a>
+          <a href="{% url 'web:investment_savings' %}">
+            <span class="icon"><i class="fa fa-line-chart"></i></span>
+            <span>{{ _("Investment Hub") }}</span>
+          </a>
+          <a href="{% url 'records:link_account' %}">
+            <span class="icon"><i class="fa fa-link"></i></span>
+            <span>{{ _("Manage Accounts") }}</span>
+          </a>
+          <a href="{% url 'solutions:credit_improvement' %}">
+            <span class="icon"><i class="fa fa-shield"></i></span>
+            <span>{{ _("Credit Coach") }}</span>
+          </a>
+        </div>
+      </section>
     </div>
+
+    <!-- Enhanced Analytics Section -->
+    {% if financial_summary %}
+    <div class="dashboard-grid" style="margin-top: 2rem;">
+      <!-- Asset Allocation Chart -->
+      <section class="chart-panel">
+        <h2>{{ _("Asset Allocation") }}</h2>
+        <div class="chart-container">
+          <canvas id="assetAllocationChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Spending by Category Chart -->
+      <section class="chart-panel">
+        <h2>{{ _("Spending by Category (Last 30 Days)") }}</h2>
+        <div class="chart-container">
+          <canvas id="spendingCategoryChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Net Worth Trend Chart -->
+      <section class="chart-panel">
+        <h2>{{ _("Net Worth Trend") }}</h2>
+        <div class="chart-container">
+          <canvas id="netWorthTrendChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Income vs Expenses Chart -->
+      <section class="chart-panel">
+        <h2>{{ _("Income vs Expenses") }}</h2>
+        <div class="chart-container">
+          <canvas id="incomeExpensesChart"></canvas>
+        </div>
+      </section>
+    </div>
+    {% endif %}
+  {% else %}
+    <p class="has-text-grey">{{ _("We couldn't load your financial summary. Check back after linking an account.") }}</p>
+  {% endif %}
 </section>
+
+{% if financial_summary %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Asset Allocation Chart
+  const assetCtx = document.getElementById('assetAllocationChart');
+  if (assetCtx) {
+    const assetData = {
+      labels: ['Cash', 'Investments', 'Other Assets'],
+      datasets: [{
+        data: [
+          {{ financial_summary.total_cash|default:0 }},
+          {{ financial_summary.total_investments|default:0 }},
+          {{ financial_summary.total_assets|default:0|add:financial_summary.total_cash|default:0|add:financial_summary.total_investments|default:0 }}
+        ],
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(168, 85, 247, 0.8)'
+        ],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    };
+    new Chart(assetCtx, {
+      type: 'doughnut',
+      data: assetData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': $' + value.toLocaleString() + ' (' + percentage + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Spending Category Chart (placeholder - will be populated from API)
+  const spendingCtx = document.getElementById('spendingCategoryChart');
+  if (spendingCtx) {
+    // Fetch spending data from API
+    fetch('{% url "records:budget_data_api" %}')
+      .then(response => response.json())
+      .then(data => {
+        const categories = data.spending_by_category || [];
+        const labels = categories.map(c => c.category || 'Uncategorized');
+        const amounts = categories.map(c => parseFloat(c.amount || 0));
+        
+        new Chart(spendingCtx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Spending',
+              data: amounts,
+              backgroundColor: 'rgba(59, 130, 246, 0.8)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return '$' + context.parsed.y.toLocaleString();
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value.toLocaleString();
+                  }
+                }
+              }
+            }
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Error loading spending data:', error);
+        // Show empty state
+        spendingCtx.getContext('2d').fillText('No spending data available', 10, 10);
+      });
+  }
+
+  // Net Worth Trend Chart (placeholder - will show historical data when available)
+  const netWorthCtx = document.getElementById('netWorthTrendChart');
+  if (netWorthCtx) {
+    // For now, show current net worth as a single point
+    // In production, this would fetch historical data
+    const currentNetWorth = {{ financial_summary.net_worth|default:0 }};
+    new Chart(netWorthCtx, {
+      type: 'line',
+      data: {
+        labels: ['Current'],
+        datasets: [{
+          label: 'Net Worth',
+          data: [currentNetWorth],
+          borderColor: 'rgba(34, 197, 94, 1)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return 'Net Worth: $' + context.parsed.y.toLocaleString();
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: {
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Income vs Expenses Chart
+  const incomeExpensesCtx = document.getElementById('incomeExpensesChart');
+  if (incomeExpensesCtx) {
+    fetch('{% url "records:budget_data_api" %}')
+      .then(response => response.json())
+      .then(data => {
+        const income = parseFloat(data.income || 0);
+        const expenses = parseFloat(data.expenses || 0);
+        
+        new Chart(incomeExpensesCtx, {
+          type: 'bar',
+          data: {
+            labels: ['Income', 'Expenses'],
+            datasets: [{
+              label: 'Amount',
+              data: [income, expenses],
+              backgroundColor: [
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(239, 68, 68, 0.8)'
+              ],
+              borderColor: [
+                'rgba(34, 197, 94, 1)',
+                'rgba(239, 68, 68, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return '$' + context.parsed.y.toLocaleString();
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value.toLocaleString();
+                  }
+                }
+              }
+            }
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Error loading income/expenses data:', error);
+      });
+  }
+});
+</script>
+{% endif %}
 {% endblock %}

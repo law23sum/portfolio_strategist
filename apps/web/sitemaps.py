@@ -19,6 +19,5 @@ class StaticViewSitemap(sitemaps.Sitemap):
             "web:home",
         ]
 
-
     def location(self, item):
         return reverse(item)

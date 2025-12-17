@@ -41,7 +41,7 @@ class ChatMessage(BaseModel):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
     message_type = models.CharField(max_length=10, choices=MessageTypes.choices)
     content = models.TextField()
-    attachment = models.FileField(upload_to='chat_attachments/', blank=True, null=True)
+    attachment = models.FileField(upload_to="chat_attachments/", blank=True, null=True)
     attachment_type = models.CharField(max_length=50, blank=True, help_text="Type of attachment: image, csv, pdf, etc.")
 
     class Meta:
@@ -68,3 +68,36 @@ class ChatMessage(BaseModel):
             return "assistant"
         else:
             return "system"
+
+
+class AICredential(models.Model):
+    """API keys for AI providers (OpenAI, Anthropic, Google, xAI, Cursor IDE)."""
+
+    PROVIDER_OPENAI = "openai"
+    PROVIDER_ANTHROPIC = "anthropic"
+    PROVIDER_GOOGLE = "google"
+    PROVIDER_XAI = "xai"
+    PROVIDER_CURSOR = "cursor"
+    PROVIDER_CHOICES = (
+        (PROVIDER_OPENAI, "OpenAI (GPT)"),
+        (PROVIDER_ANTHROPIC, "Anthropic (Claude)"),
+        (PROVIDER_GOOGLE, "Google (Gemini)"),
+        (PROVIDER_XAI, "xAI (Grok)"),
+        (PROVIDER_CURSOR, "Cursor IDE"),
+    )
+
+    provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES, unique=True)
+    label = models.CharField(max_length=128, blank=True, help_text="Optional note to help identify this key")
+    api_key = models.CharField(max_length=512)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "AI Credential"
+        verbose_name_plural = "AI Credentials"
+        ordering = ["provider"]
+
+    def __str__(self):
+        label = self.label or dict(self.PROVIDER_CHOICES).get(self.provider, self.provider)
+        return f"{label} ({'active' if self.is_active else 'inactive'})"

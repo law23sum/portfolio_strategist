@@ -15,13 +15,16 @@
 
 import * as runtime from '../runtime';
 import type {
+  CookieTokenRefreshResponse,
+  CustomLogin,
   CustomUser,
   JWT,
-  Login,
-  LoginResponse,
   OtpRequest,
   PasswordChange,
   PatchedCustomUser,
+  PlaidAuthExchangeResponse,
+  PlaidLinkTokenResponse,
+  PlaidPublicTokenExchangeRequest,
   Register,
   RestAuthDetail,
   TokenObtainPair,
@@ -29,20 +32,26 @@ import type {
   TokenVerify,
 } from '../models/index';
 import {
+    CookieTokenRefreshResponseFromJSON,
+    CookieTokenRefreshResponseToJSON,
+    CustomLoginFromJSON,
+    CustomLoginToJSON,
     CustomUserFromJSON,
     CustomUserToJSON,
     JWTFromJSON,
     JWTToJSON,
-    LoginFromJSON,
-    LoginToJSON,
-    LoginResponseFromJSON,
-    LoginResponseToJSON,
     OtpRequestFromJSON,
     OtpRequestToJSON,
     PasswordChangeFromJSON,
     PasswordChangeToJSON,
     PatchedCustomUserFromJSON,
     PatchedCustomUserToJSON,
+    PlaidAuthExchangeResponseFromJSON,
+    PlaidAuthExchangeResponseToJSON,
+    PlaidLinkTokenResponseFromJSON,
+    PlaidLinkTokenResponseToJSON,
+    PlaidPublicTokenExchangeRequestFromJSON,
+    PlaidPublicTokenExchangeRequestToJSON,
     RegisterFromJSON,
     RegisterToJSON,
     RestAuthDetailFromJSON,
@@ -64,11 +73,19 @@ export interface ApiAuthApiTokenRefreshCreateRequest {
 }
 
 export interface ApiAuthLoginCreateRequest {
-    login: Login;
+    customLogin: CustomLogin;
 }
 
 export interface ApiAuthPasswordChangeCreateRequest {
     passwordChange: PasswordChange;
+}
+
+export interface ApiAuthPlaidExchangeCreateRequest {
+    plaidPublicTokenExchangeRequest: PlaidPublicTokenExchangeRequest;
+}
+
+export interface ApiAuthPlaidLinkTokenCreateRequest {
+    plaidLinkTokenResponse: PlaidLinkTokenResponse;
 }
 
 export interface ApiAuthRegisterCreateRequest {
@@ -76,7 +93,7 @@ export interface ApiAuthRegisterCreateRequest {
 }
 
 export interface ApiAuthTokenRefreshCreateRequest {
-    tokenRefresh: Omit<TokenRefresh, 'access'>;
+    cookieTokenRefreshResponse?: Omit<CookieTokenRefreshResponse, 'access'>;
 }
 
 export interface ApiAuthTokenVerifyCreateRequest {
@@ -84,11 +101,11 @@ export interface ApiAuthTokenVerifyCreateRequest {
 }
 
 export interface ApiAuthUserPartialUpdateRequest {
-    patchedCustomUser?: Omit<PatchedCustomUser, 'id'|'avatar_url'|'get_display_name'>;
+    patchedCustomUser?: Omit<PatchedCustomUser, 'id'|'username'|'avatar_url'|'get_display_name'|'date_joined'|'is_email_verified'>;
 }
 
 export interface ApiAuthUserUpdateRequest {
-    customUser?: Omit<CustomUser, 'id'|'avatar_url'|'get_display_name'>;
+    customUser?: Omit<CustomUser, 'id'|'username'|'avatar_url'|'get_display_name'|'date_joined'|'is_email_verified'>;
 }
 
 export interface ApiAuthVerifyOtpCreateRequest {
@@ -101,7 +118,7 @@ export interface ApiAuthVerifyOtpCreateRequest {
 export class ApiApi extends runtime.BaseAPI {
 
     /**
-     * Takes a set of user credentials and returns an access and refresh JSON web token pair to prove the authentication of those credentials.
+     * Custom token obtain view that explicitly allows unauthenticated access. Token obtain should work without authentication since it uses credentials.
      */
     async apiAuthApiTokenCreateRaw(requestParameters: ApiAuthApiTokenCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenObtainPair>> {
         if (requestParameters['tokenObtainPair'] == null) {
@@ -133,7 +150,7 @@ export class ApiApi extends runtime.BaseAPI {
     }
 
     /**
-     * Takes a set of user credentials and returns an access and refresh JSON web token pair to prove the authentication of those credentials.
+     * Custom token obtain view that explicitly allows unauthenticated access. Token obtain should work without authentication since it uses credentials.
      */
     async apiAuthApiTokenCreate(requestParameters: ApiAuthApiTokenCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenObtainPair> {
         const response = await this.apiAuthApiTokenCreateRaw(requestParameters, initOverrides);
@@ -141,7 +158,7 @@ export class ApiApi extends runtime.BaseAPI {
     }
 
     /**
-     * Takes a refresh type JSON web token and returns an access type JSON web token if the refresh token is valid.
+     * Custom token refresh view that explicitly allows unauthenticated access. Token refresh should work without authentication since it uses the refresh token.
      */
     async apiAuthApiTokenRefreshCreateRaw(requestParameters: ApiAuthApiTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenRefresh>> {
         if (requestParameters['tokenRefresh'] == null) {
@@ -173,7 +190,7 @@ export class ApiApi extends runtime.BaseAPI {
     }
 
     /**
-     * Takes a refresh type JSON web token and returns an access type JSON web token if the refresh token is valid.
+     * Custom token refresh view that explicitly allows unauthenticated access. Token refresh should work without authentication since it uses the refresh token.
      */
     async apiAuthApiTokenRefreshCreate(requestParameters: ApiAuthApiTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenRefresh> {
         const response = await this.apiAuthApiTokenRefreshCreateRaw(requestParameters, initOverrides);
@@ -183,11 +200,11 @@ export class ApiApi extends runtime.BaseAPI {
     /**
      * Custom login view that checks if 2FA is enabled for the user.
      */
-    async apiAuthLoginCreateRaw(requestParameters: ApiAuthLoginCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LoginResponse>> {
-        if (requestParameters['login'] == null) {
+    async apiAuthLoginCreateRaw(requestParameters: ApiAuthLoginCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CustomLogin>> {
+        if (requestParameters['customLogin'] == null) {
             throw new runtime.RequiredError(
-                'login',
-                'Required parameter "login" was null or undefined when calling apiAuthLoginCreate().'
+                'customLogin',
+                'Required parameter "customLogin" was null or undefined when calling apiAuthLoginCreate().'
             );
         }
 
@@ -221,16 +238,16 @@ export class ApiApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: LoginToJSON(requestParameters['login']),
+            body: CustomLoginToJSON(requestParameters['customLogin']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => LoginResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => CustomLoginFromJSON(jsonValue));
     }
 
     /**
      * Custom login view that checks if 2FA is enabled for the user.
      */
-    async apiAuthLoginCreate(requestParameters: ApiAuthLoginCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LoginResponse> {
+    async apiAuthLoginCreate(requestParameters: ApiAuthLoginCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CustomLogin> {
         const response = await this.apiAuthLoginCreateRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -381,9 +398,119 @@ export class ApiApi extends runtime.BaseAPI {
     }
 
     /**
-     * Registers a new user.  Accepts the following POST parameters: username, email, password1, password2.
+     * Exchange Plaid public token for access token and authenticate/create user.
      */
-    async apiAuthRegisterCreateRaw(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RestAuthDetail>> {
+    async apiAuthPlaidExchangeCreateRaw(requestParameters: ApiAuthPlaidExchangeCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlaidAuthExchangeResponse>> {
+        if (requestParameters['plaidPublicTokenExchangeRequest'] == null) {
+            throw new runtime.RequiredError(
+                'plaidPublicTokenExchangeRequest',
+                'Required parameter "plaidPublicTokenExchangeRequest" was null or undefined when calling apiAuthPlaidExchangeCreate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("jwtAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/auth/plaid/exchange/`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PlaidPublicTokenExchangeRequestToJSON(requestParameters['plaidPublicTokenExchangeRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlaidAuthExchangeResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Exchange Plaid public token for access token and authenticate/create user.
+     */
+    async apiAuthPlaidExchangeCreate(requestParameters: ApiAuthPlaidExchangeCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlaidAuthExchangeResponse> {
+        const response = await this.apiAuthPlaidExchangeCreateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Create a Plaid Link token for authentication/login flow.
+     */
+    async apiAuthPlaidLinkTokenCreateRaw(requestParameters: ApiAuthPlaidLinkTokenCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlaidLinkTokenResponse>> {
+        if (requestParameters['plaidLinkTokenResponse'] == null) {
+            throw new runtime.RequiredError(
+                'plaidLinkTokenResponse',
+                'Required parameter "plaidLinkTokenResponse" was null or undefined when calling apiAuthPlaidLinkTokenCreate().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // tokenAuth authentication
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("jwtAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // ApiKeyAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/auth/plaid/link-token/`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PlaidLinkTokenResponseToJSON(requestParameters['plaidLinkTokenResponse']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlaidLinkTokenResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Create a Plaid Link token for authentication/login flow.
+     */
+    async apiAuthPlaidLinkTokenCreate(requestParameters: ApiAuthPlaidLinkTokenCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlaidLinkTokenResponse> {
+        const response = await this.apiAuthPlaidLinkTokenCreateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Custom register view that explicitly allows unauthenticated access. dj_rest_auth\'s RegisterView should have AllowAny by default, but we\'re being explicit to ensure it works with our custom permission classes.
+     */
+    async apiAuthRegisterCreateRaw(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Register>> {
         if (requestParameters['register'] == null) {
             throw new runtime.RequiredError(
                 'register',
@@ -424,28 +551,21 @@ export class ApiApi extends runtime.BaseAPI {
             body: RegisterToJSON(requestParameters['register']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => RestAuthDetailFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => RegisterFromJSON(jsonValue));
     }
 
     /**
-     * Registers a new user.  Accepts the following POST parameters: username, email, password1, password2.
+     * Custom register view that explicitly allows unauthenticated access. dj_rest_auth\'s RegisterView should have AllowAny by default, but we\'re being explicit to ensure it works with our custom permission classes.
      */
-    async apiAuthRegisterCreate(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RestAuthDetail> {
+    async apiAuthRegisterCreate(requestParameters: ApiAuthRegisterCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Register> {
         const response = await this.apiAuthRegisterCreateRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Takes a refresh type JSON web token and returns an access type JSON web token if the refresh token is valid.
+     * Custom dj_rest_auth refresh token view that explicitly allows unauthenticated access.
      */
-    async apiAuthTokenRefreshCreateRaw(requestParameters: ApiAuthTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenRefresh>> {
-        if (requestParameters['tokenRefresh'] == null) {
-            throw new runtime.RequiredError(
-                'tokenRefresh',
-                'Required parameter "tokenRefresh" was null or undefined when calling apiAuthTokenRefreshCreate().'
-            );
-        }
-
+    async apiAuthTokenRefreshCreateRaw(requestParameters: ApiAuthTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CookieTokenRefreshResponse>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -461,22 +581,22 @@ export class ApiApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: TokenRefreshToJSON(requestParameters['tokenRefresh']),
+            body: CookieTokenRefreshResponseToJSON(requestParameters['cookieTokenRefreshResponse']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => TokenRefreshFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => CookieTokenRefreshResponseFromJSON(jsonValue));
     }
 
     /**
-     * Takes a refresh type JSON web token and returns an access type JSON web token if the refresh token is valid.
+     * Custom dj_rest_auth refresh token view that explicitly allows unauthenticated access.
      */
-    async apiAuthTokenRefreshCreate(requestParameters: ApiAuthTokenRefreshCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenRefresh> {
+    async apiAuthTokenRefreshCreate(requestParameters: ApiAuthTokenRefreshCreateRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CookieTokenRefreshResponse> {
         const response = await this.apiAuthTokenRefreshCreateRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Takes a token and indicates if it is valid.  This view provides no information about a token\'s fitness for a particular use.
+     * Custom token verify view that explicitly allows unauthenticated access. Token verification should work without authentication since it uses the token itself.
      */
     async apiAuthTokenVerifyCreateRaw(requestParameters: ApiAuthTokenVerifyCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenVerify>> {
         if (requestParameters['tokenVerify'] == null) {
@@ -508,7 +628,7 @@ export class ApiApi extends runtime.BaseAPI {
     }
 
     /**
-     * Takes a token and indicates if it is valid.  This view provides no information about a token\'s fitness for a particular use.
+     * Custom token verify view that explicitly allows unauthenticated access. Token verification should work without authentication since it uses the token itself.
      */
     async apiAuthTokenVerifyCreate(requestParameters: ApiAuthTokenVerifyCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenVerify> {
         const response = await this.apiAuthTokenVerifyCreateRaw(requestParameters, initOverrides);

@@ -1,0 +1,173 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block page_head %}
+<style>
+  .comparison-layout {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .summary-card, .comparison-card {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08);
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #3273dc;
+  }
+  .comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .metric-table table {
+    width: 100%;
+  }
+  .metric-table td:first-child {
+    font-weight: 600;
+    width: 38%;
+    text-transform: capitalize;
+  }
+  .code-preview {
+    background: #111827;
+    color: #d1d5db;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="comparison-layout">
+  <div class="level" style="margin-bottom: 1.5rem;">
+    <div class="level-left">
+      <div>
+        <h1 class="title is-3">{% translate "Portfolio Comparison" %}</h1>
+        <p class="subtitle is-6">
+          {% translate "Review saved comparison scenarios and your current portfolio distribution." %}
+        </p>
+      </div>
+    </div>
+    <div class="level-right">
+      <a href="{% url 'records:portfolio_comparison' %}" class="button is-light is-rounded">
+        <span class="icon"><i class="fas fa-sync"></i></span>
+        <span>{% translate "Refresh" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <h2 class="title is-4" style="margin-bottom: 1rem;">{% translate "Current Portfolio Snapshot" %}</h2>
+    {% if portfolio_summary %}
+      <div class="table-container">
+        <table class="table is-striped is-fullwidth">
+          <thead>
+            <tr>
+              <th>{% translate "Ticker" %}</th>
+              <th>{% translate "Total Value" %}</th>
+              <th>{% translate "Total Quantity" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for holding in portfolio_summary %}
+              <tr>
+                <td><strong>{{ holding.security_ticker|default:"—" }}</strong></td>
+                <td>${{ holding.total_value|default_if_none:0|floatformat:2|intcomma }}</td>
+                <td>{{ holding.total_quantity|default_if_none:0|floatformat:4 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="has-text-grey">{% translate "No investment holdings available. Connect accounts or add holdings to view comparisons." %}</p>
+    {% endif %}
+  </div>
+
+  {% if comparisons %}
+    {% for comparison in comparisons %}
+      <div class="comparison-card">
+        <div class="comparison-header">
+          <div>
+            <h2 class="title is-4" style="margin-bottom: 0.35rem;">{{ comparison.name }}</h2>
+            <p class="has-text-grey">
+              {% translate "Created" %} {{ comparison.created_at|date:"M j, Y" }}
+              · {% translate "Updated" %} {{ comparison.updated_at|date:"M j, Y" }}
+            </p>
+            {% if comparison.description %}
+              <p style="margin-top: 0.5rem;">{{ comparison.description }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <span class="tag is-info is-light">{{ comparison.comparison_type|capfirst }}</span>
+            {% if comparison.start_date or comparison.end_date %}
+              <span class="tag is-light is-rounded" style="margin-left: 0.5rem;">
+                {{ comparison.start_date|date:"M j, Y" }} – {{ comparison.end_date|date:"M j, Y" }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if comparison.compared_items %}
+          <div class="chip-group">
+            {% for item in comparison.compared_items %}
+              <span class="tag is-primary is-light">{{ item }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% with metrics=comparison.comparison_data|dictsort %}
+          {% if metrics %}
+            <div class="metric-table table-container" style="margin-top: 1.25rem;">
+              <table class="table is-fullwidth">
+                <tbody>
+                  {% for metric in metrics %}
+                    {% with key=metric.0 value=metric.1 display=value|stringformat:"s" %}
+                      {% if display|length <= 160 %}
+                        <tr>
+                          <td>{{ key|capfirst }}</td>
+                          <td>{{ value|floatformat:2 }}</td>
+                        </tr>
+                      {% else %}
+                        <tr>
+                          <td>{{ key|capfirst }}</td>
+                          <td>
+                            <div class="code-preview"><pre>{{ display }}</pre></div>
+                          </td>
+                        </tr>
+                      {% endif %}
+                    {% endwith %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="has-text-grey" style="margin-top: 1rem;">{% translate "No metrics stored for this comparison yet." %}</p>
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="comparison-card">
+      <h2 class="title is-4">{% translate "Create Your First Comparison" %}</h2>
+      <p class="has-text-grey">
+        {% translate "Save portfolio benchmarks via the API or admin interface to see side-by-side metrics here." %}
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -14,8 +14,8 @@ urlpatterns = [
     path("password/change/", PasswordChangeView.as_view(), name="change_password"),
     path("token/verify/", api_views.TokenVerifyViewWithAllowAny.as_view(), name="token_verify"),
     path("token/refresh/", api_views.RefreshTokenViewWithAllowAny.as_view(), name="token_refresh"),
-    path('api/token/', api_views.TokenObtainPairViewWithAllowAny.as_view(), name = 'token_obtain_pair'),
-    path('api/token/refresh/', api_views.TokenRefreshViewWithAllowAny.as_view(), name = 'token_refresh'),
+    path("api/token/", api_views.TokenObtainPairViewWithAllowAny.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", api_views.TokenRefreshViewWithAllowAny.as_view(), name="token_refresh"),
     # Plaid authentication endpoints
     path("plaid/link-token/", api_views.PlaidAuthLinkTokenView.as_view(), name="plaid_auth_link_token"),
     path("plaid/exchange/", api_views.PlaidAuthExchangeView.as_view(), name="plaid_auth_exchange"),

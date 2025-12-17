@@ -2,7 +2,7 @@
     <aside class="menu is-hidden-mobile">
     <li>
       <a href="{% url 'subscriptions:subscription_details' %}" class="navbar-item is-tab {% if active_tab == 'subscription' %}is-active{% endif %}">
-        <span class="pg-icon"><i class="fa fa-repeat"></i></span><span class="is-hidden-tablet-only">Subscription</span>
+        <span class="pg-icon"><i class="fa fa-repeat"></i></span><span class="is-hidden-tablet-only">{% translate "Subscription & Billing" %}</span>
       </a>
     </li>
 <li>
@@ -10,7 +10,7 @@
      title="{% translate 'Profile' %}" >
     <span class="pg-icon"><i class="fa fa-user"></i></span>
     <span {% if hide_on_tablet %}class="is-hidden-tablet-only"{% endif %}>
-      {% translate "Profile" %}
+      {% translate "Executive Profile" %}
     </span>
   </a>
 </li>
@@ -20,7 +20,7 @@
      title="{% translate 'Change Password' %}" >
     <span class="pg-icon"><i class="fa fa-unlock-alt"></i></span>
     <span {% if hide_on_tablet %}class="is-hidden-tablet-only"{% endif %}>
-      {% translate "Change Password" %}
+      {% translate "Security Credentials" %}
     </span>
   </a>
 </li>

@@ -13,10 +13,11 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
-import environ
 from django.utils.translation import gettext_lazy
 
-TESSERACT_CMD = '/opt/homebrew/bin/tesseract'
+import environ
+
+TESSERACT_CMD = "/opt/homebrew/bin/tesseract"
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,10 +36,7 @@ DEBUG = env.bool("DEBUG", default=True)
 ENABLE_DEBUG_TOOLBAR = env.bool("ENABLE_DEBUG_TOOLBAR", default=False) and "test" not in sys.argv
 
 # Note: It is not recommended to set ALLOWED_HOSTS to "*" in production
-ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS",
-    default=["localhost", "127.0.0.1", "theportfoliostrategist.net", "*"]
-)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "theportfoliostrategist.net", "*"])
 
 
 # Application definition
@@ -119,6 +117,7 @@ PROJECT_APPS = [
     "apps.users.apps.UserConfig",
     "apps.dashboard.apps.DashboardConfig",
     "apps.api.apps.APIConfig",
+    "apps.mobile_sync.apps.MobileSyncConfig",
     "apps.web",
     "apps.chat",
     "apps.solutions",
@@ -203,6 +202,7 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 # Database
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 
+
 # Detect if we're running in Docker
 def is_docker():
     """Check if we're running inside a Docker container."""
@@ -223,6 +223,7 @@ def is_docker():
     except (OSError, IOError):
         return False
 
+
 if "DATABASE_URL" in env:
     DATABASES = {"default": env.db()}
 else:
@@ -230,7 +231,7 @@ else:
     # If explicitly set to "db" but not in Docker, fall back to "localhost"
     in_docker = is_docker()
     db_host = env("DJANGO_DATABASE_HOST", default=None)
-    
+
     # If in Docker and no explicit host set, use "db" (the service name)
     if in_docker and db_host is None:
         db_host = "db"
@@ -243,7 +244,7 @@ else:
     # If user explicitly set "localhost" but we're in Docker, use "db" instead
     elif db_host == "localhost" and in_docker:
         db_host = "db"
-    
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -418,7 +419,6 @@ SERVER_EMAIL = env("SERVER_EMAIL", default="financiasoftwarecompany@gmail.com")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="financiasoftwarecompany@gmail.com")
 
 
-
 # Email setup for development and production
 # For development: emails print to console (no external service needed)
 # For production: set EMAIL_BACKEND environment variable to use Brevo, Mailgun, etc.
@@ -464,7 +464,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
-        'rest_framework.authentication.TokenAuthentication',
+        "rest_framework.authentication.TokenAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ("apps.api.permissions.IsAuthenticatedOrHasUserAPIKey",),
@@ -600,6 +600,13 @@ if "test" in sys.argv:
 AI_CHAT_OPENAI_API_KEY = env("AI_CHAT_OPENAI_API_KEY", default="")
 AI_CHAT_OPENAI_MODEL = env("AI_CHAT_OPENAI_MODEL", default="gpt-4o")
 
+# AI Provider API Keys (can also be stored in database via AICredential model)
+# These are fallback values if not found in database
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+CURSOR_AI_GEMINI_API_KEY = env("CURSOR_AI_GEMINI_API_KEY", default="AIzaSyC4et3GVu--HgBk5TYWzg8xTGPhChXp3zs")
+XAI_API_KEY = env("XAI_API_KEY", default="")
+CURSOR_API_KEY = env("CURSOR_API_KEY", default="")
+
 # Stock Market Data APIs (replaces yfinance)
 # Polygon.io is the primary provider (more reliable, free tier: 5 calls/min)
 # Alpha Vantage is the fallback (free tier: 5 calls/min, 500 calls/day)
@@ -662,15 +669,18 @@ LOGGING = {
 CORS_ALLOW_ALL_ORIGINS = True
 
 # OR if you want to allow only specific origins:
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://10.0.2.2:8000",  # Android emulator
-    "http://localhost:19006",  # React Native dev server
-    "http://192.168.254.64:8000",  # Current local IP for mobile app (updated)
-    "http://10.23.49.129:8000",  # Previous local IP (kept for compatibility)
-    "http://10.37.129.2:8000",  # Previous local IP (kept for compatibility)
-])
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS",
+    default=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://10.0.2.2:8000",  # Android emulator
+        "http://localhost:19006",  # React Native dev server
+        "http://192.168.254.64:8000",  # Current local IP for mobile app (updated)
+        "http://10.23.49.129:8000",  # Previous local IP (kept for compatibility)
+        "http://10.37.129.2:8000",  # Previous local IP (kept for compatibility)
+    ],
+)
 
 # Allow credentials (if using authentication cookies)
 CORS_ALLOW_CREDENTIALS = True

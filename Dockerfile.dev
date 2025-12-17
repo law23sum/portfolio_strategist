@@ -21,9 +21,12 @@ RUN apt-get update && apt-get install -y \
     libtesseract-dev \
     poppler-utils  # For PDF to image conversion
 
-# create code directory
-RUN mkdir /code
+# create code directory and host mount points
+RUN mkdir -p /code /host/home /host/cloudstorage /host/googledrive /host/dropbox /host/onedrive /host/iclouddrive /host/documents /host/desktop /host/downloads
 WORKDIR /code
+
+# Ensure proper permissions for host mounts
+RUN chmod -R 777 /host 2>/dev/null || true
 
 # install uv
 COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/

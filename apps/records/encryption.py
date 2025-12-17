@@ -4,7 +4,6 @@ Encryption utilities for sensitive financial data (access tokens, API keys, etc.
 
 import base64
 import logging
-from typing import Optional
 
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -17,7 +16,7 @@ def get_encryption_key() -> bytes:
     Get or generate encryption key from settings.
     If not set, generates a key (should be set in production).
     """
-    key = getattr(settings, 'FERNET_KEY', None)
+    key = getattr(settings, "FERNET_KEY", None)
     if not key:
         logger.warning("FERNET_KEY not set in settings. Generating a new key (not suitable for production).")
         key = Fernet.generate_key().decode()
@@ -56,10 +55,11 @@ def decrypt_token(encrypted_token: str) -> str:
         error_msg = str(e) if str(e) else repr(e)
         logger.error(f"Error decrypting token: {error_msg}")
         # Check if this is a key mismatch error
-        if 'InvalidToken' in str(type(e).__name__) or 'Invalid' in error_msg:
-            logger.error("This error usually indicates FERNET_KEY has changed. Tokens encrypted with a different key cannot be decrypted.")
+        if "InvalidToken" in str(type(e).__name__) or "Invalid" in error_msg:
+            logger.error(
+                "This error usually indicates FERNET_KEY has changed. Tokens encrypted with a different key cannot be decrypted."
+            )
             logger.error("Set FERNET_KEY in Django settings to a fixed value to prevent this issue.")
-        raise ValueError(f"Failed to decrypt token. This may be due to FERNET_KEY mismatch. Original error: {error_msg}") from e
-
-
-
+        raise ValueError(
+            f"Failed to decrypt token. This may be due to FERNET_KEY mismatch. Original error: {error_msg}"
+        ) from e

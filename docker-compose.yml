@@ -27,9 +27,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate --noinput --fake-initial && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/code
+      # Local drive access - mount user's home directory
+      - ${HOME}:/host/home:rw
+      # Cloud drive access - common cloud drive locations
+      - ${HOME}/Library/CloudStorage:/host/cloudstorage:rw
+      - ${HOME}/Google Drive:/host/googledrive:rw
+      - ${HOME}/Dropbox:/host/dropbox:rw
+      - ${HOME}/OneDrive:/host/onedrive:rw
+      - ${HOME}/iCloud Drive:/host/iclouddrive:rw
+      # Additional common locations
+      - ${HOME}/Documents:/host/documents:rw
+      - ${HOME}/Desktop:/host/desktop:rw
+      - ${HOME}/Downloads:/host/downloads:rw
     ports:
       - "8000:8000"
     environment:
@@ -40,6 +52,8 @@ services:
     env_file:
       - ./.env
     restart: unless-stopped
+    # Run as root to ensure full file access permissions
+    user: root
     depends_on:
       db:
         condition: service_healthy
@@ -52,6 +66,18 @@ services:
     command: celery -A portfolio_strategist worker -l INFO --beat --pool=solo
     volumes:
       - .:/code
+      # Local drive access - mount user's home directory
+      - ${HOME}:/host/home:rw
+      # Cloud drive access - common cloud drive locations
+      - ${HOME}/Library/CloudStorage:/host/cloudstorage:rw
+      - ${HOME}/Google Drive:/host/googledrive:rw
+      - ${HOME}/Dropbox:/host/dropbox:rw
+      - ${HOME}/OneDrive:/host/onedrive:rw
+      - ${HOME}/iCloud Drive:/host/iclouddrive:rw
+      # Additional common locations
+      - ${HOME}/Documents:/host/documents:rw
+      - ${HOME}/Desktop:/host/desktop:rw
+      - ${HOME}/Downloads:/host/downloads:rw
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
@@ -59,6 +85,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/portfolio_strategist
     env_file:
       - ./.env
+    # Run as root to ensure full file access permissions
+    user: root
     depends_on:
       db:
         condition: service_healthy

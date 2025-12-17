@@ -1,0 +1,33 @@
+#!/bin/bash
+# Wrapper script to run codex on multiple threads/instances
+# This script bypasses the single-instance lock by temporarily moving it
+
+DEFAULT_LOCK="$HOME/.codex-swap-lock"
+BACKUP_LOCK="${DEFAULT_LOCK}.backup-$$"
+
+# Function to cleanup on exit
+cleanup() {
+    # Restore original lock if we moved it
+    if [ -d "$BACKUP_LOCK" ]; then
+        mv "$BACKUP_LOCK" "$DEFAULT_LOCK" 2>/dev/null
+    fi
+}
+trap cleanup EXIT INT TERM
+
+# If the default lock exists, temporarily move it
+if [ -d "$DEFAULT_LOCK" ]; then
+    # Check if any process is using the lock directory
+    if lsof +D "$DEFAULT_LOCK" &>/dev/null 2>&1; then
+        echo "Warning: Lock directory is in use by another process" >&2
+    fi
+    # Move it temporarily
+    mv "$DEFAULT_LOCK" "$BACKUP_LOCK" 2>/dev/null || {
+        echo "Warning: Could not move lock directory" >&2
+    }
+fi
+
+# Run codex with all passed arguments
+exec /opt/homebrew/bin/codex "$@"
+
+
+

@@ -72,11 +72,11 @@ urlpatterns = [
     path("documents/", include(wagtaildocs_urls)),
     path("content/", include(wagtail_urls)),
     path("chat/", include("apps.chat.urls")),
-    path('solutions/', include('apps.solutions.urls', namespace = 'solutions')),
-    path('records/', include('apps.records.urls', namespace = 'records')),
-    path('categories/', include('apps.categories.urls', namespace = 'categories')),
-    path('stock-analysis/', include('apps.stock_analysis.urls', namespace='stock_analysis')),
-    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("solutions/", include("apps.solutions.urls", namespace="solutions")),
+    path("records/", include("apps.records.urls", namespace="records")),
+    path("categories/", include("apps.categories.urls", namespace="categories")),
+    path("stock-analysis/", include("apps.stock_analysis.urls", namespace="stock_analysis")),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.ENABLE_DEBUG_TOOLBAR:
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))

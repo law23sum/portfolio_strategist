@@ -1,0 +1,706 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    }
+  };
+</script>
+<style>
+    .equations-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .category-sidebar {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .category-item {
+        padding: 10px;
+        margin: 5px 0;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    .category-item:hover {
+        background: #f5f5f5;
+    }
+    .category-item.active {
+        background: #3273dc;
+        color: white;
+    }
+    .category-item i {
+        margin-right: 8px;
+    }
+    .equations-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .equation-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #3273dc;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .equation-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .equation-card.featured {
+        border-left-color: #ff6b6b;
+    }
+    .equation-card.premium {
+        border-left-color: #feca57;
+        position: relative;
+    }
+    .equation-card.premium::before {
+        content: "PREMIUM";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #feca57;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    .equation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+    }
+    .equation-name {
+        font-size: 1.3em;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+    .equation-category {
+        font-size: 0.85em;
+        color: #666;
+        margin-top: 5px;
+    }
+    .equation-formula {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 15px 0;
+        text-align: center;
+        font-size: 1.1em;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .equation-description {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+    .equation-inputs {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+    .input-group {
+        margin-bottom: 15px;
+    }
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9em;
+    }
+    .input-group label .symbol {
+        color: #3273dc;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+    .input-group input[type="number"],
+    .input-group input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1em;
+    }
+    .input-group .slider-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .input-group input[type="range"] {
+        flex: 1;
+    }
+    .input-group .slider-value {
+        min-width: 60px;
+        text-align: right;
+        font-weight: 600;
+        color: #3273dc;
+    }
+    .calculate-btn {
+        width: 100%;
+        padding: 12px;
+        background: #3273dc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 15px;
+        transition: background 0.2s;
+    }
+    .calculate-btn:hover {
+        background: #2360c4;
+    }
+    .calculate-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    .result-section {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        display: none;
+    }
+    .result-section.show {
+        display: block;
+    }
+    .result-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #3273dc;
+        text-align: center;
+        margin: 10px 0;
+    }
+    .result-error {
+        color: #e74c3c;
+        text-align: center;
+        padding: 10px;
+    }
+    .graph-container {
+        margin-top: 20px;
+        height: 300px;
+        display: none;
+    }
+    .graph-container.show {
+        display: block;
+    }
+    .premium-badge {
+        display: inline-block;
+        background: #feca57;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    .search-box {
+        margin-bottom: 20px;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1em;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+    .empty-state i {
+        font-size: 4em;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="equations-container">
+    <div class="level">
+        <div class="level-left">
+            <div>
+                <h1 class="title is-2">{% translate "Formula Library" %}</h1>
+                <p class="subtitle">{% translate "Interactive collection of statistical and financial formulas" %}</p>
+            </div>
+        </div>
+        <div class="level-right">
+            {% if not is_premium %}
+            <a href="{% url 'web:pricing_page' %}" class="button is-warning">
+                <span class="icon"><i class="fa fa-star"></i></span>
+                <span>{% translate "Upgrade to Premium" %}</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- Category Sidebar -->
+        <div class="column is-3">
+            <div class="category-sidebar">
+                <h3 class="title is-5">{% translate "Categories" %}</h3>
+                <div class="category-item active" data-category="all">
+                    <i class="fa fa-th"></i>
+                    <span>{% translate "All Formulas" %}</span>
+                </div>
+                <div id="categories-list">
+                    <!-- Categories will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Equations Grid -->
+        <div class="column is-9">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="{% translate 'Search formulas...' %}" class="input">
+            </div>
+            
+            <div id="equations-grid" class="equations-grid">
+                <div class="empty-state">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    <p>{% translate "Loading formulas..." %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    const API_BASE = '{% url "web:get_formulas" %}';
+    const API_CATEGORIES = '{% url "web:get_formula_categories" %}';
+    const API_CALCULATE = '{% url "web:calculate_formula" %}';
+    const API_GRAPH = '{% url "web:generate_formula_graph" %}';
+    const IS_PREMIUM = {{ is_premium|yesno:"true,false" }};
+    
+    let categories = [];
+    let equations = [];
+    let currentCategory = 'all';
+    let searchQuery = '';
+    let charts = {};
+    
+    // Load categories
+    async function loadCategories() {
+        try {
+            const response = await fetch(API_CATEGORIES);
+            const data = await response.json();
+            if (data.success) {
+                categories = data.categories;
+                renderCategories();
+            }
+        } catch (error) {
+            console.error('Error loading categories:', error);
+        }
+    }
+    
+    // Render categories
+    function renderCategories() {
+        const container = document.getElementById('categories-list');
+        container.innerHTML = categories.map(cat => `
+            <div class="category-item" data-category="${cat.slug}">
+                <i class="fa ${cat.icon || 'fa-chart-line'}"></i>
+                <span>${cat.name}</span>
+                ${cat.is_premium && !IS_PREMIUM ? '<span class="premium-badge">PREMIUM</span>' : ''}
+            </div>
+        `).join('');
+        
+        // Add click handlers
+        document.querySelectorAll('.category-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                currentCategory = item.dataset.category;
+                filterEquations();
+            });
+        });
+    }
+    
+    // Load equations
+    async function loadEquations() {
+        try {
+            const response = await fetch(API_BASE);
+            const data = await response.json();
+            if (data.success) {
+                equations = data.equations;
+                renderEquations();
+            }
+        } catch (error) {
+            console.error('Error loading equations:', error);
+        }
+    }
+    
+    // Render equations
+    function renderEquations() {
+        const container = document.getElementById('equations-grid');
+        const filtered = getFilteredEquations();
+        
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <i class="fa fa-search"></i>
+                    <p>{% translate "No formulas found" %}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = filtered.map(eq => createEquationCard(eq)).join('');
+        
+        // Initialize MathJax for LaTeX rendering
+        if (window.MathJax) {
+            MathJax.typesetPromise([container]).catch((err) => console.error('MathJax error:', err));
+        }
+        
+        // Add event listeners
+        attachEventListeners();
+    }
+    
+    // Create equation card HTML
+    function createEquationCard(eq) {
+        const premiumClass = eq.is_premium ? 'premium' : '';
+        const featuredClass = eq.is_featured ? 'featured' : '';
+        const premiumBadge = eq.is_premium && !IS_PREMIUM ? '<span class="premium-badge">PREMIUM</span>' : '';
+        
+        return `
+            <div class="equation-card ${premiumClass} ${featuredClass}" data-equation-id="${eq.id}">
+                <div class="equation-header">
+                    <div>
+                        <h3 class="equation-name">${eq.name} ${premiumBadge}</h3>
+                        <div class="equation-category">${eq.category.name}</div>
+                    </div>
+                </div>
+                
+                <div class="equation-description">${eq.description || ''}</div>
+                
+                <div class="equation-formula" id="formula-${eq.id}">
+                    $${eq.formula_latex || eq.formula_text}$
+                </div>
+                
+                <div class="equation-inputs">
+                    ${eq.variables.map(var => createInputField(var, eq.id)).join('')}
+                    
+                    <button class="calculate-btn" data-equation-id="${eq.id}" ${eq.is_premium && !IS_PREMIUM ? 'disabled' : ''}>
+                        {% translate "Calculate" %}
+                    </button>
+                    
+                    <div class="result-section" id="result-${eq.id}">
+                        <div class="result-value" id="result-value-${eq.id}"></div>
+                        <div class="result-error" id="result-error-${eq.id}"></div>
+                    </div>
+                    
+                    ${eq.supports_graph ? `
+                        <div class="graph-container" id="graph-${eq.id}">
+                            <canvas id="chart-${eq.id}"></canvas>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Create input field
+    function createInputField(varDef, equationId) {
+        const hasSlider = varDef.type === 'float' && varDef.min_value && varDef.max_value;
+        const defaultValue = varDef.default_value || '0';
+        
+        if (hasSlider) {
+            return `
+                <div class="input-group">
+                    <label>
+                        ${varDef.name}
+                        <span class="symbol">(${varDef.symbol})</span>
+                        ${varDef.unit ? `<span style="color: #999;">${varDef.unit}</span>` : ''}
+                    </label>
+                    <div class="slider-container">
+                        <input type="range" 
+                               id="input-${equationId}-${varDef.name}"
+                               min="${varDef.min_value || 0}"
+                               max="${varDef.max_value || 10}"
+                               step="${varDef.step || 0.1}"
+                               value="${defaultValue}"
+                               data-var-name="${varDef.name}">
+                        <span class="slider-value" id="value-${equationId}-${varDef.name}">${defaultValue}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="input-group">
+                    <label>
+                        ${varDef.name}
+                        <span class="symbol">(${varDef.symbol})</span>
+                        ${varDef.unit ? `<span style="color: #999;">${varDef.unit}</span>` : ''}
+                    </label>
+                    <input type="${varDef.type === 'integer' ? 'number' : varDef.type === 'float' ? 'number' : 'text'}"
+                           id="input-${equationId}-${varDef.name}"
+                           value="${defaultValue}"
+                           ${varDef.min_value ? `min="${varDef.min_value}"` : ''}
+                           ${varDef.max_value ? `max="${varDef.max_value}"` : ''}
+                           ${varDef.step ? `step="${varDef.step}"` : ''}
+                           data-var-name="${varDef.name}"
+                           placeholder="${varDef.description || ''}">
+                </div>
+            `;
+        }
+    }
+    
+    // Attach event listeners
+    function attachEventListeners() {
+        // Calculate buttons
+        document.querySelectorAll('.calculate-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const equationId = e.target.dataset.equationId;
+                await calculateEquation(equationId);
+            });
+        });
+        
+        // Slider updates
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const valueDisplay = document.getElementById(`value-${e.target.id.replace('input-', '')}`);
+                if (valueDisplay) {
+                    valueDisplay.textContent = parseFloat(e.target.value).toFixed(2);
+                }
+            });
+        });
+        
+        // Graph buttons (if any)
+        document.querySelectorAll('[data-action="graph"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const equationId = e.target.dataset.equationId;
+                await generateGraph(equationId);
+            });
+        });
+    }
+    
+    // Calculate equation
+    async function calculateEquation(equationId) {
+        const equation = equations.find(eq => eq.id === parseInt(equationId));
+        if (!equation) return;
+        
+        // Collect parameters
+        const parameters = {};
+        equation.variables.forEach(varDef => {
+            const input = document.getElementById(`input-${equationId}-${varDef.name}`);
+            if (input) {
+                let value = input.value;
+                if (varDef.type === 'float' || varDef.type === 'integer') {
+                    value = parseFloat(value);
+                }
+                parameters[varDef.name] = value;
+            }
+        });
+        
+        // Show loading
+        const resultSection = document.getElementById(`result-${equationId}`);
+        const resultValue = document.getElementById(`result-value-${equationId}`);
+        const resultError = document.getElementById(`result-error-${equationId}`);
+        resultSection.classList.add('show');
+        resultValue.textContent = '{% translate "Calculating..." %}';
+        resultError.textContent = '';
+        
+        try {
+            const response = await fetch(API_CALCULATE, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    equation_id: equationId,
+                    parameters: parameters
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                resultValue.textContent = data.result.formatted_result || data.result.result;
+                resultError.textContent = '';
+                
+                // Generate graph if supported
+                if (equation.supports_graph) {
+                    await generateGraph(equationId, parameters);
+                }
+            } else {
+                resultValue.textContent = '';
+                resultError.textContent = data.error || '{% translate "Calculation failed" %}';
+            }
+        } catch (error) {
+            resultValue.textContent = '';
+            resultError.textContent = '{% translate "Error: " %}' + error.message;
+        }
+    }
+    
+    // Generate graph
+    async function generateGraph(equationId, parameters = null) {
+        const equation = equations.find(eq => eq.id === parseInt(equationId));
+        if (!equation || !equation.supports_graph) return;
+        
+        // Collect parameters if not provided
+        if (!parameters) {
+            parameters = {};
+            equation.variables.forEach(varDef => {
+                const input = document.getElementById(`input-${equationId}-${varDef.name}`);
+                if (input) {
+                    let value = input.value;
+                    if (varDef.type === 'float' || varDef.type === 'integer') {
+                        value = parseFloat(value);
+                    }
+                    parameters[varDef.name] = value;
+                }
+            });
+        }
+        
+        try {
+            const response = await fetch(API_GRAPH, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    equation_id: equationId,
+                    parameters: parameters,
+                    graph_config: equation.graph_config || {}
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.graph_data) {
+                const graphContainer = document.getElementById(`graph-${equationId}`);
+                const canvas = document.getElementById(`chart-${equationId}`);
+                
+                if (graphContainer && canvas) {
+                    graphContainer.classList.add('show');
+                    
+                    // Destroy existing chart if any
+                    if (charts[equationId]) {
+                        charts[equationId].destroy();
+                    }
+                    
+                    // Create new chart
+                    const ctx = canvas.getContext('2d');
+                    charts[equationId] = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.graph_data.x,
+                            datasets: [{
+                                label: equation.name,
+                                data: data.graph_data.y,
+                                borderColor: '#3273dc',
+                                backgroundColor: 'rgba(50, 115, 220, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: data.graph_data.x_label || 'x'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: data.graph_data.y_label || 'f(x)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error generating graph:', error);
+        }
+    }
+    
+    // Filter equations
+    function getFilteredEquations() {
+        return equations.filter(eq => {
+            // Category filter
+            if (currentCategory !== 'all' && eq.category.slug !== currentCategory) {
+                return false;
+            }
+            
+            // Premium filter
+            if (eq.is_premium && !IS_PREMIUM) {
+                return false;
+            }
+            
+            // Search filter
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                return eq.name.toLowerCase().includes(query) ||
+                       eq.description.toLowerCase().includes(query) ||
+                       eq.category.name.toLowerCase().includes(query);
+            }
+            
+            return true;
+        });
+    }
+    
+    function filterEquations() {
+        renderEquations();
+    }
+    
+    // Search handler
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        filterEquations();
+    });
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Initialize
+    loadCategories();
+    loadEquations();
+})();
+</script>
+{% endblock %}

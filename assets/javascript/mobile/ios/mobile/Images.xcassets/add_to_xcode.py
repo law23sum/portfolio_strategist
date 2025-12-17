@@ -5,15 +5,15 @@ This automates the manual process of adding files to Xcode.
 
 Usage:
     python3 add_to_xcode.py
-    
+
 Or install xcodeproj library first:
     pip3 install xcodeproj
     python3 add_to_xcode.py
 """
 
 import os
-import sys
 from pathlib import Path
+
 
 def add_imagesets_with_xcodeproj():
     """Add imagesets using xcodeproj library."""
@@ -23,59 +23,59 @@ def add_imagesets_with_xcodeproj():
         print("❌ xcodeproj library not installed")
         print("Install with: pip3 install xcodeproj")
         return False
-    
+
     script_dir = Path(__file__).parent.absolute()
     project_dir = script_dir.parent.parent.parent
-    project_path = project_dir / 'mobile.xcodeproj' / 'project.pbxproj'
+    project_path = project_dir / "mobile.xcodeproj" / "project.pbxproj"
     images_dir = script_dir
-    
+
     if not project_path.exists():
         print(f"❌ Project file not found: {project_path}")
         return False
-    
+
     print(f"📂 Opening project: {project_path}")
     project = XcodeProject.load(str(project_path))
-    
+
     # Find Images.xcassets group
     images_group = None
     for group in project.groups:
-        if hasattr(group, 'name') and group.name == 'Images.xcassets':
+        if hasattr(group, "name") and group.name == "Images.xcassets":
             images_group = group
             break
-        elif hasattr(group, 'path') and 'Images.xcassets' in str(group.path):
+        elif hasattr(group, "path") and "Images.xcassets" in str(group.path):
             images_group = group
             break
-    
+
     if not images_group:
         print("❌ Images.xcassets group not found in project")
         print("Available groups:")
         for group in project.groups[:10]:  # Show first 10
             print(f"  - {getattr(group, 'name', 'unnamed')}")
         return False
-    
+
     print("✅ Found Images.xcassets group")
-    
+
     # Get all imagesets
-    imagesets = [d for d in os.listdir(images_dir) if d.endswith('.imageset')]
+    imagesets = [d for d in os.listdir(images_dir) if d.endswith(".imageset")]
     print(f"📦 Found {len(imagesets)} imagesets")
-    
+
     added_count = 0
     skipped_count = 0
-    
+
     for imageset in sorted(imagesets):
         imageset_path = images_dir / imageset
-        
+
         if not imageset_path.is_dir():
             continue
-        
+
         # Check if already added
         already_added = False
-        if hasattr(images_group, 'file_refs'):
+        if hasattr(images_group, "file_refs"):
             for file_ref in images_group.file_refs:
                 if imageset in str(file_ref.path):
                     already_added = True
                     break
-        
+
         if not already_added:
             try:
                 images_group.add_file(str(imageset_path))
@@ -86,7 +86,7 @@ def add_imagesets_with_xcodeproj():
         else:
             skipped_count += 1
             print(f"⏭️  Already added: {imageset}")
-    
+
     # Save project
     try:
         project.save()
@@ -98,11 +98,12 @@ def add_imagesets_with_xcodeproj():
         print(f"❌ Error saving project: {e}")
         return False
 
+
 def main():
     """Main function."""
     print("🔧 Adding icon imagesets to Xcode project...")
     print("")
-    
+
     if add_imagesets_with_xcodeproj():
         print("")
         print("✅ Done! Please open Xcode and verify:")
@@ -127,6 +128,6 @@ def main():
         print("Note: Xcode should automatically discover imagesets in asset catalogs.")
         print("Try cleaning the build folder first: Product → Clean Build Folder")
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == "__main__":
+    main()

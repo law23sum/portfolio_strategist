@@ -11,6 +11,11 @@ urlpatterns = [
     path("forms/", views.ExampleFormView.as_view(), name="form_demo"),
     path("forms/alpine/", views.AlpineFormView.as_view(), name="alpine_form_demo"),
     # tasks
+    path(
+        "tasks/",
+        views.TasksExampleView.as_view(),
+        name="tasks",
+    ),
     path("tasks/api/", views.tasks_api, name="tasks_api"),
     # flags
     path("flags/", views.FeatureFlagExampleView.as_view(), name="flags"),

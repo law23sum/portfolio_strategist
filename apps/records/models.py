@@ -1,17 +1,19 @@
-from django.db import models
-from django.contrib.postgres.fields import JSONField
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
+from django.db import models
+from django.utils import timezone
 
 from apps.users.models import CustomUser
 
 
 class Receipt(models.Model):
     # ImageField to store the uploaded photo of the receipt
-    image = models.ImageField(upload_to = 'receipts/')
+    image = models.ImageField(upload_to="receipts/")
 
     # Fields for receipt details
-    title = models.CharField(max_length = 255)  # Title of the receipt
-    amount = models.DecimalField(max_digits = 10, decimal_places = 2)  # Total amount
+    title = models.CharField(max_length=255)  # Title of the receipt
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Total amount
     date = models.DateField()  # Date of the receipt
 
     def __str__(self):
@@ -22,154 +24,154 @@ class FinancialDocument(models.Model):
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
-        related_name='financial_documents',
+        related_name="financial_documents",
         null=True,  # Temporary to allow existing records
-        blank=True
+        blank=True,
     )
     # Main record type choices (unchanged)
     RECORD_TYPE_CHOICES = [
-        ('earnings', "Earnings"),
-        ('government', "Governemnt"),
-        ('retirement', "Retirement"),
-        ('insurance', "Insurance"),
-        ('debt', "Debt"),
-        ('investments', "Investments"),
-        ('budgeting', "Budgeting"),
-        ('assets', "Assets"),
-        ('credit_score', "Credit Score"),
+        ("earnings", "Earnings"),
+        ("government", "Governemnt"),
+        ("retirement", "Retirement"),
+        ("insurance", "Insurance"),
+        ("debt", "Debt"),
+        ("investments", "Investments"),
+        ("budgeting", "Budgeting"),
+        ("assets", "Assets"),
+        ("credit_score", "Credit Score"),
     ]
 
     # Here is the brand-new, fully loaded SUBCATEGORY_OPTIONS!
     SUBCATEGORY_OPTIONS = {
-        'earnings'    : [
-            ('pay_stubs', 'Pay stubs'),
-            ('w2_forms', 'W-2 forms'),
-            ('1099_forms', '1099 forms (for freelance or contract work)'),
-            ('bank_statements', 'Bank statements showing direct deposits'),
-            ('tax_returns', 'Tax returns (income sections)'),
-            ('bonus_commission', 'Bonus or commission statements'),
-            ('profit_sharing', 'Profit-sharing statements'),
-            ('dividend_income', 'Dividend income records'),
-            ('royalty_income', 'Royalty income statements'),
-            ('alimony_child_support', 'Alimony or child support records'),
-            ],
-        'government'  : [
-            ('social_security', 'Social Security statements'),
-            ('tax_assessment', 'Tax assessment notices'),
-            ('gov_benefits', 'Government benefit statements'),
-            ('stimulus_payments', 'Stimulus payment records'),
-            ('irs_notices', 'IRS notices or correspondence'),
-            ('property_tax_bills', 'Property tax bills'),
-            ('fafsa_records', 'FAFSA records (for student aid)'),
-            ('veterans_benefits', 'Veterans benefits statements'),
-            ('medicare_medicaid', 'Medicare/Medicaid statements'),
-            ('court_ordered', 'Court-ordered financial documents'),
-            ],
-        'retirement'  : [
-            ('401k_statements', '401(k) statements'),
-            ('ira_statements', 'IRA (Traditional or Roth) statements'),
-            ('pension_plan_summaries', 'Pension plan summaries'),
-            ('annuity_contracts', 'Annuity contracts'),
-            ('ss_benefit_estimates', 'Social Security benefit estimates'),
-            ('retirement_contributions', 'Retirement account contribution records'),
-            ('rmd_notices', 'Required Minimum Distribution (RMD) notices'),
-            ('rollover_docs', 'Rollover documentation'),
-            ('beneficiary_designations', 'Beneficiary designation forms'),
-            ('retirement_withdrawals', 'Retirement plan withdrawal records'),
-            ],
-        'insurance'   : [
-            ('policy_docs', 'Policy documents (life, health, auto, home, etc.)'),
-            ('premium_receipts', 'Premium payment receipts'),
-            ('claims_history', 'Claims history records'),
-            ('deductible_coverage', 'Deductible and coverage summaries'),
-            ('insurance_id_cards', 'Insurance ID cards'),
-            ('declarations_pages', 'Declarations pages'),
-            ('renewal_notices', 'Renewal notices'),
-            ('settlement_offers', 'Settlement offers'),
-            ('umbrella_policy', 'Umbrella insurance policies'),
-            ('long_term_care', 'Long-term care insurance documents'),
-            ],
-        'debt'        : [
-            ('loan_agreements', 'Loan agreements (personal, auto, student, etc.)'),
-            ('credit_card_statements', 'Credit card statements'),
-            ('mortgage_statements', 'Mortgage statements'),
-            ('debt_collection_notices', 'Debt collection notices'),
-            ('payment_history', 'Payment history records'),
-            ('promissory_notes', 'Promissory notes'),
-            ('debt_settlement', 'Debt settlement agreements'),
-            ('bankruptcy_filings', 'Bankruptcy filings'),
-            ('credit_counseling', 'Credit counseling reports'),
-            ('cosigned_loans', 'Co-signed loan documents'),
-            ],
-        'investments' : [
-            ('brokerage_statements', 'Brokerage account statements'),
-            ('stock_bond_certificates', 'Stock or bond certificates'),
-            ('mutual_fund_statements', 'Mutual fund statements'),
-            ('real_estate_investments', 'Real estate investment records'),
-            ('crypto_transactions', 'Cryptocurrency transaction history'),
-            ('investment_performance', 'Investment performance reports'),
-            ('capital_gains_losses', 'Capital gains/loss statements'),
-            ('drip_records', 'Dividend reinvestment plans (DRIPs)'),
-            ('prospectuses', 'Prospectuses for investments'),
-            ('partnership_investments', 'Partnership or LLC investment records'),
-            ],
-        'budgeting'   : [
-            ('monthly_budgets', 'Monthly budget spreadsheets'),
-            ('expense_tracking', 'Expense tracking logs'),
-            ('savings_goals', 'Savings goal trackers'),
-            ('spending_breakdowns', 'Spending category breakdowns'),
-            ('cash_flow_statements', 'Cash flow statements'),
-            ('financial_planning_worksheets', 'Financial planning worksheets'),
-            ('subscriptions', 'Subscription or membership records'),
-            ('utility_bills', 'Utility bills'),
-            ('grocery_dining_logs', 'Grocery and dining expense logs'),
-            ('entertainment_spending', 'Entertainment and leisure spending records'),
-            ],
-        'assets'      : [
-            ('property_deeds', 'Property deeds (real estate)'),
-            ('vehicle_titles', 'Vehicle titles'),
-            ('appraisals', 'Appraisals (jewelry, art, etc.)'),
-            ('inventory', 'Inventory of personal belongings'),
-            ('business_docs', 'Business ownership documents'),
-            ('trust_fund_statements', 'Trust fund statements'),
-            ('inheritance_records', 'Inheritance records'),
-            ('collectibles', 'Collectibles valuation reports'),
-            ('intellectual_property', 'Intellectual property documents'),
-            ('lease_agreements', 'Lease agreements (if renting out property)'),
-            ],
-        'credit_score': [
-            ('credit_reports', 'Credit reports (Equifax, Experian, TransUnion)'),
-            ('credit_monitoring', 'Credit monitoring service updates'),
-            ('credit_card_utilization', 'Credit card utilization summaries'),
-            ('loan_approvals_denials', 'Loan approval/denial letters'),
-            ('inquiry_records', 'Hard and soft inquiry records'),
-            ('dispute_letters', 'Dispute resolution letters'),
-            ('credit_score_improvement', 'Credit score improvement plans'),
-            ('identity_theft_reports', 'Identity theft reports'),
-            ('credit_counseling_notes', 'Credit counseling session notes'),
-            ('payment_history_reports', 'Payment history reports (on-time/late payments)'),
-            ],
-        }
+        "earnings": [
+            ("pay_stubs", "Pay stubs"),
+            ("w2_forms", "W-2 forms"),
+            ("1099_forms", "1099 forms (for freelance or contract work)"),
+            ("bank_statements", "Bank statements showing direct deposits"),
+            ("tax_returns", "Tax returns (income sections)"),
+            ("bonus_commission", "Bonus or commission statements"),
+            ("profit_sharing", "Profit-sharing statements"),
+            ("dividend_income", "Dividend income records"),
+            ("royalty_income", "Royalty income statements"),
+            ("alimony_child_support", "Alimony or child support records"),
+        ],
+        "government": [
+            ("social_security", "Social Security statements"),
+            ("tax_assessment", "Tax assessment notices"),
+            ("gov_benefits", "Government benefit statements"),
+            ("stimulus_payments", "Stimulus payment records"),
+            ("irs_notices", "IRS notices or correspondence"),
+            ("property_tax_bills", "Property tax bills"),
+            ("fafsa_records", "FAFSA records (for student aid)"),
+            ("veterans_benefits", "Veterans benefits statements"),
+            ("medicare_medicaid", "Medicare/Medicaid statements"),
+            ("court_ordered", "Court-ordered financial documents"),
+        ],
+        "retirement": [
+            ("401k_statements", "401(k) statements"),
+            ("ira_statements", "IRA (Traditional or Roth) statements"),
+            ("pension_plan_summaries", "Pension plan summaries"),
+            ("annuity_contracts", "Annuity contracts"),
+            ("ss_benefit_estimates", "Social Security benefit estimates"),
+            ("retirement_contributions", "Retirement account contribution records"),
+            ("rmd_notices", "Required Minimum Distribution (RMD) notices"),
+            ("rollover_docs", "Rollover documentation"),
+            ("beneficiary_designations", "Beneficiary designation forms"),
+            ("retirement_withdrawals", "Retirement plan withdrawal records"),
+        ],
+        "insurance": [
+            ("policy_docs", "Policy documents (life, health, auto, home, etc.)"),
+            ("premium_receipts", "Premium payment receipts"),
+            ("claims_history", "Claims history records"),
+            ("deductible_coverage", "Deductible and coverage summaries"),
+            ("insurance_id_cards", "Insurance ID cards"),
+            ("declarations_pages", "Declarations pages"),
+            ("renewal_notices", "Renewal notices"),
+            ("settlement_offers", "Settlement offers"),
+            ("umbrella_policy", "Umbrella insurance policies"),
+            ("long_term_care", "Long-term care insurance documents"),
+        ],
+        "debt": [
+            ("loan_agreements", "Loan agreements (personal, auto, student, etc.)"),
+            ("credit_card_statements", "Credit card statements"),
+            ("mortgage_statements", "Mortgage statements"),
+            ("debt_collection_notices", "Debt collection notices"),
+            ("payment_history", "Payment history records"),
+            ("promissory_notes", "Promissory notes"),
+            ("debt_settlement", "Debt settlement agreements"),
+            ("bankruptcy_filings", "Bankruptcy filings"),
+            ("credit_counseling", "Credit counseling reports"),
+            ("cosigned_loans", "Co-signed loan documents"),
+        ],
+        "investments": [
+            ("brokerage_statements", "Brokerage account statements"),
+            ("stock_bond_certificates", "Stock or bond certificates"),
+            ("mutual_fund_statements", "Mutual fund statements"),
+            ("real_estate_investments", "Real estate investment records"),
+            ("crypto_transactions", "Cryptocurrency transaction history"),
+            ("investment_performance", "Investment performance reports"),
+            ("capital_gains_losses", "Capital gains/loss statements"),
+            ("drip_records", "Dividend reinvestment plans (DRIPs)"),
+            ("prospectuses", "Prospectuses for investments"),
+            ("partnership_investments", "Partnership or LLC investment records"),
+        ],
+        "budgeting": [
+            ("monthly_budgets", "Monthly budget spreadsheets"),
+            ("expense_tracking", "Expense tracking logs"),
+            ("savings_goals", "Savings goal trackers"),
+            ("spending_breakdowns", "Spending category breakdowns"),
+            ("cash_flow_statements", "Cash flow statements"),
+            ("financial_planning_worksheets", "Financial planning worksheets"),
+            ("subscriptions", "Subscription or membership records"),
+            ("utility_bills", "Utility bills"),
+            ("grocery_dining_logs", "Grocery and dining expense logs"),
+            ("entertainment_spending", "Entertainment and leisure spending records"),
+        ],
+        "assets": [
+            ("property_deeds", "Property deeds (real estate)"),
+            ("vehicle_titles", "Vehicle titles"),
+            ("appraisals", "Appraisals (jewelry, art, etc.)"),
+            ("inventory", "Inventory of personal belongings"),
+            ("business_docs", "Business ownership documents"),
+            ("trust_fund_statements", "Trust fund statements"),
+            ("inheritance_records", "Inheritance records"),
+            ("collectibles", "Collectibles valuation reports"),
+            ("intellectual_property", "Intellectual property documents"),
+            ("lease_agreements", "Lease agreements (if renting out property)"),
+        ],
+        "credit_score": [
+            ("credit_reports", "Credit reports (Equifax, Experian, TransUnion)"),
+            ("credit_monitoring", "Credit monitoring service updates"),
+            ("credit_card_utilization", "Credit card utilization summaries"),
+            ("loan_approvals_denials", "Loan approval/denial letters"),
+            ("inquiry_records", "Hard and soft inquiry records"),
+            ("dispute_letters", "Dispute resolution letters"),
+            ("credit_score_improvement", "Credit score improvement plans"),
+            ("identity_theft_reports", "Identity theft reports"),
+            ("credit_counseling_notes", "Credit counseling session notes"),
+            ("payment_history_reports", "Payment history reports (on-time/late payments)"),
+        ],
+    }
 
     YEARS = [(y, str(y)) for y in range(1970, 2100)]
 
-    original_name = models.CharField(max_length = 255)
-    record_type = models.CharField(max_length = 50, choices = RECORD_TYPE_CHOICES)
-    sub_record_type = models.CharField(max_length = 50, choices = SUBCATEGORY_OPTIONS)
-    year = models.IntegerField(choices = YEARS)
-    document = models.FileField(upload_to='financial_documents/')
+    original_name = models.CharField(max_length=255)
+    record_type = models.CharField(max_length=50, choices=RECORD_TYPE_CHOICES)
+    sub_record_type = models.CharField(max_length=50, choices=SUBCATEGORY_OPTIONS)
+    year = models.IntegerField(choices=YEARS)
+    document = models.FileField(upload_to="financial_documents/")
     processed = models.BooleanField(default=False)
-    uploaded_at = models.DateTimeField(auto_now_add = True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         """
         Update the `name` field before saving,
         concatenating original_name, record type label, and year.
         """
-        record_type_label = dict(self.RECORD_TYPE_CHOICES).get(self.record_type, 'Unknown Type')
+        record_type_label = dict(self.RECORD_TYPE_CHOICES).get(self.record_type, "Unknown Type")
         subcategory_options = self.SUBCATEGORY_OPTIONS.get(self.record_type, [])
         subcategory_dict = dict(subcategory_options)
-        sub_record_type_label = subcategory_dict.get(self.sub_record_type, 'Unknown Type')
+        sub_record_type_label = subcategory_dict.get(self.sub_record_type, "Unknown Type")
         self.original_name = self.original_name.replace(" ", "_")
         self.name = f"{self.original_name}_{record_type_label}_{sub_record_type_label}_{self.year}"
         super().save(*args, **kwargs)
@@ -179,7 +181,7 @@ class FinancialDocument(models.Model):
 
 
 class ExtractedField(models.Model):
-    document = models.ForeignKey(FinancialDocument, on_delete=models.CASCADE, related_name='fields')
+    document = models.ForeignKey(FinancialDocument, on_delete=models.CASCADE, related_name="fields")
     field_name = models.CharField(max_length=255)
     field_value = models.TextField()
 
@@ -189,459 +191,1091 @@ class ExtractedField(models.Model):
 
 # Financial Data Aggregation Models
 
+
 class AggregationProvider(models.Model):
     """Supported financial data aggregation providers (Plaid, Yodlee, Finicity, etc.)"""
+
     PROVIDER_CHOICES = [
-        ('plaid', 'Plaid'),
-        ('yodlee', 'Yodlee'),
-        ('finicity', 'Finicity (Mastercard)'),
-        ('mx', 'MX'),
-        ('stripe_financial', 'Stripe Financial Connections'),
-        ('flinks', 'Flinks'),
-        ('akoya', 'Akoya'),
+        ("plaid", "Plaid"),
+        ("yodlee", "Yodlee"),
+        ("finicity", "Finicity (Mastercard)"),
+        ("mx", "MX"),
+        ("stripe_financial", "Stripe Financial Connections"),
+        ("flinks", "Flinks"),
+        ("akoya", "Akoya"),
     ]
-    
+
     name = models.CharField(max_length=50, choices=PROVIDER_CHOICES, unique=True)
     display_name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     api_key = models.CharField(max_length=255, blank=True, help_text="Encrypted API key")
     api_secret = models.CharField(max_length=255, blank=True, help_text="Encrypted API secret")
-    environment = models.CharField(max_length=20, choices=[('sandbox', 'Sandbox'), ('development', 'Development'), ('production', 'Production')], default='sandbox')
+    environment = models.CharField(
+        max_length=20,
+        choices=[("sandbox", "Sandbox"), ("development", "Development"), ("production", "Production")],
+        default="sandbox",
+    )
     webhook_url = models.URLField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['display_name']
-    
+        ordering = ["display_name"]
+
     def __str__(self):
         return self.display_name
 
 
 class LinkedAccount(models.Model):
     """Represents a user's linked financial account (bank, brokerage, credit card, etc.)"""
+
     ACCOUNT_TYPE_CHOICES = [
-        ('depository', 'Bank Account'),
-        ('credit', 'Credit Card'),
-        ('loan', 'Loan'),
-        ('investment', 'Investment Account'),
-        ('brokerage', 'Brokerage Account'),
-        ('retirement', 'Retirement Account'),
-        ('other', 'Other'),
+        ("depository", "Bank Account"),
+        ("credit", "Credit Card"),
+        ("loan", "Loan"),
+        ("investment", "Investment Account"),
+        ("brokerage", "Brokerage Account"),
+        ("retirement", "Retirement Account"),
+        ("other", "Other"),
     ]
-    
+
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('pending', 'Pending'),
-        ('error', 'Error'),
-        ('disconnected', 'Disconnected'),
+        ("active", "Active"),
+        ("pending", "Pending"),
+        ("error", "Error"),
+        ("disconnected", "Disconnected"),
     ]
-    
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='linked_accounts')
-    provider = models.ForeignKey(AggregationProvider, on_delete=models.PROTECT, related_name='linked_accounts')
-    
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="linked_accounts")
+    provider = models.ForeignKey(AggregationProvider, on_delete=models.PROTECT, related_name="linked_accounts")
+
     # Provider-specific identifiers
-    provider_account_id = models.CharField(max_length=255, db_index=True, help_text="Account ID from aggregation provider")
-    provider_item_id = models.CharField(max_length=255, db_index=True, help_text="Item ID from aggregation provider (e.g., Plaid item_id)")
+    provider_account_id = models.CharField(
+        max_length=255, db_index=True, help_text="Account ID from aggregation provider"
+    )
+    provider_item_id = models.CharField(
+        max_length=255, db_index=True, help_text="Item ID from aggregation provider (e.g., Plaid item_id)"
+    )
     access_token = models.TextField(help_text="Encrypted access token for fetching data")
-    
+
     # Account details
     institution_name = models.CharField(max_length=255)
     institution_id = models.CharField(max_length=255, blank=True)
     account_name = models.CharField(max_length=255)
     account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPE_CHOICES)
     account_subtype = models.CharField(max_length=100, blank=True)
-    account_number_masked = models.CharField(max_length=50, blank=True, help_text="Last 4 digits or masked account number")
-    
+    account_number_masked = models.CharField(
+        max_length=50, blank=True, help_text="Last 4 digits or masked account number"
+    )
+
     # Status and metadata
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     error_message = models.TextField(blank=True)
     last_synced_at = models.DateTimeField(null=True, blank=True)
     next_sync_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Additional metadata from provider
     metadata = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-created_at']
-        unique_together = [['user', 'provider', 'provider_account_id']]
+        ordering = ["-created_at"]
+        unique_together = [["user", "provider", "provider_account_id"]]
         indexes = [
-            models.Index(fields=['user', 'status']),
-            models.Index(fields=['provider', 'provider_account_id']),
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["provider", "provider_account_id"]),
         ]
-    
+
     def __str__(self):
         return f"{self.institution_name} - {self.account_name} ({self.user.email})"
 
 
 class AccountBalance(models.Model):
     """Current and historical balances for linked accounts"""
-    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='balances')
-    
+
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="balances")
+
     # Balance information
     available_balance = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     current_balance = models.DecimalField(max_digits=15, decimal_places=2)
-    limit = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, help_text="Credit limit for credit cards")
-    
+    limit = models.DecimalField(
+        max_digits=15, decimal_places=2, null=True, blank=True, help_text="Credit limit for credit cards"
+    )
+
     # Currency
-    currency_code = models.CharField(max_length=3, default='USD')
-    
+    currency_code = models.CharField(max_length=3, default="USD")
+
     # Timestamp
     balance_date = models.DateTimeField()
-    
+
     # Additional data from provider
     raw_data = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        ordering = ['-balance_date']
+        ordering = ["-balance_date"]
         indexes = [
-            models.Index(fields=['account', '-balance_date']),
+            models.Index(fields=["account", "-balance_date"]),
         ]
-        get_latest_by = 'balance_date'
-    
+        get_latest_by = "balance_date"
+
     def __str__(self):
         return f"{self.account.account_name}: ${self.current_balance} ({self.balance_date.date()})"
 
 
 class FinancialTransaction(models.Model):
     """Transactions from linked accounts"""
+
     TRANSACTION_TYPE_CHOICES = [
-        ('debit', 'Debit'),
-        ('credit', 'Credit'),
-        ('transfer', 'Transfer'),
+        ("debit", "Debit"),
+        ("credit", "Credit"),
+        ("transfer", "Transfer"),
     ]
-    
-    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='transactions')
-    
+
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="transactions")
+
     # Transaction identifiers
     transaction_id = models.CharField(max_length=255, db_index=True, help_text="Provider transaction ID")
     provider_transaction_id = models.CharField(max_length=255, blank=True)
-    
+
     # Transaction details
     amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0)])
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
     date = models.DateField(db_index=True)
     authorized_date = models.DateField(null=True, blank=True)
-    
+
     # Categorization
     category = models.CharField(max_length=100, blank=True)
     category_detail = models.CharField(max_length=255, blank=True)
     merchant_name = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
-    
+
     # Payment details
     payment_channel = models.CharField(max_length=50, blank=True)
     pending = models.BooleanField(default=False)
-    
+
     # Location (if available)
     location = models.JSONField(default=dict, blank=True)
-    
+
     # Additional metadata
     metadata = models.JSONField(default=dict, blank=True)
     raw_data = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-date', '-created_at']
-        unique_together = [['account', 'transaction_id']]
+        ordering = ["-date", "-created_at"]
+        unique_together = [["account", "transaction_id"]]
         indexes = [
-            models.Index(fields=['account', '-date']),
-            models.Index(fields=['date', 'category']),
-            models.Index(fields=['account', 'pending']),
+            models.Index(fields=["account", "-date"]),
+            models.Index(fields=["date", "category"]),
+            models.Index(fields=["account", "pending"]),
         ]
-    
+
     def __str__(self):
         return f"{self.account.account_name}: ${self.amount} - {self.description[:50]} ({self.date})"
 
 
 class InvestmentHolding(models.Model):
     """Investment holdings (stocks, bonds, mutual funds, etc.) from brokerage/retirement accounts"""
-    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='holdings')
-    
+
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="holdings")
+
     # Security information
     security_id = models.CharField(max_length=255, db_index=True)
     security_name = models.CharField(max_length=255)
     security_ticker = models.CharField(max_length=20, blank=True)
     security_type = models.CharField(max_length=100, blank=True)
-    
+
     # Holding details
     quantity = models.DecimalField(max_digits=15, decimal_places=6)
     price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     value = models.DecimalField(max_digits=15, decimal_places=2)
     cost_basis = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    
+
     # Currency
-    currency_code = models.CharField(max_length=3, default='USD')
-    
+    currency_code = models.CharField(max_length=3, default="USD")
+
     # Timestamp
     as_of_date = models.DateTimeField()
-    
+
     # Additional metadata
     metadata = models.JSONField(default=dict, blank=True)
     raw_data = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-as_of_date', 'security_name']
-        unique_together = [['account', 'security_id', 'as_of_date']]
+        ordering = ["-as_of_date", "security_name"]
+        unique_together = [["account", "security_id", "as_of_date"]]
         indexes = [
-            models.Index(fields=['account', '-as_of_date']),
-            models.Index(fields=['security_ticker']),
+            models.Index(fields=["account", "-as_of_date"]),
+            models.Index(fields=["security_ticker"]),
         ]
-    
+
     def __str__(self):
         return f"{self.account.account_name}: {self.security_name} - {self.quantity} @ ${self.price or 0}"
 
 
 class InvestmentTransaction(models.Model):
     """Investment transactions (buys, sells, dividends, etc.)"""
+
     TRANSACTION_TYPE_CHOICES = [
-        ('buy', 'Buy'),
-        ('sell', 'Sell'),
-        ('dividend', 'Dividend'),
-        ('interest', 'Interest'),
-        ('transfer', 'Transfer'),
-        ('fee', 'Fee'),
-        ('other', 'Other'),
+        ("buy", "Buy"),
+        ("sell", "Sell"),
+        ("dividend", "Dividend"),
+        ("interest", "Interest"),
+        ("transfer", "Transfer"),
+        ("fee", "Fee"),
+        ("other", "Other"),
     ]
-    
-    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='investment_transactions')
-    
+
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="investment_transactions")
+
     # Transaction identifiers
     transaction_id = models.CharField(max_length=255, db_index=True)
     provider_transaction_id = models.CharField(max_length=255, blank=True)
-    
+
     # Security information
     security_id = models.CharField(max_length=255, blank=True)
     security_name = models.CharField(max_length=255, blank=True)
     security_ticker = models.CharField(max_length=20, blank=True)
-    
+
     # Transaction details
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     quantity = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True)
     price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     date = models.DateField(db_index=True)
-    
+
     # Fees and costs
     fees = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    
+
     # Currency
-    currency_code = models.CharField(max_length=3, default='USD')
-    
+    currency_code = models.CharField(max_length=3, default="USD")
+
     # Additional metadata
     metadata = models.JSONField(default=dict, blank=True)
     raw_data = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-date', '-created_at']
-        unique_together = [['account', 'transaction_id']]
+        ordering = ["-date", "-created_at"]
+        unique_together = [["account", "transaction_id"]]
         indexes = [
-            models.Index(fields=['account', '-date']),
-            models.Index(fields=['date', 'transaction_type']),
+            models.Index(fields=["account", "-date"]),
+            models.Index(fields=["date", "transaction_type"]),
         ]
-    
+
     def __str__(self):
         return f"{self.account.account_name}: {self.transaction_type} {self.security_name or 'N/A'} - ${self.amount} ({self.date})"
 
 
 class DebtAccount(models.Model):
     """Debt accounts (loans, credit cards, mortgages) extracted from linked accounts"""
-    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='debt_accounts')
-    
+
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="debt_accounts")
+
     # Debt details
-    debt_type = models.CharField(max_length=50, choices=[
-        ('credit_card', 'Credit Card'),
-        ('mortgage', 'Mortgage'),
-        ('auto_loan', 'Auto Loan'),
-        ('student_loan', 'Student Loan'),
-        ('personal_loan', 'Personal Loan'),
-        ('other', 'Other'),
-    ])
-    
+    debt_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("credit_card", "Credit Card"),
+            ("mortgage", "Mortgage"),
+            ("auto_loan", "Auto Loan"),
+            ("student_loan", "Student Loan"),
+            ("personal_loan", "Personal Loan"),
+            ("other", "Other"),
+        ],
+    )
+
     # Balance information
     current_balance = models.DecimalField(max_digits=15, decimal_places=2)
     original_balance = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     credit_limit = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    
+
     # Interest and terms
-    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Annual percentage rate")
+    interest_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, help_text="Annual percentage rate"
+    )
     minimum_payment = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     next_payment_date = models.DateField(null=True, blank=True)
     next_payment_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    
+
     # Timestamp
     as_of_date = models.DateTimeField()
-    
+
     # Additional metadata
     metadata = models.JSONField(default=dict, blank=True)
     raw_data = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-as_of_date']
+        ordering = ["-as_of_date"]
         indexes = [
-            models.Index(fields=['account', '-as_of_date']),
+            models.Index(fields=["account", "-as_of_date"]),
         ]
-    
+
     def __str__(self):
         return f"{self.account.account_name}: {self.debt_type} - ${self.current_balance}"
 
 
 class DataSyncLog(models.Model):
     """Log of data synchronization attempts for linked accounts"""
+
     STATUS_CHOICES = [
-        ('success', 'Success'),
-        ('error', 'Error'),
-        ('partial', 'Partial'),
+        ("success", "Success"),
+        ("error", "Error"),
+        ("partial", "Partial"),
     ]
-    
-    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name='sync_logs')
-    
+
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="sync_logs")
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     started_at = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.FloatField(null=True, blank=True)
-    
+
     # Sync results
     accounts_synced = models.IntegerField(default=0)
     transactions_synced = models.IntegerField(default=0)
     balances_synced = models.IntegerField(default=0)
     holdings_synced = models.IntegerField(default=0)
-    
+
     # Error information
     error_message = models.TextField(blank=True)
     error_code = models.CharField(max_length=100, blank=True)
-    
+
     # Additional metadata
     metadata = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        ordering = ['-started_at']
+        ordering = ["-started_at"]
         indexes = [
-            models.Index(fields=['account', '-started_at']),
-            models.Index(fields=['status', '-started_at']),
+            models.Index(fields=["account", "-started_at"]),
+            models.Index(fields=["status", "-started_at"]),
         ]
-    
+
     def __str__(self):
         return f"{self.account.account_name}: {self.status} at {self.started_at}"
 
 
 # Investment & Savings Assessment Models
 
+
 class StocksAssessment(models.Model):
     """User's stock investment assessment"""
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='stocks_assessments')
-    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
-    
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="stocks_assessments")
+    linked_account = models.ForeignKey(
+        LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account"
+    )
+
     symbol = models.CharField(max_length=10, db_index=True)
     investment_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     share_quantity = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True)
     current_price = models.DecimalField(max_digits=15, decimal_places=2)
-    
+
     # Forecast data for different time periods
-    forecast_data = models.JSONField(default=dict, blank=True)  # Stores forecasts for current, monthly, biyearly, yearly, decade
-    
+    forecast_data = models.JSONField(
+        default=dict, blank=True
+    )  # Stores forecasts for current, monthly, biyearly, yearly, decade
+
     # Metadata
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-updated_at']
-        unique_together = [['user', 'symbol']]
-    
+        ordering = ["-updated_at"]
+        unique_together = [["user", "symbol"]]
+
     def __str__(self):
         return f"{self.user.email} - {self.symbol}"
 
 
 class SavingsAssessment(models.Model):
     """User's savings account assessment"""
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='savings_assessments')
-    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
-    
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="savings_assessments")
+    linked_account = models.ForeignKey(
+        LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account"
+    )
+
     account_name = models.CharField(max_length=255, default="Savings Account")
     initial_deposit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
     monthly_contribution = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    compounding_frequency = models.IntegerField(default=12, choices=[(1, 'Annually'), (2, 'Semi-Annually'), (4, 'Quarterly'), (12, 'Monthly'), (365, 'Daily')])
-    
+    compounding_frequency = models.IntegerField(
+        default=12, choices=[(1, "Annually"), (2, "Semi-Annually"), (4, "Quarterly"), (12, "Monthly"), (365, "Daily")]
+    )
+
     # Forecast data for different time periods
     forecast_data = models.JSONField(default=dict, blank=True)
-    
+
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-updated_at']
-    
+        ordering = ["-updated_at"]
+
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
 
 
 class CDAssessment(models.Model):
     """User's Certificate of Deposit assessment"""
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='cd_assessments')
-    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
-    
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="cd_assessments")
+    linked_account = models.ForeignKey(
+        LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account"
+    )
+
     account_name = models.CharField(max_length=255, default="CD Account")
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
     term_months = models.IntegerField()
-    compounding_frequency = models.IntegerField(default=12, choices=[(1, 'Annually'), (2, 'Semi-Annually'), (4, 'Quarterly'), (12, 'Monthly'), (365, 'Daily')])
-    
+    compounding_frequency = models.IntegerField(
+        default=12, choices=[(1, "Annually"), (2, "Semi-Annually"), (4, "Quarterly"), (12, "Monthly"), (365, "Daily")]
+    )
+
     # Forecast data
     forecast_data = models.JSONField(default=dict, blank=True)
-    
+
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-updated_at']
-    
+        ordering = ["-updated_at"]
+
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
 
 
 class BondAssessment(models.Model):
     """User's bond investment assessment"""
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bond_assessments')
-    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account")
-    
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="bond_assessments")
+    linked_account = models.ForeignKey(
+        LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Optional: Link to Plaid account"
+    )
+
     account_name = models.CharField(max_length=255, default="Bond Investment")
     face_value = models.DecimalField(max_digits=15, decimal_places=2)
     coupon_rate = models.DecimalField(max_digits=5, decimal_places=2)
     purchase_price = models.DecimalField(max_digits=15, decimal_places=2)
     years_to_maturity = models.DecimalField(max_digits=5, decimal_places=2)
-    payment_frequency = models.IntegerField(default=2, choices=[(1, 'Annually'), (2, 'Semi-Annually'), (4, 'Quarterly'), (12, 'Monthly')])
-    
+    payment_frequency = models.IntegerField(
+        default=2, choices=[(1, "Annually"), (2, "Semi-Annually"), (4, "Quarterly"), (12, "Monthly")]
+    )
+
     # Forecast data
     forecast_data = models.JSONField(default=dict, blank=True)
-    
+
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-updated_at']
-    
+        ordering = ["-updated_at"]
+
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
+
+
+class BudgetScenario(models.Model):
+    """Saved budget scenarios for what-if analysis."""
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="budget_scenarios")
+    name = models.CharField(max_length=120)
+    inputs = models.JSONField(default=dict, blank=True)
+    results = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "name"]
+        unique_together = [["user", "name"]]
+        indexes = [
+            models.Index(fields=["user", "-updated_at"], name="records_bud_user_id_8bafcb_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.email})"
+
+
+class Bill(models.Model):
+    """Recurring bill the user is tracking."""
+
+    FREQUENCY_CHOICES = [
+        ("weekly", "Weekly"),
+        ("biweekly", "Bi-weekly"),
+        ("monthly", "Monthly"),
+        ("quarterly", "Quarterly"),
+        ("yearly", "Yearly"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="bills")
+    account = models.ForeignKey(
+        LinkedAccount,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Account to pay from",
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default="monthly")
+    due_day = models.IntegerField(help_text="Day of month (1-31) or day of week (1-7) for weekly")
+    is_autopay = models.BooleanField(default=False)
+    autopay_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    last_paid_date = models.DateField(null=True, blank=True)
+    next_due_date = models.DateField()
+    category = models.CharField(max_length=100, blank=True)
+    merchant_name = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["next_due_date"]
+        indexes = [
+            models.Index(fields=["user", "is_active"], name="records_bil_user_id_b50c21_idx"),
+            models.Index(fields=["next_due_date"], name="records_bil_next_du_8c9fef_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.user.email}"
+
+
+class BudgetCategory(models.Model):
+    """Categories used for budgeting."""
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="budget_categories")
+    parent_category = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="subcategories",
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    monthly_budget = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    yearly_budget = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    color = models.CharField(max_length=7, default="#3498db", help_text="Hex color code")
+    icon = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Budget Categories"
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["user", "is_active"], name="records_bud_user_id_13aaf7_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.email})"
+
+
+class BudgetPlan(models.Model):
+    """User budget plan for a given period."""
+
+    PERIOD_CHOICES = [
+        ("monthly", "Monthly"),
+        ("yearly", "Yearly"),
+        ("quarterly", "Quarterly"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="budget_plans")
+    name = models.CharField(max_length=255)
+    period = models.CharField(max_length=20, choices=PERIOD_CHOICES, default="monthly")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    total_budget = models.DecimalField(max_digits=15, decimal_places=2)
+    category_budgets = models.JSONField(default=dict, blank=True)
+    actual_spending = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    actual_by_category = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-start_date"]
+        indexes = [
+            models.Index(fields=["user", "is_active"], name="records_bud_user_id_e76c31_idx"),
+            models.Index(fields=["start_date", "end_date"], name="records_bud_start_d_f60fc2_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.email})"
+
+
+class FinancialGoal(models.Model):
+    """User financial goals with tracking helpers."""
+
+    GOAL_TYPE_CHOICES = [
+        ("savings", "Savings Goal"),
+        ("investment", "Investment Goal"),
+        ("debt_payoff", "Debt Payoff Goal"),
+        ("emergency_fund", "Emergency Fund"),
+        ("retirement", "Retirement Goal"),
+        ("purchase", "Major Purchase"),
+        ("education", "Education Fund"),
+        ("other", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("active", "Active"),
+        ("completed", "Completed"),
+        ("paused", "Paused"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="financial_goals")
+    linked_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True)
+    linked_savings_assessment = models.ForeignKey(
+        SavingsAssessment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    linked_stocks_assessment = models.ForeignKey(
+        StocksAssessment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=255)
+    goal_type = models.CharField(max_length=50, choices=GOAL_TYPE_CHOICES)
+    target_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    current_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    target_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    monthly_contribution = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        help_text="Planned monthly contribution",
+    )
+    description = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    priority = models.IntegerField(default=5, help_text="1-10, where 10 is highest priority")
+    progress_history = models.JSONField(default=list, blank=True, help_text="Historical progress snapshots")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-priority", "-created_at"]
+        indexes = [
+            models.Index(fields=["user", "status"], name="records_fin_user_id_62fbd5_idx"),
+            models.Index(fields=["user", "goal_type"], name="records_fin_user_id_4195d3_idx"),
+            models.Index(fields=["target_date"], name="records_fin_target__324f67_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.email})"
+
+    @property
+    def remaining_amount(self):
+        remaining = self.target_amount - self.current_amount
+        return remaining if remaining > Decimal("0") else Decimal("0")
+
+    @property
+    def progress_percentage(self):
+        if self.target_amount and self.target_amount > 0:
+            return float((self.current_amount / self.target_amount) * Decimal("100"))
+        return 0.0
+
+    @property
+    def days_remaining(self):
+        if not self.target_date:
+            return None
+        return (self.target_date - timezone.now().date()).days
+
+    @property
+    def monthly_contribution_needed(self):
+        if not self.target_date:
+            return None
+        remaining = self.remaining_amount
+        if remaining <= 0:
+            return Decimal("0")
+        today = timezone.now().date()
+        months_remaining = (self.target_date.year - today.year) * 12 + (self.target_date.month - today.month)
+        if months_remaining <= 0:
+            return remaining
+        return (remaining / Decimal(months_remaining)).quantize(Decimal("0.01"))
+
+
+class FinancialCalendarEvent(models.Model):
+    """Calendar events for bills, goals, and other reminders."""
+
+    EVENT_TYPE_CHOICES = [
+        ("bill_due", "Bill Due"),
+        ("goal_milestone", "Goal Milestone"),
+        ("recurring_transaction", "Recurring Transaction"),
+        ("tax_deadline", "Tax Deadline"),
+        ("subscription_renewal", "Subscription Renewal"),
+        ("payment_reminder", "Payment Reminder"),
+        ("custom", "Custom Event"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="calendar_events")
+    title = models.CharField(max_length=255)
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPE_CHOICES)
+    description = models.TextField(blank=True)
+    event_date = models.DateField()
+    reminder_date = models.DateField(null=True, blank=True, help_text="Date to send reminder")
+    is_recurring = models.BooleanField(default=False)
+    recurrence_pattern = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="e.g., 'monthly', 'yearly', 'weekly'",
+    )
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    related_bill = models.ForeignKey("Bill", on_delete=models.SET_NULL, null=True, blank=True)
+    related_goal = models.ForeignKey("FinancialGoal", on_delete=models.SET_NULL, null=True, blank=True)
+    related_account = models.ForeignKey(LinkedAccount, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["event_date"]
+        indexes = [
+            models.Index(fields=["user", "event_date"], name="records_fin_user_id_ace698_idx"),
+            models.Index(fields=["user", "is_completed"], name="records_fin_user_id_34565f_idx"),
+            models.Index(fields=["reminder_date"], name="records_fin_reminde_93dea6_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.title} on {self.event_date}"
+
+
+class FinancialHealthScore(models.Model):
+    """Snapshot of the user's financial health metrics."""
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="health_scores")
+    overall_score = models.IntegerField(help_text="Overall financial health score (0-100)")
+    savings_score = models.IntegerField(default=0, help_text="Savings adequacy score")
+    debt_score = models.IntegerField(default=0, help_text="Debt management score")
+    investment_score = models.IntegerField(default=0, help_text="Investment health score")
+    budget_score = models.IntegerField(default=0, help_text="Budget adherence score")
+    emergency_fund_score = models.IntegerField(default=0, help_text="Emergency fund adequacy")
+    credit_score_health = models.IntegerField(default=0, help_text="Credit score health")
+    metrics = models.JSONField(default=dict, blank=True, help_text="Detailed financial metrics")
+    recommendations = models.JSONField(default=list, blank=True, help_text="Actionable recommendations")
+    calculated_at = models.DateTimeField(auto_now_add=True)
+    calculation_version = models.CharField(max_length=50, default="1.0")
+
+    class Meta:
+        ordering = ["-calculated_at"]
+        get_latest_by = "calculated_at"
+        indexes = [
+            models.Index(fields=["user", "-calculated_at"], name="records_fin_user_id_43ac0a_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.overall_score}"
+
+
+class FinancialNotification(models.Model):
+    """Notifications pushed to the user based on account activity."""
+
+    PRIORITY_CHOICES = [
+        ("low", "Low"),
+        ("medium", "Medium"),
+        ("high", "High"),
+        ("urgent", "Urgent"),
+    ]
+
+    NOTIFICATION_TYPE_CHOICES = [
+        ("goal_progress", "Goal Progress Update"),
+        ("goal_milestone", "Goal Milestone Reached"),
+        ("goal_deadline", "Goal Deadline Approaching"),
+        ("low_balance", "Low Account Balance"),
+        ("high_spending", "High Spending Alert"),
+        ("bill_due", "Bill Due Reminder"),
+        ("investment_alert", "Investment Price Alert"),
+        ("budget_exceeded", "Budget Exceeded"),
+        ("transaction_large", "Large Transaction"),
+        ("account_sync_error", "Account Sync Error"),
+        ("subscription_renewal", "Subscription Renewal"),
+        ("tax_reminder", "Tax Filing Reminder"),
+        ("credit_score_change", "Credit Score Change"),
+        ("market_alert", "Market Alert"),
+        ("other", "Other"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="financial_notifications")
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPE_CHOICES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default="medium")
+    read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+    action_url = models.URLField(blank=True, help_text="URL to navigate to for action")
+    action_label = models.CharField(max_length=100, blank=True, help_text="Label for action button")
+    metadata = models.JSONField(default=dict, blank=True)
+    related_goal = models.ForeignKey(
+        "FinancialGoal",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    related_account = models.ForeignKey(
+        LinkedAccount,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    related_transaction = models.ForeignKey(
+        FinancialTransaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "read"], name="records_fin_user_id_d8e270_idx"),
+            models.Index(fields=["user", "-created_at"], name="records_fin_user_id_798c29_idx"),
+            models.Index(fields=["notification_type", "priority"], name="records_fin_notific_bd611d_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.user.email})"
+
+
+class PortfolioComparison(models.Model):
+    """Stored comparisons between different portfolios or securities."""
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="portfolio_comparisons")
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    comparison_data = models.JSONField(default=dict, blank=True, help_text="Stores comparison results")
+    compared_items = models.JSONField(default=list, blank=True)
+    comparison_type = models.CharField(max_length=50, help_text="e.g., 'stocks', 'portfolios', 'time_periods'")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="records_por_user_id_17b7cc_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.email})"
+
+
+class RecurringTransaction(models.Model):
+    """Recurring transaction patterns detected or entered by the user."""
+
+    FREQUENCY_CHOICES = [
+        ("daily", "Daily"),
+        ("weekly", "Weekly"),
+        ("biweekly", "Bi-weekly"),
+        ("monthly", "Monthly"),
+        ("quarterly", "Quarterly"),
+        ("yearly", "Yearly"),
+        ("custom", "Custom"),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="recurring_transactions")
+    account = models.ForeignKey(LinkedAccount, on_delete=models.CASCADE, related_name="recurring_transactions")
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    category = models.CharField(max_length=100, blank=True)
+    merchant_name = models.CharField(max_length=255, blank=True)
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
+    next_occurrence = models.DateField()
+    last_occurrence = models.DateField(null=True, blank=True)
+    is_detected = models.BooleanField(
+        default=False,
+        help_text="True if auto-detected, False if manually created",
+    )
+    confidence_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Confidence in pattern detection (0-100)",
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    matching_transactions = models.ManyToManyField(
+        FinancialTransaction,
+        blank=True,
+        related_name="recurring_patterns",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["next_occurrence"]
+        indexes = [
+            models.Index(fields=["user", "is_active"], name="records_rec_user_id_6315f3_idx"),
+            models.Index(fields=["account", "next_occurrence"], name="records_rec_account_586e31_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.description} ({self.user.email})"
+
+
+class RetirementPlan(models.Model):
+    """Retirement planning scenarios and projections."""
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="retirement_plans")
+    plan_name = models.CharField(max_length=255, default="Retirement Plan")
+    current_age = models.IntegerField()
+    retirement_age = models.IntegerField()
+    current_savings = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    current_annual_income = models.DecimalField(max_digits=15, decimal_places=2)
+    desired_retirement_income = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        help_text="Annual income needed in retirement",
+    )
+    retirement_savings_goal = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Calculated or manual goal",
+    )
+    monthly_contribution = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    employer_match_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text="Employer 401k match percentage",
+    )
+    employer_match_limit = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Max employer match amount",
+    )
+    expected_return_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=7.0,
+        help_text="Expected annual return percentage",
+    )
+    inflation_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=3.0,
+        help_text="Expected inflation rate",
+    )
+    social_security_benefit = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Expected monthly SS benefit",
+    )
+    projections = models.JSONField(default=dict, blank=True, help_text="Year-by-year projections")
+    scenarios = models.JSONField(default=list, blank=True, help_text="Different scenario calculations")
+    analysis = models.JSONField(default=dict, blank=True, help_text="Analysis results and recommendations")
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="records_ret_user_id_ebfd3c_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.plan_name} ({self.user.email})"
+
+
+class TaxOptimizationStrategy(models.Model):
+    """Strategies to optimize taxes for the user."""
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="tax_strategies")
+    strategy_type = models.CharField(
+        max_length=100,
+        help_text="e.g., 'tax_loss_harvesting', 'capital_gains_optimization'",
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    estimated_savings = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    estimated_tax_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    recommendations = models.JSONField(default=list, blank=True)
+    applicable_securities = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of securities this applies to",
+    )
+    is_applied = models.BooleanField(default=False)
+    applied_at = models.DateTimeField(null=True, blank=True)
+    tax_year = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-tax_year", "-created_at"]
+        indexes = [
+            models.Index(fields=["user", "tax_year"], name="records_tax_user_id_0c9c84_idx"),
+            models.Index(fields=["strategy_type", "is_applied"], name="records_tax_strateg_abb5aa_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.tax_year})"
+
+
+class UserPreference(models.Model):
+    """Per-user UI/experience preferences."""
+
+    THEME_CHOICES = [
+        ("light", "Light"),
+        ("dark", "Dark"),
+        ("auto", "Auto (System)"),
+    ]
+
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="preferences")
+    dark_mode_enabled = models.BooleanField(default=False)
+    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default="auto")
+    currency = models.CharField(max_length=3, default="USD")
+    date_format = models.CharField(max_length=20, default="YYYY-MM-DD")
+    timezone = models.CharField(max_length=50, default="UTC")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Preference"
+        verbose_name_plural = "User Preferences"
+
+    def __str__(self):
+        return f"Preferences for {self.user.email}"

@@ -1,0 +1,28 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% block app %}
+<section class="app-card">
+  <h1 class="pg-title">Feature Flags Demo</h1>
+  <p class="pg-subtitle">
+    Toggle runtime behaviour using <strong>django-waffle</strong> without redeploying your application.
+  </p>
+  <div class="pg-content">
+    <p>
+      This example shows how you can enable experimental features for a subset of users. The
+      <code>example-flag</code> flag is created automatically so you can toggle it from the Django admin
+      interface or by appending <code>?example-flag=1</code> to the URL.
+    </p>
+    <p class="mt-4">
+      Current flag state:
+      {% if flag_active %}
+        <span class="tag is-success">Active</span>
+      {% else %}
+        <span class="tag is-danger">Disabled</span>
+      {% endif %}
+    </p>
+    <p class="mt-4">
+      Try flipping the flag and refreshing the page to see the badge update. This pattern works well for gradual rollouts,
+      A/B tests, or hiding unfinished functionality behind a guard.
+    </p>
+  </div>
+</section>
+{% endblock %}

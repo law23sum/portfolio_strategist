@@ -30,6 +30,8 @@ financial-definitions/     # Financial term definitions (no symbol)
 | `stocks_investment_planner_alerts` | ✅ | None |
 | `financial_definitions` | ❌ | `return_url` (optional) |
 
+> `financial_definitions` sanitizes the optional `return_url` query parameter and exposes both `return_url` and `default_return_url` in the template context.
+
 ## JavaScript Navigation Functions
 
 Located in `templates/web/stocks_assessment.html`:
@@ -206,4 +208,3 @@ from apps.stock_analysis.lib.stock_definitions import RATIO_DEFINITIONS
 
 - `stock_analysis_button_mappings.md` - Detailed button/link mappings
 - `stock_analysis_implementation_status.md` - Implementation status and comparison
-

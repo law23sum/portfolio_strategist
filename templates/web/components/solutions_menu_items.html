@@ -1,39 +1,59 @@
 {% load i18n %}
 <aside class="menu is-hidden-mobile">
   <ul class="menu-list">
-<li>
-  <a class="navbar-item is-tab  {% if active_tab == 'budgeting' %}is-active{% endif %}" href="{% url 'solutions:budgeting' %}">
-    <span class="pg-icon"><i class="fa fa-home"></i></span><span class="is-hidden-tablet-only">{% translate "Budgeting" %}</span>
-  </a>
-</li>
     <li>
-  <a class="navbar-item is-tab  {% if active_tab == 'subscription_demo' %}is-active{% endif %}" href="{% url 'subscriptions:subscription_demo' %}">
-    <span class="pg-icon"><i class="fa fa-desktop"></i></span><span class="is-hidden-tablet-only">Debt Consolidation</span>
-  </a>
-</li>
+      <a class="navbar-item is-tab {% if active_tab == 'budgeting' %}is-active{% endif %}" href="{% url 'solutions:budgeting' %}">
+        <span class="pg-icon"><i class="fa-solid fa-compass-drafting"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Cashflow Architecture Studio" %}</span>
+      </a>
+    </li>
     <li>
-  <a class="navbar-item  is-tab {% if active_tab == 'investment_savings' %}is-active{% endif %}" href="{% url 'web:investment_savings' %}">
-    <span class="pg-icon"><i class="fa fa-chart-line"></i></span>
-    <span class="is-hidden-tablet-only">{% translate "Investment & Savings" %}</span>
-  </a>
-</li>
+      <a class="navbar-item is-tab {% if active_tab == 'budget_planner' %}is-active{% endif %}" href="{% url 'web:budget_planner' %}">
+        <span class="pg-icon"><i class="fa-solid fa-diagram-project"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Income & Expense Simulator" %}</span>
+      </a>
+    </li>
     <li>
-  <a class="navbar-item is-tab {% if active_tab == 'tax_optimization' %}is-active{% endif %}" href="{% url 'solutions:tax_optimization' %}">
-    <span class="pg-icon"><i class="fa fa-calculator"></i></span>
-    <span class="is-hidden-tablet-only">{% translate "Tax Optimization" %}</span>
-  </a>
-</li>
+      <a class="navbar-item is-tab {% if active_tab == 'financial_goals' %}is-active{% endif %}" href="{% url 'records:financial_goals' %}">
+        <span class="pg-icon"><i class="fa-solid fa-bullseye"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Goals & Milestones Board" %}</span>
+      </a>
+    </li>
     <li>
-  <a class="navbar-item is-tab {% if active_tab == 'credit_improvement' %}is-active{% endif %}" href="{% url 'solutions:credit_improvement' %}">
-    <span class="pg-icon"><i class="fa fa-credit-card"></i></span>
-    <span class="is-hidden-tablet-only">{% translate "Credit Improvement" %}</span>
-  </a>
-</li>
+      <a class="navbar-item is-tab {% if active_tab == 'financial_health' %}is-active{% endif %}" href="{% url 'records:financial_health' %}">
+        <span class="pg-icon"><i class="fa-solid fa-heart-pulse"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Financial Health Scorecard" %}</span>
+      </a>
+    </li>
     <li>
-  <a class="navbar-item is-tab {% if active_tab == 'ai_financial_services' %}is-active{% endif %}" href="{% url 'web:ai_financial_services' %}">
-    <span class="pg-icon"><i class="fa-solid fa-robot"></i></span>
-    <span class="is-hidden-tablet-only">{% translate "AI Financial Services" %}</span>
-  </a>
-</li>
+      <a class="navbar-item is-tab {% if active_tab == 'debt_calculator' %}is-active{% endif %}" href="{% url 'records:debt_calculator' %}">
+        <span class="pg-icon"><i class="fa-solid fa-scale-balanced"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Debt Strategy Lab" %}</span>
+      </a>
+    </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'credit_improvement' %}is-active{% endif %}" href="{% url 'solutions:credit_improvement' %}">
+        <span class="pg-icon"><i class="fa-solid fa-shield-halved"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Credit Resilience Playbook" %}</span>
+      </a>
+    </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'tax_optimization' %}is-active{% endif %}" href="{% url 'solutions:tax_optimization' %}">
+        <span class="pg-icon"><i class="fa-solid fa-chart-pie"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Tax Optimization Blueprint" %}</span>
+      </a>
+    </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'budget_planner_records' %}is-active{% endif %}" href="{% url 'records:budget_planner' %}">
+        <span class="pg-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Budget Control Tower" %}</span>
+      </a>
+    </li>
+    <li>
+      <a class="navbar-item is-tab {% if active_tab == 'financial_calendar' %}is-active{% endif %}" href="{% url 'records:financial_calendar' %}">
+        <span class="pg-icon"><i class="fa-solid fa-calendar-days"></i></span>
+        <span class="is-hidden-tablet-only">{% translate "Financial Calendar & Obligations" %}</span>
+      </a>
+    </li>
   </ul>
 </aside>

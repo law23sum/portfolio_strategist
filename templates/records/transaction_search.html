@@ -1,0 +1,353 @@
+{% extends "web/app/app_base.html" %}
+{% load i18n %}
+
+{% block page_head %}
+<style>
+  .search-layout {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .search-card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 1.75rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+    margin-bottom: 2rem;
+  }
+  .search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem 1.25rem;
+  }
+  .results-card {
+    background: linear-gradient(135deg, #0f172a, #1f2937);
+    border-radius: 18px;
+    padding: 1.8rem;
+    color: #f8fafc;
+    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.32);
+    margin-bottom: 2rem;
+  }
+  .results-card .metric {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+  .table-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .status-pill.is-pending {
+    background: rgba(249, 115, 22, 0.16);
+    color: #c2410c;
+  }
+  .pagination {
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #loading-indicator {
+    display: none;
+    color: #1d4ed8;
+  }
+  .empty-state {
+    padding: 1.5rem;
+    text-align: center;
+    color: #64748b;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="search-layout">
+  <header class="mb-5">
+    <div class="level">
+      <div class="level-left">
+        <div>
+          <h1 class="title is-3">{% translate "Advanced Transaction Research" %}</h1>
+          <p class="subtitle is-6">
+            {% translate "Query across institutions with institutional filters to surface anomalies, compliance risks, and margin opportunities." %}
+          </p>
+        </div>
+      </div>
+      <div class="level-right">
+        <span class="tag is-light is-medium">
+          <i class="fa-solid fa-database"></i>&nbsp;{% translate "Live ledger" %}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <section class="search-card">
+    <form id="transaction-search-form">
+      {% csrf_token %}
+      <div class="search-grid">
+        <div>
+          <label class="label">{% translate "Account" %}</label>
+          <div class="select is-fullwidth">
+            <select name="account_id">
+              <option value="">{% translate "All accounts" %}</option>
+              {% for account in accounts %}
+                <option value="{{ account.id }}">{{ account.account_name }} — {{ account.institution_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="label">{% translate "Start date" %}</label>
+          <input class="input" type="date" name="start_date">
+        </div>
+        <div>
+          <label class="label">{% translate "End date" %}</label>
+          <input class="input" type="date" name="end_date">
+        </div>
+        <div>
+          <label class="label">{% translate "Min amount ($)" %}</label>
+          <input class="input" type="number" step="0.01" name="min_amount" placeholder="50">
+        </div>
+        <div>
+          <label class="label">{% translate "Max amount ($)" %}</label>
+          <input class="input" type="number" step="0.01" name="max_amount" placeholder="10000">
+        </div>
+        <div>
+          <label class="label">{% translate "Category" %}</label>
+          <input class="input" type="text" name="category" placeholder="{% translate 'e.g. groceries' %}">
+        </div>
+        <div>
+          <label class="label">{% translate "Merchant" %}</label>
+          <input class="input" type="text" name="merchant" placeholder="{% translate 'Merchant name contains' %}">
+        </div>
+        <div>
+          <label class="label">{% translate "Description" %}</label>
+          <input class="input" type="text" name="description" placeholder="{% translate 'Narrative contains' %}">
+        </div>
+        <div>
+          <label class="label">{% translate "Transaction type" %}</label>
+          <div class="select is-fullwidth">
+            <select name="transaction_type">
+              <option value="">{% translate "All types" %}</option>
+              <option value="credit">{% translate "Credit" %}</option>
+              <option value="debit">{% translate "Debit" %}</option>
+              <option value="transfer">{% translate "Transfer" %}</option>
+              <option value="fee">{% translate "Fee" %}</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="label">{% translate "Pending status" %}</label>
+          <div class="select is-fullwidth">
+            <select name="pending">
+              <option value="">{% translate "All" %}</option>
+              <option value="false">{% translate "Posted only" %}</option>
+              <option value="true">{% translate "Pending only" %}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="is-flex is-justify-content-space-between is-align-items-center mt-4">
+        <button class="button is-light" type="reset">
+          <span class="icon"><i class="fa-solid fa-eraser"></i></span>
+          <span>{% translate "Reset filters" %}</span>
+        </button>
+        <div class="buttons">
+          <button class="button is-primary" type="submit">
+            <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
+            <span>{% translate "Run query" %}</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="results-card">
+    <div class="columns">
+      <div class="column">
+        <p class="heading has-text-white-ter">{% translate "Transactions surfaced" %}</p>
+        <p class="metric" id="result-count">0</p>
+      </div>
+      <div class="column">
+        <p class="heading has-text-white-ter">{% translate "Last query" %}</p>
+        <p class="metric" id="last-query-time">—</p>
+      </div>
+      <div class="column is-flex is-align-items-center is-justify-content-flex-end">
+        <span id="loading-indicator">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          {% translate "Crunching data" %}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="table-card">
+    <div class="table-container">
+      <table class="table is-striped is-fullwidth is-hoverable">
+        <thead>
+          <tr>
+            <th>{% translate "Date" %}</th>
+            <th>{% translate "Account" %}</th>
+            <th>{% translate "Description" %}</th>
+            <th class="pg-text-right">{% translate "Amount" %}</th>
+            <th>{% translate "Category" %}</th>
+            <th>{% translate "Merchant" %}</th>
+            <th>{% translate "Status" %}</th>
+          </tr>
+        </thead>
+        <tbody id="search-results-body">
+          <tr>
+            <td colspan="7" class="empty-state">{% translate "Submit a query to populate results." %}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination px-5 pb-4" id="pagination-controls" hidden>
+      <button class="button is-light" id="prev-page">
+        <span class="icon"><i class="fa-solid fa-arrow-left"></i></span>
+        <span>{% translate "Previous" %}</span>
+      </button>
+      <span id="page-status" class="has-text-weight-semibold"></span>
+      <button class="button is-light" id="next-page">
+        <span>{% translate "Next" %}</span>
+        <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+      </button>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    const form = document.getElementById('transaction-search-form');
+    const tbody = document.getElementById('search-results-body');
+    const resultCount = document.getElementById('result-count');
+    const lastQueryTime = document.getElementById('last-query-time');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const pagination = document.getElementById('pagination-controls');
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    const pageStatus = document.getElementById('page-status');
+
+    let currentPage = 1;
+    let totalPages = 1;
+    let lastFilters = {};
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      currentPage = 1;
+      runQuery();
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage -= 1;
+        runQuery();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage += 1;
+        runQuery();
+      }
+    });
+
+    function collectFilters() {
+      const data = new FormData(form);
+      const filters = {};
+      for (const [key, value] of data.entries()) {
+        if (key === 'csrfmiddlewaretoken') continue;
+        if (value !== '') {
+          filters[key] = value;
+        }
+      }
+      return filters;
+    }
+
+    const apiUrl = "{% url 'records:advanced_transaction_search_api' %}";
+
+    async function runQuery() {
+      const filters = collectFilters();
+      lastFilters = filters;
+
+      const params = new URLSearchParams({ ...filters, page: currentPage });
+
+      loadingIndicator.style.display = 'inline-flex';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">{% translate "Loading..." %}</td></tr>';
+
+      try {
+        const response = await fetch(`${apiUrl}?${params.toString()}`, {
+          headers: { 'Accept': 'application/json' },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        renderResults(payload);
+      } catch (error) {
+        console.error('Transaction search failed', error);
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">{% translate "Unable to fetch transactions. Please retry." %}</td></tr>`;
+      } finally {
+        loadingIndicator.style.display = 'none';
+      }
+    }
+
+    function renderResults(payload) {
+      const { results = [], total_count = 0, page = 1, total_pages = 1 } = payload;
+      resultCount.textContent = total_count;
+      lastQueryTime.textContent = new Date().toLocaleTimeString();
+      currentPage = page;
+      totalPages = total_pages;
+      pagination.hidden = totalPages <= 1;
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+      pageStatus.textContent = `${currentPage} / ${totalPages}`;
+
+      if (!results.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">{% translate "No transactions match the filters." %}</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      results.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.date || '—'}</td>
+          <td>${row.account || '—'}</td>
+          <td>${row.description || '—'}</td>
+          <td class="pg-text-right">${formatCurrency(row.amount)}</td>
+          <td>${row.category || '—'}</td>
+          <td>${row.merchant_name || '—'}</td>
+          <td>${renderStatusPill(row.pending)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderStatusPill(isPending) {
+      if (isPending) {
+        return `<span class="status-pill is-pending"><i class="fa-solid fa-clock"></i> {% translate "Pending" %}</span>`;
+      }
+      return `<span class="status-pill"><i class="fa-solid fa-circle-check"></i> {% translate "Posted" %}</span>`;
+    }
+
+    function formatCurrency(value) {
+      const amount = Number(value);
+      if (Number.isNaN(amount)) return value ?? '—';
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount);
+    }
+  })();
+</script>
+{% endblock %}

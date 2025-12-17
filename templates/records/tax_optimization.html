@@ -1,0 +1,210 @@
+{% extends "web/app/app_base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+  .tax-layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .headline-card {
+    background: linear-gradient(130deg, #111827, #1d4ed8);
+    border-radius: 18px;
+    padding: 2rem;
+    color: #f8fafc;
+    box-shadow: 0 24px 48px rgba(30, 64, 175, 0.35);
+    margin-bottom: 2.5rem;
+  }
+  .headline-card .title {
+    color: #f8fafc;
+  }
+  .year-form {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+    margin-bottom: 2rem;
+  }
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  .strategy-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    padding: 1.75rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    position: relative;
+  }
+  .strategy-card .savings-pill {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .recommendation-list {
+    display: grid;
+    gap: 0.5rem;
+    padding-left: 1.1rem;
+  }
+  .recommendation-list li {
+    list-style: disc;
+    color: #1f2937;
+  }
+  .security-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+    font-size: 0.75rem;
+  }
+  .empty-state {
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="tax-layout">
+  <section class="headline-card">
+    <div class="level">
+      <div class="level-left">
+        <div>
+          <h1 class="title is-3">{% translate "Regulatory Tax Playbooks" %}</h1>
+          <p class="subtitle is-6">
+            {% translate "Quantify harvest opportunities, capital gain offsets, and compliance-sensitive moves by tax year." %}
+          </p>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="has-text-right">
+          <p class="heading has-text-white-ter">{% translate "Projected savings" %}</p>
+          <p class="title is-4 has-text-white">${{ total_potential_savings|floatformat:0|intcomma }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="year-form">
+    <form class="columns is-variable is-4 is-multiline" method="get">
+      <div class="column is-two-thirds">
+        <label class="label">{% translate "Tax year" %}</label>
+        <div class="select is-medium is-fullwidth">
+          <select name="tax_year">
+            {% for year in tax_year_options %}
+              <option value="{{ year }}" {% if year == tax_year %}selected{% endif %}>
+                {{ year }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-one-third is-flex is-align-items-flex-end">
+        <button class="button is-primary is-fullwidth is-medium" type="submit">
+          <span class="icon"><i class="fa-solid fa-filter-circle-dollar"></i></span>
+          <span>{% translate "Recalculate" %}</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  {% if strategies %}
+    <section class="strategy-grid">
+      {% for strategy in strategies %}
+        <article class="strategy-card">
+          <span class="savings-pill">
+            {% if strategy.estimated_savings %}
+              +${{ strategy.estimated_savings|floatformat:0|intcomma }}
+            {% else %}
+              {% translate "Research estimate" %}
+            {% endif %}
+          </span>
+          <div>
+            <h2 class="title is-5 mb-1">{{ strategy.title }}</h2>
+            <p class="has-text-grey">{{ strategy.description }}</p>
+          </div>
+          {% if strategy.recommendations %}
+            <div>
+              <h3 class="has-text-weight-semibold is-size-6 mb-1">{% translate "Action steps" %}</h3>
+              <ul class="recommendation-list">
+                {% for item in strategy.recommendations %}
+                  <li>
+                    {% if item.title %}
+                      <strong>{{ item.title }}</strong> — {{ item.description|default:item.message }}
+                    {% else %}
+                      {{ item }}
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          {% if strategy.applicable_securities %}
+            <div class="chip-row">
+              {% for security in strategy.applicable_securities %}
+                <span class="security-badge">
+                  <i class="fa-solid fa-chart-line"></i>
+                  {{ security.symbol|default:security|upper }}
+                </span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="is-flex is-justify-content-space-between is-align-items-center">
+            <span class="tag is-light is-rounded">
+              <i class="fa-solid fa-scale-balanced"></i>
+              {{ strategy.strategy_type|title }}
+            </span>
+            {% if strategy.is_applied %}
+              <span class="tag is-success is-light">
+                <i class="fa-solid fa-check"></i>
+                {% translate "Implemented" %}
+              </span>
+            {% else %}
+              <span class="tag is-warning is-light">
+                <i class="fa-solid fa-hourglass-half"></i>
+                {% translate "Pending execution" %}
+              </span>
+            {% endif %}
+          </div>
+          {% if strategy.estimated_tax_rate %}
+            <p class="has-text-grey is-size-7">
+              <i class="fa-solid fa-percentage"></i>
+              {% blocktrans with rate=strategy.estimated_tax_rate|floatformat:2 %}
+                Modeled at {{ rate }}% marginal impact.
+              {% endblocktrans %}
+            </p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-scale-balanced"></i>
+      <p class="mt-2">
+        {% translate "No strategies recorded for this tax year. Link taxable accounts to unlock harvest opportunities and compliance insights." %}
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

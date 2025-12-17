@@ -1,0 +1,316 @@
+{% extends "web/app/app_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load humanize %}
+
+{% block page_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .goals-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .goal-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #3273dc;
+  }
+  .goal-card.completed {
+    border-left-color: #22c35e;
+    opacity: 0.8;
+  }
+  .goal-card.paused {
+    border-left-color: #f0ad4e;
+  }
+  .goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+  }
+  .goal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+  .goal-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .progress-bar-container {
+    margin: 1rem 0;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 1.5rem;
+    background: #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3273dc, #4a9eff);
+    border-radius: 0.75rem;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .goal-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .stat-item {
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 0.25rem;
+  }
+  .chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 2rem;
+  }
+  .filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .filter-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-button:hover {
+    background: #f9fafb;
+  }
+  .filter-button.active {
+    background: #3273dc;
+    color: white;
+    border-color: #3273dc;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="goals-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+      <h1 class="title is-2">{% translate "Financial Goals" %}</h1>
+      <p class="subtitle">{% translate "Track and manage your financial objectives" %}</p>
+    </div>
+    <a href="{% url 'records:financial_goals_api' %}" class="button is-primary" onclick="event.preventDefault(); showGoalForm();">
+      <span class="icon"><i class="fa fa-plus"></i></span>
+      <span>{% translate "New Goal" %}</span>
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <a href="?" class="filter-button {% if not status_filter %}active{% endif %}">{% translate "All" %}</a>
+    <a href="?status=active" class="filter-button {% if status_filter == 'active' %}active{% endif %}">{% translate "Active" %}</a>
+    <a href="?status=completed" class="filter-button {% if status_filter == 'completed' %}active{% endif %}">{% translate "Completed" %}</a>
+    <a href="?status=paused" class="filter-button {% if status_filter == 'paused' %}active{% endif %}">{% translate "Paused" %}</a>
+  </div>
+
+  <!-- Goals List -->
+  {% if goals %}
+    <div>
+      {% for goal in goals %}
+      <div class="goal-card {{ goal.status }}">
+        <div class="goal-header">
+          <div>
+            <h3 class="goal-title">{{ goal.name }}</h3>
+            <span class="goal-type-badge">{{ goal.get_goal_type_display }}</span>
+          </div>
+          <div>
+            <span class="tag {% if goal.status == 'active' %}is-success{% elif goal.status == 'completed' %}is-info{% else %}is-warning{% endif %}">
+              {{ goal.get_status_display }}
+            </span>
+          </div>
+        </div>
+
+        {% if goal.description %}
+        <p class="has-text-grey" style="margin-bottom: 1rem;">{{ goal.description }}</p>
+        {% endif %}
+
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width: {{ goal.progress_percentage }}%;">
+              {% if goal.progress_percentage >= 20 %}{{ goal.progress_percentage|floatformat:0 }}%{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="goal-stats">
+          <div class="stat-item">
+            <div class="stat-label">{% translate "Current" %}</div>
+            <div class="stat-value">${{ goal.current_amount|floatformat:2|intcomma }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">{% translate "Target" %}</div>
+            <div class="stat-value">${{ goal.target_amount|floatformat:2|intcomma }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">{% translate "Remaining" %}</div>
+            <div class="stat-value">${{ goal.remaining_amount|floatformat:2|intcomma }}</div>
+          </div>
+          {% if goal.target_date %}
+          <div class="stat-item">
+            <div class="stat-label">{% translate "Target Date" %}</div>
+            <div class="stat-value">{{ goal.target_date|date:"M Y" }}</div>
+          </div>
+          {% endif %}
+          {% if goal.monthly_contribution %}
+          <div class="stat-item">
+            <div class="stat-label">{% translate "Monthly" %}</div>
+            <div class="stat-value">${{ goal.monthly_contribution|floatformat:2|intcomma }}</div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if goal.target_date and goal.days_remaining %}
+        <p class="has-text-grey is-size-7" style="margin-top: 1rem;">
+          {% if goal.days_remaining > 0 %}
+            {% translate "Days remaining:" %} {{ goal.days_remaining }}
+            {% if goal.monthly_contribution_needed %}
+              · {% translate "Need:" %} ${{ goal.monthly_contribution_needed|floatformat:2|intcomma }}/{% translate "month" %}
+            {% endif %}
+          {% else %}
+            {% translate "Target date has passed" %}
+          {% endif %}
+        </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Progress Chart -->
+    {% if goals|length > 0 %}
+    <div class="box" style="margin-top: 2rem;">
+      <h2 class="title is-4">{% translate "Goals Progress Overview" %}</h2>
+      <div class="chart-container">
+        <canvas id="goalsProgressChart"></canvas>
+      </div>
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="box has-text-centered" style="padding: 3rem;">
+      <p class="title is-4">{% translate "No goals yet" %}</p>
+      <p class="subtitle">{% translate "Create your first financial goal to get started" %}</p>
+      <a href="{% url 'records:financial_goals_api' %}" class="button is-primary" onclick="event.preventDefault(); showGoalForm();">
+        <span class="icon"><i class="fa fa-plus"></i></span>
+        <span>{% translate "Create Goal" %}</span>
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+function showGoalForm() {
+  // This would open a modal or navigate to a form page
+  // For now, we'll use the API endpoint
+  alert('Goal creation form - integrate with API endpoint');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  {% if goals|length > 0 %}
+  const goalsData = [
+    {% for goal in goals %}
+    {
+      name: '{{ goal.name|escapejs }}',
+      progress: {{ goal.progress_percentage }},
+      target: {{ goal.target_amount }},
+      current: {{ goal.current_amount }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  const ctx = document.getElementById('goalsProgressChart');
+  if (ctx && window.Chart) {
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: goalsData.map(g => g.name),
+        datasets: [{
+          label: 'Progress %',
+          data: goalsData.map(g => g.progress),
+          backgroundColor: 'rgba(59, 130, 246, 0.8)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const goal = goalsData[context.dataIndex];
+                return [
+                  'Progress: ' + goal.progress.toFixed(1) + '%',
+                  'Current: $' + goal.current.toLocaleString(),
+                  'Target: $' + goal.target.toLocaleString()
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  {% endif %}
+});
+</script>
+{% endblock %}
+
+
+
+
+
+

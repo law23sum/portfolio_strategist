@@ -1,0 +1,377 @@
+{% extends "web/app/app_base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+  .notifications-layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  .summary-card {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-radius: 16px;
+    padding: 1.75rem;
+    color: #f8fafc;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.3), transparent 55%);
+  }
+  .summary-card .value {
+    font-size: 2.4rem;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+  }
+  .summary-card small {
+    position: relative;
+    z-index: 1;
+    color: rgba(248, 250, 252, 0.75);
+  }
+  .filter-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+  .filter-chip {
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid #cbd5f5;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .filter-chip.is-active {
+    background: #1d4ed8;
+    color: #f8fafc;
+    border-color: transparent;
+  }
+  .notification-stream {
+    display: grid;
+    gap: 1rem;
+  }
+  .notification-item {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: linear-gradient(125deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.6));
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .notification-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 28px rgba(15, 23, 42, 0.08);
+  }
+  .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .priority-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+  }
+  .priority-low { background: rgba(16, 185, 129, 0.15); color: #047857; }
+  .priority-medium { background: rgba(59, 130, 246, 0.18); color: #1d4ed8; }
+  .priority-high { background: rgba(245, 158, 11, 0.2); color: #b45309; }
+  .priority-urgent { background: rgba(239, 68, 68, 0.18); color: #b91c1c; }
+  .status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    display: inline-block;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+  }
+  .status-dot.is-unread {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18);
+  }
+  .notification-body p {
+    margin-bottom: 0.4rem;
+    color: #334155;
+  }
+  .meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  .action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+    color: #1d4ed8;
+  }
+  .empty-state {
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+  }
+  .toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 768px) {
+    .notification-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .toolbar-actions {
+      width: 100%;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="notifications-layout">
+  <header class="mb-5">
+    <div class="level">
+      <div class="level-left">
+        <div>
+          <h1 class="title is-3">{% translate "Notifications Control Center" %}</h1>
+          <p class="subtitle is-6">
+            {% translate "Curated signals from goals, credit bureaus, investment thresholds, and regulatory reminders." %}
+          </p>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="toolbar-actions">
+          <button class="button is-light" id="mark-all-read">
+            <span class="icon"><i class="fa-regular fa-envelope-open"></i></span>
+            <span>{% translate "Mark all as read" %}</span>
+          </button>
+          <a class="button is-primary is-light" href="{% url 'records:notifications' %}">
+            <span class="icon"><i class="fa-solid fa-rotate"></i></span>
+            <span>{% translate "Refresh feed" %}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <small>{% translate "Total signals archived" %}</small>
+      <div class="value">{{ notifications|length }}</div>
+      <small>{% blocktrans with count=notifications|length %}Spanning {{ count }} data-driven alerts{% endblocktrans %}</small>
+    </article>
+    <article class="summary-card">
+      <small>{% translate "Requiring attention" %}</small>
+      <div class="value">{{ unread_count }}</div>
+      <small>{% translate "Unread items awaiting review" %}</small>
+    </article>
+    <article class="summary-card">
+      <small>{% translate "Latest event" %}</small>
+      {% with notifications|first as latest %}
+        <div class="value">
+          {% if latest %}
+            {{ latest.created_at|naturaltime }}
+          {% else %}
+            — 
+          {% endif %}
+        </div>
+        <small>
+          {% if latest %}
+            {{ latest.title|truncatechars:40 }}
+          {% else %}
+            {% translate "No alerts yet" %}
+          {% endif %}
+        </small>
+      {% endwith %}
+    </article>
+  </section>
+
+  <section class="filter-toolbar">
+    <div class="filter-chip is-active" data-filter="all">{% translate "All" %}</div>
+    <div class="filter-chip" data-filter="unread">{% translate "Unread" %}</div>
+    <div class="filter-chip" data-filter="high">{% translate "High" %}</div>
+    <div class="filter-chip" data-filter="urgent">{% translate "Urgent" %}</div>
+    <div class="filter-chip" data-filter="goal_progress">{% translate "Goals" %}</div>
+    <div class="filter-chip" data-filter="investment_alert">{% translate "Markets" %}</div>
+    <div class="filter-chip" data-filter="tax_reminder">{% translate "Tax" %}</div>
+  </section>
+
+  {% if notifications %}
+    <div class="notification-stream" id="notification-stream">
+      {% for note in notifications %}
+        <article class="notification-item"
+                 data-priority="{{ note.priority }}"
+                 data-type="{{ note.notification_type }}"
+                 data-read="{{ note.read|yesno:'read,unread' }}"
+                 data-note-id="{{ note.id }}">
+          <div class="notification-header">
+            <div>
+              <div class="is-flex is-align-items-center is-gap-2 mb-1">
+                <span class="status-dot {% if not note.read %}is-unread{% endif %}"></span>
+                <h3 class="title is-5 mb-0">{{ note.title }}</h3>
+              </div>
+              <p class="has-text-grey">{{ note.message }}</p>
+            </div>
+            <div class="is-flex is-align-items-center is-gap-2">
+              <span class="priority-tag priority-{{ note.priority }}">
+                <i class="fa-solid fa-signal"></i>
+                {{ note.get_priority_display }}
+              </span>
+              <button class="button is-small is-light mark-read-btn" {% if note.read %}disabled{% endif %}>
+                <span class="icon"><i class="fa-regular fa-envelope-open"></i></span>
+                <span>{% translate "Mark read" %}</span>
+              </button>
+            </div>
+          </div>
+          <div class="meta-line">
+            <span><i class="fa-regular fa-clock"></i> {{ note.created_at|naturaltime }}</span>
+            <span><i class="fa-solid fa-layer-group"></i> {{ note.get_notification_type_display }}</span>
+            {% if note.related_account %}
+              <span><i class="fa-solid fa-building-columns"></i> {{ note.related_account.account_name }}</span>
+            {% endif %}
+            {% if note.related_goal %}
+              <span><i class="fa-solid fa-bullseye"></i> {{ note.related_goal.name }}</span>
+            {% endif %}
+            {% if note.metadata.reference %}
+              <span><i class="fa-solid fa-hashtag"></i> {{ note.metadata.reference }}</span>
+            {% endif %}
+          </div>
+          {% if note.action_url %}
+            <a class="action-link" href="{{ note.action_url }}" target="_blank" rel="noopener">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              {% if note.action_label %}
+                {{ note.action_label }}
+              {% else %}
+                {% translate "Open supporting evidence" %}
+              {% endif %}
+            </a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-bell-slash"></i>
+      <p class="mt-2">{% translate "No signals yet. Aggregate accounts and goals to receive research-backed alerts." %}</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    const chips = document.querySelectorAll('.filter-chip');
+    const items = document.querySelectorAll('.notification-item');
+    const markAllBtn = document.getElementById('mark-all-read');
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function applyFilter(filter) {
+      items.forEach(item => {
+        const priority = item.dataset.priority;
+        const type = item.dataset.type;
+        const readState = item.dataset.read;
+        let visible = true;
+
+        if (filter === 'unread' && readState === 'read') visible = false;
+        if (['high', 'urgent', 'medium', 'low'].includes(filter) && priority !== filter) visible = false;
+        if (['goal_progress', 'investment_alert', 'tax_reminder'].includes(filter) && type !== filter) visible = false;
+
+        item.style.display = visible ? '' : 'none';
+      });
+    }
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('is-active'));
+        chip.classList.add('is-active');
+        applyFilter(chip.dataset.filter);
+      });
+    });
+
+    async function markNotification(id, markAll = false) {
+      const url = markAll ?
+        "{% url 'records:mark_all_notifications_read_api' %}" :
+        `{% url 'records:mark_notification_read_api' 0 %}`.replace('0', id);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        if (response.ok) {
+          if (markAll) {
+            items.forEach(item => markReadLocally(item));
+          } else {
+            const element = document.querySelector(`[data-note-id="${id}"]`);
+            if (element) markReadLocally(element);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to update notification', err);
+      }
+    }
+
+    function markReadLocally(element) {
+      element.dataset.read = 'read';
+      const dot = element.querySelector('.status-dot');
+      if (dot) {
+        dot.classList.remove('is-unread');
+      }
+      const button = element.querySelector('.mark-read-btn');
+      if (button) {
+        button.disabled = true;
+      }
+    }
+
+    markAllBtn?.addEventListener('click', () => markNotification(null, true));
+    document.querySelectorAll('.mark-read-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.closest('.notification-item');
+        if (parent) {
+          const id = parent.dataset.noteId;
+          markNotification(id);
+        }
+      });
+    });
+  })();
+</script>
+{% endblock %}

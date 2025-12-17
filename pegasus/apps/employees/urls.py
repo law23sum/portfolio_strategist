@@ -18,6 +18,16 @@ urlpatterns = [
         ),
         name="object_lifecycle_home",
     ),
+    path(
+        "charts/",
+        login_required(
+            TemplateView.as_view(
+                template_name="pegasus/employees/charts.html",
+                extra_context={"active_tab": "charts"},
+            )
+        ),
+        name="charts",
+    ),
     path("objects/django/", views.employee_list, name="django_object_lifecycle"),
     path("objects/django/new/", views.new_employee, name="django_new_employee"),
     path("objects/django/edit/<int:employee_id>/", views.edit_employee, name="django_edit_employee"),

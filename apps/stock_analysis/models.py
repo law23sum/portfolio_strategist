@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 
 User = get_user_model()
 
@@ -7,25 +7,24 @@ User = get_user_model()
 class MarketDataCredential(models.Model):
     """API keys for external market data providers."""
 
-    PROVIDER_POLYGON = 'polygon'
-    PROVIDER_ALPHA = 'alpha_vantage'
+    PROVIDER_POLYGON = "polygon"
+    PROVIDER_ALPHA = "alpha_vantage"
     PROVIDER_CHOICES = (
-        (PROVIDER_POLYGON, 'Polygon.io'),
-        (PROVIDER_ALPHA, 'Alpha Vantage'),
+        (PROVIDER_POLYGON, "Polygon.io"),
+        (PROVIDER_ALPHA, "Alpha Vantage"),
     )
 
     provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES, unique=True)
-    label = models.CharField(max_length=128, blank=True,
-                             help_text='Optional note to help identify this key')
+    label = models.CharField(max_length=128, blank=True, help_text="Optional note to help identify this key")
     api_key = models.CharField(max_length=512)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Market Data Credential'
-        verbose_name_plural = 'Market Data Credentials'
-        ordering = ['provider']
+        verbose_name = "Market Data Credential"
+        verbose_name_plural = "Market Data Credentials"
+        ordering = ["provider"]
 
     def __str__(self):
         label = self.label or dict(self.PROVIDER_CHOICES).get(self.provider, self.provider)
@@ -34,10 +33,11 @@ class MarketDataCredential(models.Model):
 
 class StockAnalysis(models.Model):
     """Store stock analysis results"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stock_analyses')
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="stock_analyses")
     symbol = models.CharField(max_length=10, db_index=True)
     analysis_date = models.DateTimeField(auto_now_add=True)
-    
+
     stock_data = models.JSONField(default=dict)
     ratios_table = models.JSONField(default=dict)
     ai_assessment = models.TextField(blank=True)
@@ -49,44 +49,45 @@ class StockAnalysis(models.Model):
     risk_insights = models.JSONField(default=list, blank=True)
     market_overview = models.JSONField(default=dict, blank=True)
     decision_support = models.JSONField(default=dict, blank=True)
-    benchmark_symbol = models.CharField(max_length=20, default='^GSPC')
-    
+    benchmark_symbol = models.CharField(max_length=20, default="^GSPC")
+
     forecast_days = models.IntegerField(default=365)
-    equation_type = models.CharField(max_length=100, default='Geometric Brownian Motion External Macroeconomic Factors')
-    
+    equation_type = models.CharField(max_length=100, default="Geometric Brownian Motion External Macroeconomic Factors")
+
     class Meta:
-        ordering = ['-analysis_date']
-        verbose_name_plural = 'Stock Analyses'
+        ordering = ["-analysis_date"]
+        verbose_name_plural = "Stock Analyses"
         indexes = [
-            models.Index(fields=['user', '-analysis_date']),
-            models.Index(fields=['symbol']),
+            models.Index(fields=["user", "-analysis_date"]),
+            models.Index(fields=["symbol"]),
         ]
-    
+
     def __str__(self):
         return f"{self.symbol} - {self.user.email} - {self.analysis_date.date()}"
 
 
 class InvestmentPlan(models.Model):
     """Store investment plans and alerts"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='investment_plans')
-    stock_analysis = models.ForeignKey(StockAnalysis, on_delete=models.CASCADE, related_name='plans')
-    
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="investment_plans")
+    stock_analysis = models.ForeignKey(StockAnalysis, on_delete=models.CASCADE, related_name="plans")
+
     investment_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     share_quantity = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
-    
+
     forecast_summary = models.JSONField(default=dict)
-    
+
     alert_enabled = models.BooleanField(default=False)
     alert_email = models.EmailField(blank=True)
     alert_phone = models.CharField(max_length=20, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-created_at']
-    
+        ordering = ["-created_at"]
+
     def __str__(self):
         return f"Plan for {self.stock_analysis.symbol} - {self.user.email}"
 
@@ -94,11 +95,11 @@ class InvestmentPlan(models.Model):
 class StockWatchSnapshot(models.Model):
     """
     Cached fundamentals/news scraped for a stock symbol.
-    
+
     IMPORTANT: This model stores PUBLIC stock data that is accessible to ALL users.
     Stock data is shared across the entire application - any user can access any stock's data.
     There is no user field because stock market data is inherently public information.
-    
+
     This data is populated by Celery tasks that scrape Yahoo Finance and other sources.
     Multiple users can benefit from the same cached stock data, improving performance
     and reducing redundant API calls.
@@ -115,9 +116,9 @@ class StockWatchSnapshot(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['symbol']
-        verbose_name = 'Stock Watch Snapshot (Public)'
-        verbose_name_plural = 'Stock Watch Snapshots (Public)'
+        ordering = ["symbol"]
+        verbose_name = "Stock Watch Snapshot (Public)"
+        verbose_name_plural = "Stock Watch Snapshots (Public)"
 
     def __str__(self):
         return f"Snapshot for {self.symbol}"
@@ -126,14 +127,14 @@ class StockWatchSnapshot(models.Model):
 class StockWatchlistEntry(models.Model):
     """User maintained watchlist for stocks that should be refreshed via scraping."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stock_watchlist')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="stock_watchlist")
     symbol = models.CharField(max_length=12, db_index=True)
     nickname = models.CharField(max_length=64, blank=True)
     notes = models.TextField(blank=True)
     snapshot = models.ForeignKey(
         StockWatchSnapshot,
         on_delete=models.SET_NULL,
-        related_name='entries',
+        related_name="entries",
         null=True,
         blank=True,
     )
@@ -142,8 +143,8 @@ class StockWatchlistEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['symbol']
-        unique_together = [['user', 'symbol']]
+        ordering = ["symbol"]
+        unique_together = [["user", "symbol"]]
 
     def save(self, *args, **kwargs):
         if self.symbol:
@@ -157,16 +158,17 @@ class StockWatchlistEntry(models.Model):
 
 class PersonalLoanAnalysis(models.Model):
     """Store personal loan analysis results"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='loan_analyses')
-    csv_file = models.FileField(upload_to='loan_analyses/')
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="loan_analyses")
+    csv_file = models.FileField(upload_to="loan_analyses/")
     analysis_date = models.DateTimeField(auto_now_add=True)
-    
+
     individual_amounts = models.JSONField(default=dict)
     total_amounts = models.JSONField(default=dict)
-    
+
     class Meta:
-        ordering = ['-analysis_date']
-        verbose_name_plural = 'Personal Loan Analyses'
-    
+        ordering = ["-analysis_date"]
+        verbose_name_plural = "Personal Loan Analyses"
+
     def __str__(self):
         return f"Loan Analysis - {self.user.email} - {self.analysis_date.date()}"

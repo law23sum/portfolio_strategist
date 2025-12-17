@@ -38,13 +38,13 @@
 {% block app %}
 <div class="definitions-container">
     <div style="margin-bottom: 20px;">
-        {% if request.GET.return_url %}
-        <a href="{{ request.GET.return_url }}" class="button">
+        {% if return_url %}
+        <a href="{{ return_url }}" class="button">
             <span class="icon"><i class="fa fa-arrow-left"></i></span>
             <span>Back</span>
         </a>
         {% else %}
-        <a href="{% url 'web:stocks_assessment' %}" class="button">
+        <a href="{{ default_return_url }}" class="button">
             <span class="icon"><i class="fa fa-arrow-left"></i></span>
             <span>Back to Stocks Assessment</span>
         </a>
@@ -78,4 +78,3 @@
     </div>
 </div>
 {% endblock %}
-

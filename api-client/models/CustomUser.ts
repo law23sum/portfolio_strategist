@@ -31,6 +31,12 @@ export interface CustomUser {
      * @type {string}
      * @memberof CustomUser
      */
+    readonly username: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomUser
+     */
     firstName?: string;
     /**
      * 
@@ -51,11 +57,35 @@ export interface CustomUser {
      */
     readonly avatarUrl: string;
     /**
-     * 
+     * Get the user's display name
      * @type {string}
      * @memberof CustomUser
      */
     readonly getDisplayName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomUser
+     */
+    language?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomUser
+     */
+    timezone?: string;
+    /**
+     * 
+     * @type {Date}
+     * @memberof CustomUser
+     */
+    readonly dateJoined: Date;
+    /**
+     * Check if user's email is verified
+     * @type {boolean}
+     * @memberof CustomUser
+     */
+    readonly isEmailVerified: boolean;
 }
 
 /**
@@ -63,8 +93,11 @@ export interface CustomUser {
  */
 export function instanceOfCustomUser(value: object): value is CustomUser {
     if (!('id' in value) || value['id'] === undefined) return false;
+    if (!('username' in value) || value['username'] === undefined) return false;
     if (!('avatarUrl' in value) || value['avatarUrl'] === undefined) return false;
     if (!('getDisplayName' in value) || value['getDisplayName'] === undefined) return false;
+    if (!('dateJoined' in value) || value['dateJoined'] === undefined) return false;
+    if (!('isEmailVerified' in value) || value['isEmailVerified'] === undefined) return false;
     return true;
 }
 
@@ -79,11 +112,16 @@ export function CustomUserFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'id': json['id'],
+        'username': json['username'],
         'firstName': json['first_name'] == null ? undefined : json['first_name'],
         'lastName': json['last_name'] == null ? undefined : json['last_name'],
         'email': json['email'] == null ? undefined : json['email'],
         'avatarUrl': json['avatar_url'],
         'getDisplayName': json['get_display_name'],
+        'language': json['language'] == null ? undefined : json['language'],
+        'timezone': json['timezone'] == null ? undefined : json['timezone'],
+        'dateJoined': (new Date(json['date_joined'])),
+        'isEmailVerified': json['is_email_verified'],
     };
 }
 
@@ -91,7 +129,7 @@ export function CustomUserFromJSONTyped(json: any, ignoreDiscriminator: boolean)
       return CustomUserToJSONTyped(json, false);
   }
 
-  export function CustomUserToJSONTyped(value?: Omit<CustomUser, 'id'|'avatar_url'|'get_display_name'> | null, ignoreDiscriminator: boolean = false): any {
+  export function CustomUserToJSONTyped(value?: Omit<CustomUser, 'id'|'username'|'avatar_url'|'get_display_name'|'date_joined'|'is_email_verified'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -101,6 +139,8 @@ export function CustomUserFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'first_name': value['firstName'],
         'last_name': value['lastName'],
         'email': value['email'],
+        'language': value['language'],
+        'timezone': value['timezone'],
     };
 }
 

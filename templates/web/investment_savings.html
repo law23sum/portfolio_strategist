@@ -9,6 +9,24 @@
         margin: 0 auto;
         padding: 20px;
     }
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .insights-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        min-height: 320px;
+    }
+    .chart-wrapper {
+        position: relative;
+        height: 260px;
+        margin-top: 10px;
+    }
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -169,6 +187,79 @@
     </div>
     {% endif %}
 
+    <!-- Portfolio Insights -->
+    {% if allocation_chart or holdings_chart %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Portfolio Insights</h2>
+        <div class="insights-grid">
+            <div class="insights-card">
+                <h3 class="title is-5">Account Allocation</h3>
+                <p class="has-text-grey">Breakdown of portfolio value by linked account.</p>
+                <div class="chart-wrapper">
+                    <canvas id="allocationChart"></canvas>
+                </div>
+            </div>
+            <div class="insights-card">
+                <h3 class="title is-5">Top Holdings</h3>
+                <p class="has-text-grey">Largest positions by current value.</p>
+                <div class="chart-wrapper">
+                    <canvas id="holdingsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if watchlist_summary %}
+    <div class="box" style="margin-top: 30px;">
+        <h2 class="title is-4">Watchlist Snapshot</h2>
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Nickname</th>
+                        <th>Price</th>
+                        <th>Change (%)</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in watchlist_summary %}
+                    <tr>
+                        <td>{{ item.symbol }}</td>
+                        <td>{{ item.nickname|default:"–" }}</td>
+                        <td>
+                            {% if item.current_price %}
+                                ${{ item.current_price|floatformat:2 }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.change_percent %}
+                                <span class="{% if item.change_percent >= 0 %}has-text-success{% else %}has-text-danger{% endif %}">
+                                    {{ item.change_percent|floatformat:2 }}%
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.fetched_at %}
+                                {{ item.fetched_at|date:"M j, Y H:i" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Navigation to Assessment Pages -->
     <div class="box" style="margin-top: 30px;">
         <h2 class="title is-4">Investment Assessments</h2>
@@ -205,4 +296,102 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.Chart) {
+        return;
+    }
+
+    const allocationData = JSON.parse('{{ allocation_chart|default:"[]"|escapejs }}');
+    const holdingsData = JSON.parse('{{ holdings_chart|default:"[]"|escapejs }}');
+
+    if (allocationData.length) {
+        const ctxAllocation = document.getElementById('allocationChart');
+        if (ctxAllocation) {
+            new Chart(ctxAllocation, {
+                type: 'doughnut',
+                data: {
+                    labels: allocationData.map(item => item.label),
+                    datasets: [{
+                        data: allocationData.map(item => item.value),
+                        backgroundColor: [
+                            '#3273dc',
+                            '#23d160',
+                            '#ffdd57',
+                            '#ff3860',
+                            '#7941ff',
+                            '#48c774',
+                        ],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = allocationData[context.dataIndex];
+                                    const value = context.parsed || 0;
+                                    const percent = item.percent ?? 0;
+                                    return `${item.label}: $${value.toLocaleString()} (${percent}%)`;
+                                },
+                            },
+                        },
+                        legend: {
+                            position: 'bottom',
+                        },
+                    },
+                },
+            });
+        }
+    }
+
+    if (holdingsData.length) {
+        const ctxHoldings = document.getElementById('holdingsChart');
+        if (ctxHoldings) {
+            new Chart(ctxHoldings, {
+                type: 'bar',
+                data: {
+                    labels: holdingsData.map(item => item.label),
+                    datasets: [{
+                        label: 'Value ($)',
+                        data: holdingsData.map(item => item.value),
+                        backgroundColor: '#3273dc',
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                },
+                            },
+                        },
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = holdingsData[context.dataIndex];
+                                    const gainLoss = item.gain_loss != null ? ` | Gain/Loss: ${item.gain_loss.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}` : '';
+                                    return `Value: $${(context.parsed.y || 0).toLocaleString()}${gainLoss}`;
+                                },
+                            },
+                        },
+                        legend: {
+                            display: false,
+                        },
+                    },
+                },
+            });
+        }
+    }
+});
+</script>
 {% endblock %}

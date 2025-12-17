@@ -14,4 +14,10 @@
     <span class="is-hidden-tablet-only">{% translate "Impersonate User" %}</span>
   </a>
 </li>
+<li>
+  <a href="{% url 'web:admin_command_list' %}" class="navbar-item is-tab {% if active_tab == 'admin_commands' %}is-active{% endif %}">
+    <span class="pg-icon"><i class="fa fa-terminal"></i></span>
+    <span class="is-hidden-tablet-only">{% translate "Command Management" %}</span>
+  </a>
+</li>
 </aside>

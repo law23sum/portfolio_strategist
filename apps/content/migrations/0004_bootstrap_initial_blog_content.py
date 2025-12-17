@@ -17,6 +17,13 @@ def noop(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("content", "0003_blogindexpage_social_image_blogpage_social_image_and_more"),
+        # Ensure all Wagtail core migrations (including the ones that add
+        # wagtailcore_page.latest_revision_id) have been applied before we
+        # attempt to import and query Wagtail models inside this data migration.
+        ("wagtailcore", "0094_alter_page_locale"),
+        # Publishing the bootstrap content triggers search indexing, so make sure
+        # the Wagtail search tables exist as well.
+        ("wagtailsearch", "0008_remove_query_and_querydailyhits_models"),
     ]
 
     operations = [

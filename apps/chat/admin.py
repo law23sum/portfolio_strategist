@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Chat, ChatMessage
+from .models import AICredential, Chat, ChatMessage
 
 
 @admin.register(Chat)
@@ -28,3 +28,11 @@ class ChatMessageAdmin(admin.ModelAdmin):
 
     def short_content(self, obj):
         return obj.content[:50]
+
+
+@admin.register(AICredential)
+class AICredentialAdmin(admin.ModelAdmin):
+    list_display = ["provider", "label", "is_active", "updated_at"]
+    list_filter = ["provider", "is_active"]
+    search_fields = ["label", "provider"]
+    ordering = ["provider"]

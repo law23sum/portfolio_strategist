@@ -28,6 +28,19 @@ const TAX_BRACKETS = {
 
 let budgetChart = null;
 
+function setInputValue(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (!el) {
+        console.warn(`Input with id '${elementId}' not found`);
+        return;
+    }
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        el.value = '';
+    } else {
+        el.value = typeof value === 'number' ? value.toFixed(2) : value;
+    }
+}
+
 // Tax Calculation Class (migrated from Java)
 class TaxCalculation {
     constructor(year, salary, healthInsurance, benefitsPerPaycheck, retirementPercent, paycheckQuantity) {
@@ -237,6 +250,109 @@ function addDebt() {
 
 function removeDebt(button) {
     button.parentElement.remove();
+}
+
+function clearContainerChildren(container) {
+    while (container && container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+}
+
+function seedExpenses(expenses) {
+    const container = document.getElementById('expensesContainer');
+    if (!container) {
+        console.warn("Element with id 'expensesContainer' not found");
+        return;
+    }
+    clearContainerChildren(container);
+    if (!expenses || !expenses.length) {
+        addExpense();
+        return;
+    }
+    expenses.forEach(exp => {
+        addExpense();
+        const items = container.querySelectorAll('.expense-item');
+        const lastItem = items[items.length - 1];
+        lastItem.querySelector('.expense-name').value = exp.name || '';
+        lastItem.querySelector('.expense-amount').value = exp.amount != null ? Number(exp.amount).toFixed(2) : '';
+    });
+}
+
+function seedDebts(debts) {
+    const container = document.getElementById('debtsContainer');
+    if (!container) {
+        console.warn("Element with id 'debtsContainer' not found");
+        return;
+    }
+    const originalFirstItem = container.querySelector('.debt-item');
+    clearContainerChildren(container);
+    if (!debts || !debts.length) {
+        if (originalFirstItem) {
+            container.appendChild(originalFirstItem);
+        } else {
+            addDebt();
+        }
+        return;
+    }
+    debts.slice(0, 4).forEach((debt, index) => {
+        if (index === 0 && originalFirstItem) {
+            container.appendChild(originalFirstItem);
+        } else {
+            addDebt();
+        }
+        const items = container.querySelectorAll('.debt-item');
+        const lastItem = items[items.length - 1];
+        lastItem.querySelector('.debt-name').value = debt.account_name || debt.debt_type || 'Debt';
+        lastItem.querySelector('.debt-amount').value =
+            debt.current_balance != null ? Number(debt.current_balance).toFixed(2) : '';
+        const paidField = lastItem.querySelector('.debt-paid');
+        if (paidField) {
+            paidField.value = '';
+        }
+    });
+}
+
+function applyPlannerContext(context) {
+    if (!context) {
+        return;
+    }
+    if (context.budget) {
+        const spending = (context.budget.spending_by_category || [])
+            .map(item => ({
+                name: item.category || 'Expense',
+                amount: item.amount != null ? Number(item.amount) : 0,
+            }))
+            .slice(0, 4);
+        if (spending.length) {
+            seedExpenses(spending);
+        }
+    }
+    if (context.debt) {
+        const debtAccounts = (context.debt.accounts || []).map(item => ({
+            account_name: item.account_name,
+            current_balance: item.current_balance != null ? Number(item.current_balance) : null,
+            debt_type: item.debt_type,
+        }));
+        if (debtAccounts.length) {
+            seedDebts(debtAccounts.slice(0, 4));
+        }
+        if (typeof context.debt.estimated_monthly_payment === 'number') {
+            setInputValue('monthlyDebtPayment', context.debt.estimated_monthly_payment);
+        }
+    }
+    if (context.plaid && (!context.budget || !(context.budget.spending_by_category || []).length)) {
+        const plaidExpenses = (context.plaid.expenses || []).map(item => ({
+            name: item.category || item.name || 'Expense',
+            amount: Number(item.amount) || 0,
+        })).slice(0, 4);
+        if (plaidExpenses.length) {
+            seedExpenses(plaidExpenses);
+        }
+    }
+    const expenseContainer = document.getElementById('expensesContainer');
+    if (expenseContainer && !expenseContainer.querySelector('.expense-item')) {
+        seedExpenses([{ name: 'Utilities', amount: 200 }]);
+    }
 }
 
 function calculateBudget() {
@@ -505,20 +621,14 @@ function clearAll() {
 
 // Initialize with default expenses
 document.addEventListener('DOMContentLoaded', function() {
-    // Add default expenses
-    const defaultExpenses = [
-        { name: 'Utilities', amount: 200 },
-        { name: 'Internet', amount: 68.98 },
-        { name: 'Insurance', amount: 174.95 },
-        { name: 'Telephone', amount: 109.33 },
-    ];
-    
-    defaultExpenses.forEach(exp => {
-        addExpense();
-        const items = document.querySelectorAll('#expensesContainer .expense-item');
-        const lastItem = items[items.length - 1];
-        lastItem.querySelector('.expense-name').value = exp.name;
-        lastItem.querySelector('.expense-amount').value = exp.amount;
-    });
+    if (window.budgetPlannerContext) {
+        applyPlannerContext(window.budgetPlannerContext);
+    } else {
+        seedExpenses([
+            { name: 'Utilities', amount: 200 },
+            { name: 'Internet', amount: 75 },
+            { name: 'Insurance', amount: 175 },
+            { name: 'Groceries', amount: 450 },
+        ]);
+    }
 });
-

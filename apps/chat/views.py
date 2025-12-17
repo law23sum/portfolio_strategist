@@ -45,7 +45,7 @@ def start_chat(request):
 @login_required
 def single_chat_react(request, chat_id: int):
     chat = get_object_or_404(Chat, user=request.user, id=chat_id)
-    serialized_chat = ChatSerializer(chat, context={'request': request}).data
+    serialized_chat = ChatSerializer(chat, context={"request": request}).data
     return TemplateResponse(
         request,
         "chat/single_chat_react.html",
@@ -63,11 +63,11 @@ def single_chat_react(request, chat_id: int):
 def single_chat(request):
     """Get or create a single chat for the user - main chat interface"""
     # Get the most recent chat or create a new one
-    chat = Chat.objects.filter(user=request.user).order_by('-updated_at').first()
+    chat = Chat.objects.filter(user=request.user).order_by("-updated_at").first()
     if not chat:
         chat = Chat.objects.create(user=request.user, name="Main Chat")
-    
-    serialized_chat = ChatSerializer(chat, context={'request': request}).data
+
+    serialized_chat = ChatSerializer(chat, context={"request": request}).data
     return TemplateResponse(
         request,
         "chat/single_chat_react.html",
@@ -90,7 +90,7 @@ class NewChatMessageAPI(mixins.CreateModelMixin, generics.GenericAPIView):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['request'] = self.request
+        context["request"] = self.request
         return context
 
     @method_decorator(login_required)
@@ -110,23 +110,23 @@ class NewChatMessageAPI(mixins.CreateModelMixin, generics.GenericAPIView):
         # Set chat if not provided
         if "chat" not in serializer.validated_data:
             serializer.validated_data["chat"] = self.chat
-        
+
         # Handle file upload
-        attachment = self.request.FILES.get('attachment')
+        attachment = self.request.FILES.get("attachment")
         if attachment:
             # Determine attachment type from file extension
             file_name = attachment.name.lower()
-            if file_name.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                attachment_type = 'image'
-            elif file_name.endswith('.csv'):
-                attachment_type = 'csv'
-            elif file_name.endswith('.pdf'):
-                attachment_type = 'pdf'
+            if file_name.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+                attachment_type = "image"
+            elif file_name.endswith(".csv"):
+                attachment_type = "csv"
+            elif file_name.endswith(".pdf"):
+                attachment_type = "pdf"
             else:
-                attachment_type = 'other'
-            serializer.validated_data['attachment'] = attachment
-            serializer.validated_data['attachment_type'] = attachment_type
-        
+                attachment_type = "other"
+            serializer.validated_data["attachment"] = attachment
+            serializer.validated_data["attachment_type"] = attachment_type
+
         # save model
         instance = serializer.save()
         # process message
@@ -159,6 +159,7 @@ class ClearChatHistoryAPI(APIView):
 @extend_schema(tags=["chat"], exclude=True)
 class UserDataAPI(APIView):
     """API endpoint to get user's personal details and Plaid account data"""
+
     @method_decorator(login_required)
     def get(self, request):
         user = request.user
@@ -171,14 +172,14 @@ class UserDataAPI(APIView):
             "recent_transactions": [],
             "investment_holdings": [],
         }
-        
+
         try:
-            from apps.records.models import LinkedAccount, AccountBalance, FinancialTransaction, InvestmentHolding
-            
+            from apps.records.models import AccountBalance, FinancialTransaction, InvestmentHolding, LinkedAccount
+
             # Get linked accounts
-            linked_accounts = LinkedAccount.objects.filter(user=user, status='active')
+            linked_accounts = LinkedAccount.objects.filter(user=user, status="active")
             for account in linked_accounts:
-                latest_balance = AccountBalance.objects.filter(account=account).order_by('-balance_date').first()
+                latest_balance = AccountBalance.objects.filter(account=account).order_by("-balance_date").first()
                 account_data = {
                     "id": account.id,
                     "institution_name": account.institution_name,
@@ -187,33 +188,35 @@ class UserDataAPI(APIView):
                     "balance": str(latest_balance.current_balance) if latest_balance else "0.00",
                 }
                 data["linked_accounts"].append(account_data)
-            
+
             # Get recent transactions
-            recent_transactions = FinancialTransaction.objects.filter(
-                account__user=user
-            ).order_by('-date')[:20]
+            recent_transactions = FinancialTransaction.objects.filter(account__user=user).order_by("-date")[:20]
             for transaction in recent_transactions:
-                data["recent_transactions"].append({
-                    "id": transaction.id,
-                    "date": str(transaction.date),
-                    "amount": str(transaction.amount),
-                    "description": transaction.description,
-                    "category": transaction.category,
-                    "account_name": transaction.account.account_name,
-                })
-            
+                data["recent_transactions"].append(
+                    {
+                        "id": transaction.id,
+                        "date": str(transaction.date),
+                        "amount": str(transaction.amount),
+                        "description": transaction.description,
+                        "category": transaction.category,
+                        "account_name": transaction.account.account_name,
+                    }
+                )
+
             # Get investment holdings
-            holdings = InvestmentHolding.objects.filter(account__user=user).order_by('-as_of_date')[:20]
+            holdings = InvestmentHolding.objects.filter(account__user=user).order_by("-as_of_date")[:20]
             for holding in holdings:
-                data["investment_holdings"].append({
-                    "id": holding.id,
-                    "security_name": holding.security_name,
-                    "security_ticker": holding.security_ticker,
-                    "quantity": str(holding.quantity),
-                    "value": str(holding.value),
-                    "account_name": holding.account.account_name,
-                })
+                data["investment_holdings"].append(
+                    {
+                        "id": holding.id,
+                        "security_name": holding.security_name,
+                        "security_ticker": holding.security_ticker,
+                        "quantity": str(holding.quantity),
+                        "value": str(holding.value),
+                        "account_name": holding.account.account_name,
+                    }
+                )
         except ImportError:
             pass
-        
+
         return Response(data)

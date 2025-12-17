@@ -1,0 +1,507 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block body %}
+<div class="container is-fluid" style="padding: 2rem;">
+    <div class="columns">
+        <div class="column is-12">
+            <h1 class="title is-2">
+                <i class="fas fa-terminal"></i> Admin Command Management
+            </h1>
+            <p class="subtitle is-5">
+                Execute Django management commands with real-time output display
+            </p>
+            
+            <div class="notification is-info is-light">
+                <i class="fas fa-info-circle"></i>
+                <strong>Total Commands:</strong> {{ total_commands }} commands across {{ commands_by_app|length }} apps
+            </div>
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- Command List Sidebar -->
+        <div class="column is-3">
+            <div class="box">
+                <h2 class="title is-5">
+                    <i class="fas fa-list"></i> Commands by App
+                </h2>
+                <div class="menu" style="max-height: 70vh; overflow-y: auto;">
+                    {% for app_name, commands in commands_by_app.items %}
+                    <p class="menu-label">
+                        <strong>{{ app_name }}</strong>
+                        <span class="tag is-light is-small">{{ commands|length }}</span>
+                    </p>
+                    <ul class="menu-list">
+                        {% for command in commands %}
+                        <li>
+                            <a href="#" 
+                               class="command-link" 
+                               data-command="{{ command }}"
+                               onclick="loadCommand('{{ command }}'); return false;">
+                                <code>{{ command }}</code>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Execution Panel -->
+        <div class="column is-9">
+            <div class="box">
+                <h2 class="title is-5">
+                    <i class="fas fa-play-circle"></i> Command Execution
+                </h2>
+                
+                <!-- Command Selection -->
+                <div class="field">
+                    <label class="label">Command</label>
+                    <div class="control has-icons-left">
+                        <input class="input" 
+                               type="text" 
+                               id="command-input" 
+                               placeholder="Select a command from the list or type a command name"
+                               list="command-suggestions">
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-terminal"></i>
+                        </span>
+                    </div>
+                    <datalist id="command-suggestions">
+                        {% for app_name, commands in commands_by_app.items %}
+                            {% for command in commands %}
+                            <option value="{{ command }}">
+                            {% endfor %}
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <!-- Command Arguments -->
+                <div id="command-arguments" class="field" style="display: none;">
+                    <label class="label">Arguments</label>
+                    <div id="arguments-container"></div>
+                </div>
+
+                <!-- Execute Button -->
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-primary" id="execute-btn" onclick="executeCommand()">
+                            <span class="icon">
+                                <i class="fas fa-play"></i>
+                            </span>
+                            <span>Execute Command</span>
+                        </button>
+                    </div>
+                    <div class="control">
+                        <button class="button is-light" onclick="clearOutput()">
+                            <span class="icon">
+                                <i class="fas fa-eraser"></i>
+                            </span>
+                            <span>Clear Output</span>
+                        </button>
+                    </div>
+                    <div class="control">
+                        <button class="button is-light" onclick="loadCommandInfo()">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>Load Command Info</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Command Help -->
+                <div id="command-help" class="notification is-light" style="display: none;">
+                    <h3 class="title is-6">Command Help</h3>
+                    <div id="help-content"></div>
+                </div>
+
+                <!-- Output Display -->
+                <div class="field">
+                    <label class="label">Output</label>
+                    <div class="control">
+                        <div id="output-container" 
+                             class="box" 
+                             style="background-color: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; min-height: 300px; max-height: 600px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+                            <div style="color: #888;">Select a command and click "Execute Command" to see output here...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Indicator -->
+                <div id="status-indicator" class="notification" style="display: none;">
+                    <span id="status-text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.command-link {
+    transition: all 0.2s;
+}
+.command-link:hover {
+    background-color: #f5f5f5;
+}
+.command-link.active {
+    background-color: #3273dc;
+    color: white;
+}
+#output-container {
+    border: 1px solid #ddd;
+    padding: 1rem;
+}
+.output-line {
+    margin: 0.25rem 0;
+}
+.output-success {
+    color: #4caf50;
+}
+.output-error {
+    color: #f44336;
+}
+.output-warning {
+    color: #ff9800;
+}
+.output-info {
+    color: #2196f3;
+}
+</style>
+
+<script>
+let currentCommand = null;
+let commandInfo = null;
+
+// Load command information
+async function loadCommand(commandName) {
+    currentCommand = commandName;
+    document.getElementById('command-input').value = commandName;
+    
+    // Update active link
+    document.querySelectorAll('.command-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.command === commandName) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Load command details
+    await loadCommandInfo();
+}
+
+// Load command information and arguments
+async function loadCommandInfo() {
+    const commandName = document.getElementById('command-input').value.trim();
+    if (!commandName) {
+        alert('Please enter a command name');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/commands/${commandName}/`);
+        if (!response.ok) {
+            throw new Error('Failed to load command info');
+        }
+        
+        commandInfo = await response.json();
+        currentCommand = commandName;
+        
+        // Display help
+        const helpDiv = document.getElementById('command-help');
+        const helpContent = document.getElementById('help-content');
+        
+        if (commandInfo.error) {
+            helpContent.innerHTML = `<p class="has-text-danger">${commandInfo.error}</p>`;
+            helpDiv.style.display = 'block';
+            return;
+        }
+        
+        let helpHtml = `<p><strong>App:</strong> <code>${commandInfo.app}</code></p>`;
+        helpHtml += `<p><strong>Description:</strong> ${commandInfo.help || 'No description available'}</p>`;
+        
+        if (commandInfo.arguments && commandInfo.arguments.length > 0) {
+            helpHtml += `<h4 class="title is-6 mt-4">Arguments:</h4>`;
+            helpHtml += `<ul>`;
+            commandInfo.arguments.forEach(arg => {
+                helpHtml += `<li><code>${arg.name}</code>`;
+                if (arg.help) {
+                    helpHtml += ` - ${arg.help}`;
+                }
+                if (arg.required) {
+                    helpHtml += ` <span class="tag is-danger is-small">Required</span>`;
+                }
+                helpHtml += `</li>`;
+            });
+            helpHtml += `</ul>`;
+        } else {
+            helpHtml += `<p><em>No arguments available</em></p>`;
+        }
+        
+        helpContent.innerHTML = helpHtml;
+        helpDiv.style.display = 'block';
+        
+        // Build argument inputs
+        buildArgumentInputs(commandInfo.arguments || []);
+        
+    } catch (error) {
+        console.error('Error loading command info:', error);
+        alert('Failed to load command information: ' + error.message);
+    }
+}
+
+// Build argument input fields
+function buildArgumentInputs(arguments) {
+    const container = document.getElementById('arguments-container');
+    const argsDiv = document.getElementById('command-arguments');
+    
+    if (!arguments || arguments.length === 0) {
+        argsDiv.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+    
+    argsDiv.style.display = 'block';
+    container.innerHTML = '';
+    
+    arguments.forEach(arg => {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'field';
+        
+        const label = document.createElement('label');
+        label.className = 'label';
+        label.innerHTML = `<code>${arg.name}</code>`;
+        if (arg.required) {
+            label.innerHTML += ' <span class="tag is-danger is-small">Required</span>';
+        }
+        
+        const controlDiv = document.createElement('div');
+        controlDiv.className = 'control';
+        
+        let input;
+        if (arg.choices && arg.choices.length > 0) {
+            input = document.createElement('select');
+            input.className = 'input';
+            input.id = `arg-${arg.name}`;
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Select --';
+            input.appendChild(defaultOption);
+            arg.choices.forEach(choice => {
+                const option = document.createElement('option');
+                option.value = choice;
+                option.textContent = choice;
+                input.appendChild(option);
+            });
+        } else if (arg.type && arg.type.includes('bool')) {
+            input = document.createElement('select');
+            input.className = 'input';
+            input.id = `arg-${arg.name}`;
+            ['true', 'false'].forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.textContent = val;
+                input.appendChild(option);
+            });
+        } else {
+            input = document.createElement('input');
+            input.className = 'input';
+            input.type = 'text';
+            input.id = `arg-${arg.name}`;
+            input.placeholder = arg.help || arg.name;
+            if (arg.default) {
+                input.value = arg.default;
+            }
+        }
+        
+        if (arg.help) {
+            const helpP = document.createElement('p');
+            helpP.className = 'help';
+            helpP.textContent = arg.help;
+            controlDiv.appendChild(input);
+            controlDiv.appendChild(helpP);
+        } else {
+            controlDiv.appendChild(input);
+        }
+        
+        fieldDiv.appendChild(label);
+        fieldDiv.appendChild(controlDiv);
+        container.appendChild(fieldDiv);
+    });
+}
+
+// Execute command
+async function executeCommand() {
+    const commandName = document.getElementById('command-input').value.trim();
+    if (!commandName) {
+        alert('Please enter a command name');
+        return;
+    }
+    
+    // Get arguments
+    const args = [];
+    const kwargs = {};
+    
+    if (commandInfo && commandInfo.arguments) {
+        commandInfo.arguments.forEach(arg => {
+            const input = document.getElementById(`arg-${arg.name}`);
+            if (input && input.value) {
+                if (arg.flags && arg.flags.some(flag => flag.startsWith('--'))) {
+                    // It's a keyword argument
+                    kwargs[arg.name] = input.value;
+                } else {
+                    // It's a positional argument
+                    args.push(input.value);
+                }
+            }
+        });
+    }
+    
+    // Show loading state
+    const executeBtn = document.getElementById('execute-btn');
+    const originalText = executeBtn.innerHTML;
+    executeBtn.disabled = true;
+    executeBtn.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Executing...</span>';
+    
+    const outputContainer = document.getElementById('output-container');
+    outputContainer.innerHTML = '<div style="color: #888;">Executing command... Please wait...</div>';
+    
+    const statusIndicator = document.getElementById('status-indicator');
+    statusIndicator.style.display = 'none';
+    
+    try {
+        const response = await fetch('/admin/commands/execute/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                command: commandName,
+                args: args,
+                kwargs: kwargs
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to execute command');
+        }
+        
+        const result = await response.json();
+        
+        // Display output
+        displayOutput(result);
+        
+        // Show status
+        statusIndicator.className = result.success ? 
+            'notification is-success' : 'notification is-danger';
+        statusIndicator.style.display = 'block';
+        document.getElementById('status-text').textContent = result.success ? 
+            `Command executed successfully (exit code: ${result.exit_code})` : 
+            `Command failed (exit code: ${result.exit_code})`;
+        
+    } catch (error) {
+        console.error('Error executing command:', error);
+        outputContainer.innerHTML = `<div class="output-error">Error: ${error.message}</div>`;
+        statusIndicator.className = 'notification is-danger';
+        statusIndicator.style.display = 'block';
+        document.getElementById('status-text').textContent = `Error: ${error.message}`;
+    } finally {
+        executeBtn.disabled = false;
+        executeBtn.innerHTML = originalText;
+    }
+}
+
+// Display command output
+function displayOutput(result) {
+    const outputContainer = document.getElementById('output-container');
+    let html = '';
+    
+    html += `<div style="color: #888; margin-bottom: 0.5rem;">Command: <code>${result.command}</code></div>`;
+    if (result.args && result.args.length > 0) {
+        html += `<div style="color: #888; margin-bottom: 0.5rem;">Args: ${JSON.stringify(result.args)}</div>`;
+    }
+    if (result.kwargs && Object.keys(result.kwargs).length > 0) {
+        html += `<div style="color: #888; margin-bottom: 0.5rem;">Kwargs: ${JSON.stringify(result.kwargs)}</div>`;
+    }
+    html += `<hr style="border-color: #444; margin: 1rem 0;">`;
+    
+    if (result.output) {
+        // Process output lines and add color coding
+        const lines = result.output.split('\n');
+        lines.forEach(line => {
+            let className = '';
+            if (line.includes('ERROR') || line.includes('Error') || line.includes('error')) {
+                className = 'output-error';
+            } else if (line.includes('WARNING') || line.includes('Warning') || line.includes('warning')) {
+                className = 'output-warning';
+            } else if (line.includes('SUCCESS') || line.includes('Success') || line.includes('success') || line.includes('✓')) {
+                className = 'output-success';
+            } else if (line.includes('INFO') || line.includes('Info') || line.includes('info')) {
+                className = 'output-info';
+            }
+            html += `<div class="output-line ${className}">${escapeHtml(line)}</div>`;
+        });
+    }
+    
+    if (result.error) {
+        html += `<div class="output-error" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #444;">`;
+        html += `<strong>Error:</strong><br>`;
+        const errorLines = result.error.split('\n');
+        errorLines.forEach(line => {
+            html += `<div>${escapeHtml(line)}</div>`;
+        });
+        html += `</div>`;
+    }
+    
+    outputContainer.innerHTML = html;
+    
+    // Scroll to bottom
+    outputContainer.scrollTop = outputContainer.scrollHeight;
+}
+
+// Clear output
+function clearOutput() {
+    document.getElementById('output-container').innerHTML = 
+        '<div style="color: #888;">Output cleared. Select a command and click "Execute Command" to see output here...</div>';
+    document.getElementById('status-indicator').style.display = 'none';
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Allow Enter key to execute command
+document.getElementById('command-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        loadCommandInfo();
+    }
+});
+</script>
+{% endblock %}
+
+
+

@@ -1,0 +1,229 @@
+{% extends "web/app/app_base.html" %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block page_head %}
+<style>
+  .calendar-layout {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 1023px) {
+    .calendar-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .calendar-card {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 15px 25px rgba(15, 23, 42, 0.08);
+    border-left: 4px solid #3273dc;
+  }
+  .filter-box {
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .timeline {
+    position: relative;
+    margin-top: 1rem;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0.75rem;
+    width: 2px;
+    height: 100%;
+    background: #d1d5db;
+  }
+  .timeline-item {
+    position: relative;
+    padding-left: 2.5rem;
+    margin-bottom: 1.75rem;
+  }
+  .timeline-item:last-child {
+    margin-bottom: 0;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: 0.34rem;
+    top: 0.5rem;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: #3273dc;
+    box-shadow: 0 0 0 4px rgba(50, 115, 220, 0.2);
+  }
+  .timeline-item.completed::before {
+    background: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+  }
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .timeline-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .timeline-meta {
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+  }
+  .bill-card {
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+  }
+  .bill-card:last-child {
+    margin-bottom: 0;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="calendar-layout">
+  <div class="level" style="margin-bottom: 1.5rem;">
+    <div class="level-left">
+      <div>
+        <h1 class="title is-3">{% translate "Financial Calendar" %}</h1>
+        <p class="subtitle is-6">
+          {% translate "Review upcoming bills, reminders, and financial milestones." %}
+        </p>
+      </div>
+    </div>
+    <div class="level-right">
+      <span class="tag is-info is-light">
+        {% blocktrans count=events|length %}
+          {{ count }} event scheduled
+        {% plural %}
+          {{ count }} events scheduled
+        {% endblocktrans %}
+      </span>
+    </div>
+  </div>
+
+  <div class="filter-box">
+    <form method="get" class="columns is-variable is-3 is-multiline">
+      <div class="column is-12-tablet is-4-desktop">
+        <label class="label">{% translate "Start Date" %}</label>
+        <div class="control">
+          <input class="input" type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+        </div>
+      </div>
+      <div class="column is-12-tablet is-4-desktop">
+        <label class="label">{% translate "End Date" %}</label>
+        <div class="control">
+          <input class="input" type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+        </div>
+      </div>
+      <div class="column is-12-tablet is-4-desktop" style="display: flex; align-items: flex-end; gap: 0.75rem;">
+        <button class="button is-primary" type="submit">{% translate "Update Range" %}</button>
+        <a href="{% url 'records:financial_calendar' %}" class="button is-light">{% translate "Reset" %}</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="calendar-grid">
+    <div class="calendar-card">
+      <div class="level">
+        <div class="level-left">
+          <h2 class="title is-4" style="margin-bottom: 0;">{% translate "Upcoming Events" %}</h2>
+        </div>
+        <div class="level-right">
+          <span class="tag is-light is-rounded">{% translate "Range" %}: {{ start_date|date:"M j, Y" }} - {{ end_date|date:"M j, Y" }}</span>
+        </div>
+      </div>
+
+      {% if events %}
+        <div class="timeline">
+          {% for event in events %}
+            <div class="timeline-item {% if event.is_completed %}completed{% endif %}">
+              <div class="timeline-header">
+                <h3>{{ event.title }}</h3>
+                <div>
+                  <span class="tag is-rounded is-light">{{ event.get_event_type_display }}</span>
+                  {% if event.is_completed %}
+                    <span class="tag is-success is-light">{% translate "Completed" %}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="timeline-meta">
+                <strong>{% translate "Event date" %}:</strong> {{ event.event_date|date:"M j, Y" }}
+                {% if event.reminder_date %}
+                  · <strong>{% translate "Reminder" %}:</strong> {{ event.reminder_date|date:"M j, Y" }}
+                {% endif %}
+                {% if event.amount %}
+                  · <strong>{% translate "Amount" %}:</strong> ${{ event.amount|floatformat:2|intcomma }}
+                {% endif %}
+              </div>
+              {% if event.description %}
+                <p style="margin-top: 0.5rem; color: #374151;">{{ event.description }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="has-text-centered" style="padding: 2rem 1rem;">
+          <p class="title is-5">{% translate "No events in this range" %}</p>
+          <p class="has-text-grey">{% translate "Adjust the filters or create new reminders from the records section." %}</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="calendar-card">
+        <h2 class="title is-4">{% translate "Active Bills" %}</h2>
+        {% if bills %}
+          {% for bill in bills %}
+            <div class="bill-card">
+              <div class="level" style="margin-bottom: 0.5rem;">
+                <div class="level-left">
+                  <h3 class="title is-5" style="margin: 0;">{{ bill.name }}</h3>
+                </div>
+                <div class="level-right">
+                  <span class="tag is-info is-light">{{ bill.get_frequency_display }}</span>
+                </div>
+              </div>
+              <p class="has-text-grey" style="margin-bottom: 0.5rem;">
+                {% if bill.account %}
+                  {{ bill.account.institution_name }} · 
+                {% endif %}
+                {% translate "Next due" %} {{ bill.next_due_date|date:"M j, Y" }}
+              </p>
+              <p style="font-weight: 600; font-size: 1.15rem; color: #111827;">
+                ${{ bill.amount|floatformat:2|intcomma }}
+              </p>
+              {% if bill.is_autopay %}
+                <p class="tag is-success is-light">{% translate "Auto-pay enabled" %}</p>
+              {% endif %}
+              {% if bill.notes %}
+                <p class="is-size-7 has-text-grey" style="margin-top: 0.5rem;">{{ bill.notes }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="has-text-centered has-text-grey">{% translate "No active bills in this period." %}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

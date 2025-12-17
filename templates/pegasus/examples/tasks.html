@@ -1,0 +1,21 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% load static %}
+{% block app %}
+<section class="app-card">
+  <h1 class="pg-title">Background Tasks Demo</h1>
+  <p class="pg-subtitle">
+    Trigger a sample Celery task and watch the progress bar update in real time.
+  </p>
+  <div class="pg-content">
+    <p>
+      This page demonstrates how to enqueue work on the server and poll for status updates from the browser.
+      Wire up your favourite JavaScript framework (or a sprinkle of vanilla JS) to call
+      <code>{% url 'pegasus_examples:tasks_api' %}</code> and display the current progress.
+    </p>
+    <p class="mt-4">
+      The demo is intentionally light so you can tailor the UX to your project&mdash;add a progress bar, toast
+      notifications, or whatever fits your product best.
+    </p>
+  </div>
+</section>
+{% endblock %}

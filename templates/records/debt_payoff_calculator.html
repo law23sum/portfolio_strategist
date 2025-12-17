@@ -1,0 +1,349 @@
+{% extends "web/app/app_base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block page_head %}
+<style>
+  .debt-layout {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .intro-card {
+    background: linear-gradient(135deg, #111827, #1f2937);
+    border-radius: 18px;
+    color: #f8fafc;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.3);
+  }
+  .intro-card h1 {
+    font-size: 2rem;
+  }
+  .input-panel {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 1.5rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+    margin-bottom: 2rem;
+  }
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .strategy-card {
+    border-radius: 16px;
+    padding: 1.75rem;
+    color: #0f172a;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #dbf4ff, #ffffff);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    box-shadow: 0 18px 30px rgba(8, 145, 178, 0.18);
+  }
+  .strategy-card:nth-child(2) {
+    background: linear-gradient(135deg, #ede9fe, #ffffff);
+    border-color: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 18px 30px rgba(124, 58, 237, 0.2);
+  }
+  .strategy-card h3 {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+    margin-bottom: 0.65rem;
+    color: #475569;
+  }
+  .strategy-card .headline {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .comparison-table table {
+    width: 100%;
+  }
+  .comparison-table th,
+  .comparison-table td {
+    padding: 0.65rem 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.95rem;
+  }
+  .timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .timeline-card {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: #ffffff;
+    padding: 1.5rem;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  }
+  .timeline-card table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .timeline-card th,
+  .timeline-card td {
+    padding: 0.55rem 0.35rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .empty-state {
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+  }
+  .debt-table .tag {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+</style>
+{% endblock %}
+
+{% block app %}
+<div class="debt-layout">
+  <section class="intro-card">
+    <div class="level">
+      <div class="level-left">
+        <div>
+          <h1 class="title is-3">{% translate "Debt Strategy Lab" %}</h1>
+          <p class="subtitle is-6">
+            {% translate "Model snowball versus avalanche payoff cadences with research-grade amortization analytics." %}
+          </p>
+        </div>
+      </div>
+      <div class="level-right">
+        <span class="tag is-light is-medium">
+          <i class="fa-solid fa-flask"></i>&nbsp;{% translate "Scenario Engine" %}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="input-panel">
+    <form class="columns is-variable is-4" method="get">
+      <div class="column is-two-thirds">
+        <label class="label">{% translate "Monthly capital allocated to debt payoff" %}</label>
+        <div class="field has-addons">
+          <p class="control">
+            <a class="button is-static">$</a>
+          </p>
+          <p class="control is-expanded">
+            <input class="input is-medium" type="number" min="0" step="0.01"
+                   name="monthly_payment"
+                   value="{{ monthly_payment|default:0 }}"
+                   placeholder="2500.00">
+          </p>
+        </div>
+        <p class="help">
+          {% translate "Specify the consolidated cash you can deploy each month across all debts." %}
+        </p>
+      </div>
+      <div class="column is-one-third is-flex is-align-items-flex-end">
+        <button class="button is-primary is-fullwidth is-medium" type="submit">
+          <span class="icon"><i class="fa-solid fa-calculator"></i></span>
+          <span>{% translate "Project payoffs" %}</span>
+        </button>
+      </div>
+    </form>
+
+    <div class="table-container debt-table mt-5">
+      <table class="table is-striped is-fullwidth">
+        <thead>
+          <tr>
+            <th>{% translate "Account" %}</th>
+            <th class="pg-text-right">{% translate "Balance" %}</th>
+            <th class="pg-text-right">{% translate "Interest" %}</th>
+            <th class="pg-text-right">{% translate "Minimum" %}</th>
+            <th>{% translate "Type" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for debt in debts %}
+            <tr>
+              <td>
+                {% if debt.account %}
+                  {{ debt.account.account_name }}
+                {% else %}
+                  {% translate "Unlabeled account" %}
+                {% endif %}
+              </td>
+              <td class="pg-text-right">${{ debt.current_balance|floatformat:2 }}</td>
+              <td class="pg-text-right">{{ debt.interest_rate|default:0|floatformat:2 }}%</td>
+              <td class="pg-text-right">${{ debt.minimum_payment|default:0|floatformat:2 }}</td>
+              <td>
+                <span class="tag is-rounded is-light">{{ debt.get_debt_type_display|default:debt.debt_type|title }}</span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="pg-text-centered">
+                {% translate "No debt accounts connected. Link liabilities to model payoff strategies." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% if comparison %}
+    {% if comparison.error %}
+      <div class="empty-state">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <p class="mt-2">{{ comparison.error }}</p>
+      </div>
+    {% else %}
+      <section class="strategy-grid">
+        <article class="strategy-card">
+          <h3>{% translate "Snowball method" %}</h3>
+          <div class="headline">{{ comparison.snowball.total_months }} {% translate "months" %}</div>
+          <p class="mb-3">{% translate "Pay smallest balances first to build velocity." %}</p>
+          <div class="comparison-table">
+            <table>
+              <tr>
+                <td>{% translate "Total paid" %}</td>
+                <td class="pg-text-right">${{ comparison.snowball.total_paid|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td>{% translate "Interest cost" %}</td>
+                <td class="pg-text-right">${{ comparison.snowball.total_interest|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td>{% translate "Payoff date" %}</td>
+                <td class="pg-text-right">{{ comparison.snowball.payoff_date }}</td>
+              </tr>
+            </table>
+          </div>
+        </article>
+        <article class="strategy-card">
+          <h3>{% translate "Avalanche method" %}</h3>
+          <div class="headline">{{ comparison.avalanche.total_months }} {% translate "months" %}</div>
+          <p class="mb-3">{% translate "Tackle highest interest first to minimize drag." %}</p>
+          <div class="comparison-table">
+            <table>
+              <tr>
+                <td>{% translate "Total paid" %}</td>
+                <td class="pg-text-right">${{ comparison.avalanche.total_paid|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td>{% translate "Interest cost" %}</td>
+                <td class="pg-text-right">${{ comparison.avalanche.total_interest|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td>{% translate "Payoff date" %}</td>
+                <td class="pg-text-right">{{ comparison.avalanche.payoff_date }}</td>
+              </tr>
+            </table>
+          </div>
+        </article>
+        <article class="strategy-card">
+          <h3>{% translate "Summary insight" %}</h3>
+          {% if comparison.summary %}
+            <div class="headline">{{ comparison.summary.best_strategy|default:""|capfirst }}</div>
+            <p>{{ comparison.summary.recommendation }}</p>
+            <hr>
+            <p class="is-size-6">
+              <strong>{% translate "Interest savings:" %}</strong>
+              ${{ comparison.summary.interest_savings|floatformat:2 }}
+              <br>
+              <strong>{% translate "Time delta:" %}</strong>
+              {{ comparison.summary.time_difference_months }} {% translate "month(s)" %}
+            </p>
+          {% else %}
+            <div class="headline">—</div>
+            <p>{% translate "Run both methods to identify optimal payoff velocity." %}</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <section class="timeline-grid">
+        <div class="timeline-card">
+          <h3 class="title is-5 mb-3">{% translate "Snowball timeline" %}</h3>
+          {% if comparison.snowball.timeline %}
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>{% translate "Date" %}</th>
+                    <th class="pg-text-right">{% translate "Balance" %}</th>
+                    <th class="pg-text-right">{% translate "Debts" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for entry in comparison.snowball.timeline %}
+                    <tr>
+                      <td>{{ entry.month }}</td>
+                      <td>{{ entry.date }}</td>
+                      <td class="pg-text-right">${{ entry.total_remaining|floatformat:2 }}</td>
+                      <td class="pg-text-right">{{ entry.debts_remaining }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state">{% translate "Add debts and set a payment amount to view payoff cadence." %}</div>
+          {% endif %}
+        </div>
+
+        <div class="timeline-card">
+          <h3 class="title is-5 mb-3">{% translate "Avalanche timeline" %}</h3>
+          {% if comparison.avalanche.timeline %}
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>{% translate "Date" %}</th>
+                    <th class="pg-text-right">{% translate "Balance" %}</th>
+                    <th class="pg-text-right">{% translate "Debts" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for entry in comparison.avalanche.timeline %}
+                    <tr>
+                      <td>{{ entry.month }}</td>
+                      <td>{{ entry.date }}</td>
+                      <td class="pg-text-right">${{ entry.total_remaining|floatformat:2 }}</td>
+                      <td class="pg-text-right">{{ entry.debts_remaining }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state">{% translate "Add debts and set a payment amount to view payoff cadence." %}</div>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-chart-line"></i>
+      <p class="mt-2">{% translate "Provide a monthly payoff level above and we will benchmark snowball versus avalanche." %}</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

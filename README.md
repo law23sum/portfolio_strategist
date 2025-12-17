@@ -12,6 +12,11 @@ and then run:
 
 ```
 make init
+pip install -r requirements.txt
+docker compose up --build 
+make start
+
+
 ```
 
 This will spin up a database, web worker, celery worker, and Redis broker and run your migrations.
@@ -19,6 +24,102 @@ This will spin up a database, web worker, celery worker, and Redis broker and ru
 You can then go to [localhost:8000](http://localhost:8000/) to view the app.
 
 *Note: if you get an error, make sure you have a `.env` file, or create one based on `.env.example`.*
+
+## File Access Configuration
+
+The Docker setup has been configured to provide access to your local drive and cloud drives from within containers. This enables Cursor AI and other tools to read, write, and execute files on your system.
+
+### Setup
+
+Run the setup script to configure file access permissions:
+
+```bash
+./setup_file_access.sh
+```
+
+This script will:
+- Check for common cloud drive locations (Google Drive, Dropbox, OneDrive, iCloud)
+- Verify access to Documents, Desktop, and Downloads folders
+- Set appropriate permissions where possible
+- Create a test script to verify access from within containers
+
+### Mounted Directories
+
+The following directories are mounted into Docker containers:
+
+- **Home Directory**: `/host/home` - Your entire home directory
+- **Cloud Storage**: `/host/cloudstorage` - iCloud/CloudStorage directory
+- **Google Drive**: `/host/googledrive` - Google Drive folder
+- **Dropbox**: `/host/dropbox` - Dropbox folder
+- **OneDrive**: `/host/onedrive` - OneDrive folder
+- **iCloud Drive**: `/host/iclouddrive` - iCloud Drive folder
+- **Documents**: `/host/documents` - Documents folder
+- **Desktop**: `/host/desktop` - Desktop folder
+- **Downloads**: `/host/downloads` - Downloads folder
+
+### Testing File Access
+
+To test file access from within a container:
+
+```bash
+# Enter the container
+docker compose exec web bash
+
+# Run the test script
+bash test_file_access.sh
+```
+
+### Using File Access in Python
+
+A utility module is available for accessing files from within the application:
+
+```python
+from apps.utils.file_access import (
+    get_host_path,
+    get_cloud_path,
+    read_file,
+    write_file,
+    check_access,
+    list_directory,
+)
+
+# Access a file in your home directory
+file_path = get_host_path("Documents/myfile.txt")
+content = read_file(file_path)
+
+# Access a file in Google Drive
+gdrive_path = get_cloud_path("googledrive", "MyFolder/file.txt")
+if gdrive_path and gdrive_path.exists():
+    content = read_file(gdrive_path)
+
+# Check access permissions
+access_info = check_access(file_path)
+print(f"Readable: {access_info['readable']}, Writable: {access_info['writable']}")
+```
+
+### Security Notes
+
+⚠️ **Important Security Considerations:**
+
+- Containers run as root by default to ensure full file access
+- This provides broad access to your file system - use with caution
+- Only mount directories you trust
+- Be aware that files created by containers will be owned by root on the host
+- Consider using more restrictive mounts for production environments
+
+### Troubleshooting
+
+If you encounter permission issues:
+
+1. **macOS Privacy Settings**: Ensure Docker has Full Disk Access in System Preferences → Security & Privacy → Privacy
+2. **Directory Permissions**: Some directories may require sudo to modify permissions
+3. **Cloud Drive Sync**: Ensure cloud drives are fully synced and accessible on your local system
+4. **Docker Desktop Settings**: Check Docker Desktop → Settings → Resources → File Sharing to ensure directories are shared
+
+For more help, see the test script output or check Docker logs:
+```bash
+docker compose logs web
+```
 
 ### Using the Makefile
 

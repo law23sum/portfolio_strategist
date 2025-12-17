@@ -31,6 +31,12 @@ export interface PatchedCustomUser {
      * @type {string}
      * @memberof PatchedCustomUser
      */
+    readonly username?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedCustomUser
+     */
     firstName?: string;
     /**
      * 
@@ -51,11 +57,35 @@ export interface PatchedCustomUser {
      */
     readonly avatarUrl?: string;
     /**
-     * 
+     * Get the user's display name
      * @type {string}
      * @memberof PatchedCustomUser
      */
     readonly getDisplayName?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedCustomUser
+     */
+    language?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedCustomUser
+     */
+    timezone?: string;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PatchedCustomUser
+     */
+    readonly dateJoined?: Date;
+    /**
+     * Check if user's email is verified
+     * @type {boolean}
+     * @memberof PatchedCustomUser
+     */
+    readonly isEmailVerified?: boolean;
 }
 
 /**
@@ -76,11 +106,16 @@ export function PatchedCustomUserFromJSONTyped(json: any, ignoreDiscriminator: b
     return {
         
         'id': json['id'] == null ? undefined : json['id'],
+        'username': json['username'] == null ? undefined : json['username'],
         'firstName': json['first_name'] == null ? undefined : json['first_name'],
         'lastName': json['last_name'] == null ? undefined : json['last_name'],
         'email': json['email'] == null ? undefined : json['email'],
         'avatarUrl': json['avatar_url'] == null ? undefined : json['avatar_url'],
         'getDisplayName': json['get_display_name'] == null ? undefined : json['get_display_name'],
+        'language': json['language'] == null ? undefined : json['language'],
+        'timezone': json['timezone'] == null ? undefined : json['timezone'],
+        'dateJoined': json['date_joined'] == null ? undefined : (new Date(json['date_joined'])),
+        'isEmailVerified': json['is_email_verified'] == null ? undefined : json['is_email_verified'],
     };
 }
 
@@ -88,7 +123,7 @@ export function PatchedCustomUserFromJSONTyped(json: any, ignoreDiscriminator: b
       return PatchedCustomUserToJSONTyped(json, false);
   }
 
-  export function PatchedCustomUserToJSONTyped(value?: Omit<PatchedCustomUser, 'id'|'avatar_url'|'get_display_name'> | null, ignoreDiscriminator: boolean = false): any {
+  export function PatchedCustomUserToJSONTyped(value?: Omit<PatchedCustomUser, 'id'|'username'|'avatar_url'|'get_display_name'|'date_joined'|'is_email_verified'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -98,6 +133,8 @@ export function PatchedCustomUserFromJSONTyped(json: any, ignoreDiscriminator: b
         'first_name': value['firstName'],
         'last_name': value['lastName'],
         'email': value['email'],
+        'language': value['language'],
+        'timezone': value['timezone'],
     };
 }
 

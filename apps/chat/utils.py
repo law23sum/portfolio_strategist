@@ -1,17 +1,57 @@
 from django.conf import settings
-from openai import AsyncOpenAI, OpenAI, APIError, AuthenticationError
+from openai import APIError, AsyncOpenAI, AuthenticationError, OpenAI
 
 _client = None
 _async_client = None
+
+
+def get_ai_api_key(provider: str) -> str | None:
+    """
+    Get API key for an AI provider from database or environment.
+
+    Priority:
+    1. Database (AICredential model) - if active credential exists
+    2. Environment variable / Django settings
+
+    Args:
+        provider: One of 'openai', 'anthropic', 'google', 'xai', 'cursor'
+
+    Returns:
+        API key string if found, None otherwise
+    """
+    # First, try to get from database
+    try:
+        from .models import AICredential
+
+        credential = AICredential.objects.filter(provider=provider, is_active=True).first()
+
+        if credential and credential.api_key:
+            return credential.api_key
+    except Exception:
+        # If database lookup fails (e.g., migrations not run), fall through to env
+        pass
+
+    # Fall back to environment variables / Django settings
+    provider_settings_map = {
+        "openai": "AI_CHAT_OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "google": "CURSOR_AI_GEMINI_API_KEY",
+        "xai": "XAI_API_KEY",
+        "cursor": "CURSOR_API_KEY",
+    }
+
+    setting_name = provider_settings_map.get(provider)
+    if setting_name:
+        return getattr(settings, setting_name, None) or None
+
+    return None
 
 
 def validate_api_key():
     """Validate that the OpenAI API key is set and valid"""
     api_key = settings.AI_CHAT_OPENAI_API_KEY
     if not api_key:
-        raise ValueError(
-            "AI_CHAT_OPENAI_API_KEY is not set. Please set it in your environment variables or .env file."
-        )
+        raise ValueError("AI_CHAT_OPENAI_API_KEY is not set. Please set it in your environment variables or .env file.")
     return api_key
 
 

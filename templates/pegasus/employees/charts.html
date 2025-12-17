@@ -1,0 +1,94 @@
+{% extends "pegasus/examples/examples_base.html" %}
+{% load static %}
+{% block app %}
+<section class="app-card">
+  <h1 class="pg-title">Analytics Dashboard</h1>
+  <p class="pg-subtitle">
+    Render interactive charts powered by Chart.js using live employee data.
+  </p>
+  <div class="pg-content">
+    <p>
+      This example highlights how to combine Django viewsets with a JavaScript charting library. The back-end exposes
+      metrics via <code>{% url 'pegasus_employees:employee_data' %}</code> and the front-end presents them in a sleek dashboard.
+    </p>
+    <p class="mt-4">
+      Add your own visualisations by extending the <code>EmployeeDataAPIView</code> or wiring up additional datasets.
+    </p>
+  </div>
+</section>
+<div class="pg-columns">
+  <div class="pg-column">
+    <div class="pg-card">
+      <div class="pg-card-body">
+        <h3>Headcount Trend</h3>
+        <canvas id="employee-headcount-chart" class="pg-chart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="pg-column">
+    <div class="pg-card">
+      <div class="pg-card-body">
+        <h3>Salary Distribution</h3>
+        <canvas id="employee-salary-chart" class="pg-chart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch("{% url 'pegasus_employees:employee_data' %}", {
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const headcountCtx = document.getElementById("employee-headcount-chart");
+        const salaryCtx = document.getElementById("employee-salary-chart");
+
+        if (headcountCtx && data?.employee_counts) {
+          const labels = data.employee_counts.map((row) => row.label);
+          const values = data.employee_counts.map((row) => row.count);
+          new window.Chart(headcountCtx, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Employees",
+                  data: values,
+                  borderColor: "#3273dc",
+                  backgroundColor: "rgba(50, 115, 220, 0.1)",
+                  tension: 0.25,
+                  fill: true,
+                },
+              ],
+            },
+            options: { responsive: true, maintainAspectRatio: false },
+          });
+        }
+
+        if (salaryCtx && data?.salary_buckets) {
+          const labels = data.salary_buckets.map((row) => row.label);
+          const values = data.salary_buckets.map((row) => row.count);
+          new window.Chart(salaryCtx, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Employees",
+                  data: values,
+                  backgroundColor: "#48c78e",
+                },
+              ],
+            },
+            options: { responsive: true, maintainAspectRatio: false },
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Unable to render employee charts", error);
+      });
+  });
+</script>
+{% endblock %}

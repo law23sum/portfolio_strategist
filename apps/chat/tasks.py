@@ -1,4 +1,5 @@
 import csv
+
 from celery import shared_task
 from django.conf import settings
 
@@ -10,7 +11,7 @@ from apps.chat.utils import get_openai_client
 def get_user_context(user):
     """Get user's personal details and Plaid account data for context"""
     context_parts = []
-    
+
     def truncate_list(items, limit=5):
         return items[:limit] if isinstance(items, list) else items
 
@@ -34,18 +35,18 @@ def get_user_context(user):
             assembled.append(addition)
             current_length += len(addition)
         return "".join(assembled)
-    
+
     # User personal details
     user_details = {
         "name": user.get_full_name() or user.username,
         "email": user.email,
     }
     context_parts.append(f"User Information: {user_details}")
-    
+
     # Personal details from FinancialDocument fields
     try:
-        from apps.records.models import FinancialDocument, ExtractedField
-        
+        from apps.records.models import ExtractedField, FinancialDocument
+
         # Get all financial documents with extracted fields
         documents = FinancialDocument.objects.filter(user=user, processed=True)
         if documents.exists():
@@ -57,30 +58,30 @@ def get_user_context(user):
                         "document_type": doc.record_type,
                         "subcategory": doc.sub_record_type,
                         "year": doc.year,
-                        "extracted_fields": {}
+                        "extracted_fields": {},
                     }
                     for field in fields:
                         doc_details["extracted_fields"][field.field_name] = field.field_value
                     personal_details.append(doc_details)
-            
+
             if personal_details:
                 context_parts.append(f"Personal Details from Documents: {personal_details}")
     except ImportError:
         pass
-    
+
     # Plaid/Linked accounts data
     try:
         from apps.records.models import (
-            LinkedAccount,
             AccountBalance,
+            DataSyncLog,
+            DebtAccount,
             FinancialTransaction,
             InvestmentHolding,
             InvestmentTransaction,
-            DebtAccount,
-            DataSyncLog,
+            LinkedAccount,
         )
-        
-        linked_accounts = LinkedAccount.objects.filter(user=user, status='active')
+
+        linked_accounts = LinkedAccount.objects.filter(user=user, status="active")
         if linked_accounts.exists():
             accounts_info = []
             for account in linked_accounts:
@@ -92,17 +93,15 @@ def get_user_context(user):
                     "account_number_masked": account.account_number_masked,
                 }
                 # Get latest balance
-                latest_balance = AccountBalance.objects.filter(account=account).order_by('-balance_date').first()
+                latest_balance = AccountBalance.objects.filter(account=account).order_by("-balance_date").first()
                 if latest_balance:
                     account_info["balance"] = str(latest_balance.current_balance)
                     account_info["balance_date"] = str(latest_balance.balance_date)
                 accounts_info.append(account_info)
             context_parts.append(f"Linked Financial Accounts (Plaid): {accounts_info}")
-            
+
             # Recent transactions summary
-            recent_transactions = FinancialTransaction.objects.filter(
-                account__user=user
-            ).order_by('-date')[:20]
+            recent_transactions = FinancialTransaction.objects.filter(account__user=user).order_by("-date")[:20]
             if recent_transactions.exists():
                 transactions_summary = [
                     {
@@ -111,14 +110,14 @@ def get_user_context(user):
                         "description": t.description[:100],
                         "category": t.category,
                         "merchant": t.merchant_name,
-                        "account": t.account.account_name
+                        "account": t.account.account_name,
                     }
                     for t in recent_transactions
                 ]
                 context_parts.append(f"Recent Transactions: {transactions_summary}")
-            
+
             # Investment holdings summary
-            holdings = InvestmentHolding.objects.filter(account__user=user).order_by('-as_of_date')
+            holdings = InvestmentHolding.objects.filter(account__user=user).order_by("-as_of_date")
             if holdings.exists():
                 holdings_summary = [
                     {
@@ -129,16 +128,14 @@ def get_user_context(user):
                         "price": str(h.price) if h.price else "N/A",
                         "value": str(h.value),
                         "cost_basis": str(h.cost_basis) if h.cost_basis else "N/A",
-                        "account": h.account.account_name
+                        "account": h.account.account_name,
                     }
                     for h in holdings[:20]
                 ]
                 context_parts.append(f"Investment Holdings: {holdings_summary}")
 
             # Investment transactions summary
-            investment_transactions = InvestmentTransaction.objects.filter(
-                account__user=user
-            ).order_by('-date')[:20]
+            investment_transactions = InvestmentTransaction.objects.filter(account__user=user).order_by("-date")[:20]
             if investment_transactions.exists():
                 investment_tx_summary = [
                     {
@@ -153,7 +150,7 @@ def get_user_context(user):
                 context_parts.append(f"Investment Transactions: {investment_tx_summary}")
 
             # Debt accounts snapshot
-            debt_accounts = DebtAccount.objects.filter(account__user=user).order_by('-as_of_date')
+            debt_accounts = DebtAccount.objects.filter(account__user=user).order_by("-as_of_date")
             if debt_accounts.exists():
                 debt_summary = [
                     {
@@ -169,7 +166,7 @@ def get_user_context(user):
                 context_parts.append(f"Debt Accounts: {debt_summary}")
 
             # Recent data sync activity
-            sync_logs = DataSyncLog.objects.filter(account__user=user).order_by('-started_at')[:10]
+            sync_logs = DataSyncLog.objects.filter(account__user=user).order_by("-started_at")[:10]
             if sync_logs.exists():
                 sync_summary = [
                     {
@@ -185,19 +182,19 @@ def get_user_context(user):
                 context_parts.append(f"Plaid Sync Activity: {sync_summary}")
     except ImportError:
         pass
-    
+
     # Aggregated financial summaries for quicker insights
     try:
         from apps.records.financial_aggregation import (
             BudgetAggregationService,
-            InvestmentAggregationService,
-            DebtAggregationService,
             DashboardAggregationService,
+            DebtAggregationService,
+            InvestmentAggregationService,
         )
     except ImportError:
         BudgetAggregationService = InvestmentAggregationService = None
         DebtAggregationService = DashboardAggregationService = None
-    
+
     if BudgetAggregationService:
         try:
             budget_data = BudgetAggregationService.get_user_budget_data(user=user, days=30)
@@ -212,7 +209,7 @@ def get_user_context(user):
             context_parts.append(f"Budget Summary (last 30 days): {budget_summary}")
         except Exception:
             pass
-    
+
     if InvestmentAggregationService:
         try:
             investment_data = InvestmentAggregationService.get_user_investment_data(user=user)
@@ -225,7 +222,7 @@ def get_user_context(user):
             context_parts.append(f"Investment Portfolio Summary: {investment_summary}")
         except Exception:
             pass
-    
+
     if DebtAggregationService:
         try:
             debt_data = DebtAggregationService.get_user_debt_data(user=user)
@@ -238,7 +235,7 @@ def get_user_context(user):
             context_parts.append(f"Debt Overview: {debt_summary}")
         except Exception:
             pass
-    
+
     if DashboardAggregationService:
         try:
             dashboard_summary = DashboardAggregationService.get_user_financial_summary(user=user)
@@ -253,17 +250,19 @@ def get_user_context(user):
             context_parts.append(f"Financial Dashboard Summary: {high_level_summary}")
         except Exception:
             pass
-    
+
     # User created investment & savings assessments
     try:
-        from apps.records.models import StocksAssessment, SavingsAssessment, CDAssessment, BondAssessment
-        
-        stocks_assessments = StocksAssessment.objects.filter(user=user).order_by('-updated_at')
+        from apps.records.models import BondAssessment, CDAssessment, SavingsAssessment, StocksAssessment
+
+        stocks_assessments = StocksAssessment.objects.filter(user=user).order_by("-updated_at")
         if stocks_assessments.exists():
             stocks_summary = [
                 {
                     "symbol": assessment.symbol,
-                    "investment_amount": str(assessment.investment_amount) if assessment.investment_amount is not None else None,
+                    "investment_amount": str(assessment.investment_amount)
+                    if assessment.investment_amount is not None
+                    else None,
                     "current_price": str(assessment.current_price),
                     "forecast": {
                         key: assessment.forecast_data.get(key)
@@ -274,8 +273,8 @@ def get_user_context(user):
                 for assessment in stocks_assessments[:5]
             ]
             context_parts.append(f"Stocks Assessments: {stocks_summary}")
-        
-        savings_assessments = SavingsAssessment.objects.filter(user=user).order_by('-updated_at')
+
+        savings_assessments = SavingsAssessment.objects.filter(user=user).order_by("-updated_at")
         if savings_assessments.exists():
             savings_summary = [
                 {
@@ -288,8 +287,8 @@ def get_user_context(user):
                 for assessment in savings_assessments[:5]
             ]
             context_parts.append(f"Savings Assessments: {savings_summary}")
-        
-        cd_assessments = CDAssessment.objects.filter(user=user).order_by('-updated_at')
+
+        cd_assessments = CDAssessment.objects.filter(user=user).order_by("-updated_at")
         if cd_assessments.exists():
             cd_summary = [
                 {
@@ -302,8 +301,8 @@ def get_user_context(user):
                 for assessment in cd_assessments[:5]
             ]
             context_parts.append(f"CD Assessments: {cd_summary}")
-        
-        bond_assessments = BondAssessment.objects.filter(user=user).order_by('-updated_at')
+
+        bond_assessments = BondAssessment.objects.filter(user=user).order_by("-updated_at")
         if bond_assessments.exists():
             bond_summary = [
                 {
@@ -331,10 +330,7 @@ def get_user_context(user):
                 if isinstance(value, list):
                     return truncate_list(value, limit)
                 if isinstance(value, dict):
-                    return {
-                        key: materialize(val, limit)
-                        for key, val in list(value.items())[:limit]
-                    }
+                    return {key: materialize(val, limit) for key, val in list(value.items())[:limit]}
                 return value
 
             for key, value in plaid_data.items():
@@ -353,29 +349,29 @@ def extract_file_content(message):
     """Extract text content from uploaded files (CSV, PDF)"""
     if not message.attachment:
         return None
-    
+
     file_path = message.attachment.path
-    file_name = message.attachment.name.lower()
     content = None
-    
+
     try:
-        if message.attachment_type == 'csv':
+        if message.attachment_type == "csv":
             # Read CSV content
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.reader(f)
                 rows = list(reader)
                 if rows:
                     # Convert to readable format
                     content = "CSV File Content:\n"
                     for i, row in enumerate(rows[:100]):  # Limit to first 100 rows
-                        content += f"Row {i+1}: {', '.join(str(cell) for cell in row)}\n"
+                        content += f"Row {i + 1}: {', '.join(str(cell) for cell in row)}\n"
                     if len(rows) > 100:
                         content += f"... (showing first 100 of {len(rows)} rows)\n"
-        
-        elif message.attachment_type == 'pdf':
+
+        elif message.attachment_type == "pdf":
             # Extract PDF text
             try:
                 from PyPDF2 import PdfReader
+
                 reader = PdfReader(file_path)
                 text_parts = []
                 for page_num, page in enumerate(reader.pages[:10]):  # Limit to first 10 pages
@@ -388,29 +384,29 @@ def extract_file_content(message):
                         content += f"\n... (showing first 10 of {len(reader.pages)} pages)"
             except ImportError:
                 content = f"[PDF file: {message.attachment.name} - PDF processing not available]"
-        
-        elif message.attachment_type == 'image':
+
+        elif message.attachment_type == "image":
             # For images, we'll just note the attachment
             content = f"[Image file: {message.attachment.name}]"
-    
+
     except Exception as e:
         content = f"[File: {message.attachment.name} - Error reading file: {str(e)}]"
-    
+
     return content
 
 
 @shared_task(bind=True)
 def get_chat_response(self, chat_id: int, message_id: int) -> str:
     from openai import APIError, AuthenticationError
-    
+
     try:
         chat = Chat.objects.get(id=chat_id)
-        user_message = ChatMessage.objects.get(id=message_id)
+        ChatMessage.objects.get(id=message_id)  # Verify message exists
         client = get_openai_client()
-        
+
         # Build messages with user context
         messages = []
-        
+
         # Add system message with user context
         user_context = get_user_context(chat.user)
         if user_context:
@@ -419,27 +415,26 @@ def get_chat_response(self, chat_id: int, message_id: int) -> str:
 
 Use this information to provide personalized financial advice and insights when relevant."""
             messages.append({"role": "system", "content": system_message})
-        
+
         # Add chat history (all messages up to and including the current one)
-        for msg in chat.messages.all().order_by('created_at'):
+        for msg in chat.messages.all().order_by("created_at"):
             if msg.id == message_id:
                 # This is the current message - handle attachments
                 content_parts = [msg.content] if msg.content else []
-                
+
                 if msg.attachment:
                     # Extract file content for CSV and PDF
                     file_content = extract_file_content(msg)
                     if file_content:
                         content_parts.append(file_content)
-                    elif msg.attachment_type == 'image':
+                    elif msg.attachment_type == "image":
                         # For images, we can encode as base64 or just reference the URL
                         # OpenAI vision API would need base64, but for now we'll include URL in text
                         content_parts.append(f"[User attached an image: {msg.attachment.url}]")
-                
-                messages.append({
-                    "role": "user",
-                    "content": "\n".join(content_parts) if content_parts else "[No text content]"
-                })
+
+                messages.append(
+                    {"role": "user", "content": "\n".join(content_parts) if content_parts else "[No text content]"}
+                )
             elif msg.id < message_id:
                 # Previous messages - include attachment info if present
                 msg_dict = msg.to_openai_dict()
@@ -451,7 +446,7 @@ Use this information to provide personalized financial advice and insights when 
                         else:
                             msg_dict["content"] = file_content
                 messages.append(msg_dict)
-        
+
         response = client.chat.completions.create(model=settings.AI_CHAT_OPENAI_MODEL, messages=messages)
 
         message = ChatMessage.objects.create(
@@ -461,7 +456,7 @@ Use this information to provide personalized financial advice and insights when 
         )
         # Serialize without request context (URLs will be relative)
         return ChatMessageSerializer(message).data
-    
+
     except AuthenticationError as e:
         error_message = ChatMessage.objects.create(
             chat_id=chat_id,
@@ -469,7 +464,7 @@ Use this information to provide personalized financial advice and insights when 
             content=f"Error: Authentication failed with OpenAI API. Please check that your AI_CHAT_OPENAI_API_KEY is set correctly. Error details: {str(e)}",
         )
         return ChatMessageSerializer(error_message).data
-    
+
     except APIError as e:
         error_message = ChatMessage.objects.create(
             chat_id=chat_id,
@@ -477,7 +472,7 @@ Use this information to provide personalized financial advice and insights when 
             content=f"Error: OpenAI API error occurred. Please try again later. Error details: {str(e)}",
         )
         return ChatMessageSerializer(error_message).data
-    
+
     except ValueError as e:
         error_message = ChatMessage.objects.create(
             chat_id=chat_id,
@@ -485,7 +480,7 @@ Use this information to provide personalized financial advice and insights when 
             content=f"Error: {str(e)}",
         )
         return ChatMessageSerializer(error_message).data
-    
+
     except Exception as e:
         error_message = ChatMessage.objects.create(
             chat_id=chat_id,
@@ -498,7 +493,7 @@ Use this information to provide personalized financial advice and insights when 
 @shared_task
 def set_chat_name(chat_id: int, message: str):
     from openai import APIError, AuthenticationError
-    
+
     chat = Chat.objects.get(id=chat_id)
     if not message:
         return
@@ -522,7 +517,7 @@ def set_chat_name(chat_id: int, message: str):
             response = client.chat.completions.create(model=settings.AI_CHAT_OPENAI_MODEL, messages=messages)
             chat.name = response.choices[0].message.content[:100].strip()
             chat.save()
-        except (AuthenticationError, APIError, ValueError) as e:
+        except (AuthenticationError, APIError, ValueError):
             # If OpenAI fails, fall back to using the message itself
             chat.name = message[:100]
             chat.save()
