@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -9,6 +10,7 @@ from .forms import FinancialDocumentForm
 from .models import ExtractedField, FinancialDocument
 
 
+@login_required
 def upload_view(request):
     current_year = datetime.now().year
     year_choices = list(range(2000, current_year + 6))
@@ -79,10 +81,12 @@ def upload_view(request):
         },
     )
 
+@login_required
 def document_list_partial(request):
     documents = FinancialDocument.objects.filter(user=request.user)
     return render(request, "records/partials/document_list.html", {"documents": documents})
 
+@login_required
 @require_POST
 def delete_document(request, pk):
     try:
@@ -93,6 +97,7 @@ def delete_document(request, pk):
         return JsonResponse({"status": "error", "message": "Document not found"}, status=404)
 
 
+@login_required
 def personal_details(request, pk):
     document = get_object_or_404(FinancialDocument, pk=pk, user=request.user)
     fields = document.fields.all()

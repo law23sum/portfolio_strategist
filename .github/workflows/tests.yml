@@ -66,5 +66,7 @@ jobs:
         env:
           DJANGO_DATABASE_USER: postgres
           DJANGO_DATABASE_PASSWORD: postgres_password
+          # SECRET_KEY is required outside DEBUG; this value only exists for CI and protects nothing.
+          SECRET_KEY: ci-only-not-a-secret
         run: |
           uv run manage.py test

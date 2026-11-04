@@ -4,6 +4,14 @@ from apps.users.models import CustomUser
 
 
 class Receipt(models.Model):
+    # Owner of the receipt (null only for rows created before ownership was recorded)
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='receipts',
+        null=True,
+        blank=True,
+    )
     # ImageField to store the uploaded photo of the receipt
     image = models.ImageField(upload_to = 'receipts/')
 

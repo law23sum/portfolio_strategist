@@ -11,10 +11,9 @@ class ReceiptUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data['user'] = request.user.id  # Associate receipt with the logged-in user
-        serializer = ReceiptSerializer(data = data)
+        serializer = ReceiptSerializer(data = request.data)
         if serializer.is_valid():
-            serializer.save()
+            # The owner always comes from the authenticated request, never from client input.
+            serializer.save(user = request.user)
             return Response(serializer.data, status = 201)
         return Response(serializer.errors, status = 400)
