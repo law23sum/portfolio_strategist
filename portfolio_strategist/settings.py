@@ -27,17 +27,23 @@ env.read_env(os.path.join(BASE_DIR, ".env"))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("SECRET_KEY", default="django-insecure-3x9NksKRHiEEYplGmKdzDwiYriOyjxuSsn0T7D8v")
-
 # SECURITY WARNING: don"t run with debug turned on in production!
-DEBUG = env.bool("DEBUG", default=True)
+# Off unless explicitly enabled: set DEBUG=True in your local .env for development.
+DEBUG = env.bool("DEBUG", default=False)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# Required from the environment unless DEBUG is on; env() raises ImproperlyConfigured
+# when it is missing, so a deployment can never fall back to a key that is in git.
+if DEBUG:
+    SECRET_KEY = env("SECRET_KEY", default="django-insecure-local-development-only")
+else:
+    SECRET_KEY = env("SECRET_KEY")
 ENABLE_DEBUG_TOOLBAR = env.bool("ENABLE_DEBUG_TOOLBAR", default=False) and "test" not in sys.argv
 
-# Note: It is not recommended to set ALLOWED_HOSTS to "*" in production
+# Comma-separated list in the ALLOWED_HOSTS environment variable. Never use "*" in production.
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
-    default=["localhost", "127.0.0.1", "theportfoliostrategist.net", "*"]
+    default=["localhost", "127.0.0.1", "theportfoliostrategist.net"]
 )
 
 
@@ -385,7 +391,7 @@ EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
 
 # Most production backends will require further customization. The below example uses Mailgun.
 ANYMAIL = {
-      "BREVO_API_KEY": "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",
+    "BREVO_API_KEY": env("BREVO_API_KEY", default=""),  # set in the environment, never in git
       # "BREVO_SEND_DEFAULTS"
 #     "MAILGUN_API_KEY": env("MAILGUN_API_KEY", default=None),
 #     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN", default=None),
@@ -427,7 +433,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": True,
-    "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default="<a comlex signing key>"),
+    "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default=SECRET_KEY),
     "ALGORITHM": "HS512",
 }
 
@@ -436,11 +442,6 @@ REST_AUTH = {
     "JWT_AUTH_HTTPONLY": False,
     "USER_DETAILS_SERIALIZER": "apps.users.serializers.CustomUserSerializer",
 }
-
-CORS_ALLOWED_ORIGINS = "http://localhost:19006",  # Your React Native dev server
-"http://10.37.129.2:19006",  # Your mobile IP
-env.list("CORS_ALLOWED_ORIGINS", default = ["http://localhost:5173"])
-
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "The Portfolio Strategist",
@@ -582,15 +583,15 @@ LOGGING = {
     },
 }
 
-# Allow all origins (for development only, be careful in production)
-CORS_ALLOW_ALL_ORIGINS = True
-
-# OR if you want to allow only specific origins:
-CORS_ALLOWED_ORIGINS = [
+# Cross-origin access is an allowlist: set CORS_ALLOWED_ORIGINS to a comma-separated list of
+# origins. With DEBUG on and nothing set, only the local development origins are allowed;
+# otherwise nothing is. CORS_ALLOW_ALL_ORIGINS is deliberately not enabled.
+_DEV_CORS_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://10.0.2.2:8000",  # Android emulator
 ]
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=_DEV_CORS_ORIGINS if DEBUG else [])
 
 # Allow credentials (if using authentication cookies)
 CORS_ALLOW_CREDENTIALS = True

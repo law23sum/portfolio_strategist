@@ -164,3 +164,13 @@ cython_debug/
 /static_root/
 /node_modules
 /node_modules
+
+
+# --- Credentials and key material: never commit these ---
+*.pem
+*.key
+documentation/password
+
+# --- Installed dependencies and generated build output ---
+node_modules/
+static_root/

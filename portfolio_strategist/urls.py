@@ -75,7 +75,13 @@ urlpatterns = [
     path('solutions/', include('apps.solutions.urls', namespace = 'solutions')),
     path('records/', include('apps.records.urls', namespace = 'records')),
     path('categories/', include('apps.categories.urls', namespace = 'categories')),
-    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Uploaded media (financial documents, receipts) is only served by Django in development.
+# In production it must come from private object storage or an authenticated view, never
+# from a public URL prefix.
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.ENABLE_DEBUG_TOOLBAR:
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))

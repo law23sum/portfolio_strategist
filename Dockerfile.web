@@ -79,7 +79,8 @@ COPY --from=build-node /code/static /code/static
 
 # why this has to be here:
 # https://stackoverflow.com/questions/59719175/where-to-run-collectstatic-when-deploying-django-app-to-heroku-using-docker
-RUN DEBUG=False python /code/manage.py collectstatic --noinput --settings=portfolio_strategist.settings_production
+# SECRET_KEY is required by settings but collectstatic does not use it; real value comes from the runtime environment.
+RUN DEBUG=False SECRET_KEY=build-time-placeholder python /code/manage.py collectstatic --noinput --settings=portfolio_strategist.settings_production
 RUN chown django:django -R static_root
 
 USER django
